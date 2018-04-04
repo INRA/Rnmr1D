@@ -1240,6 +1240,7 @@ plotSpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), K
    i1<-length(which(ppm>max(ppm_lim)))
    ppm_sub <- ppm[i1:i2]
    specmat_sub <- specmat[ , i1:i2 ]
+   if (K==0) dppm_max <- 0
 
    Ymax <- pY*max(specmat_sub)         # intensity limit
    diffppm <- max(ppm_sub) - min(ppm_sub)
