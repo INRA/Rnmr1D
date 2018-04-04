@@ -165,16 +165,16 @@ generate_Metadata_1r <- function(RAWDIR, procParams)
    return(metadata)
 }
 
-set_Metadata_File <- function(RAWDIR, procParams, SampleFile)
+set_Metadata <- function(RAWDIR, procParams, SampleFile)
 {
-   if (procParams$VENDOR == "bruker") return (.set_Metadata_File_Bruker(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "varian") return (.set_Metadata_File_Varian(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "nmrml")  return (.set_Metadata_File_nmrML(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "jeol")   return (.set_Metadata_File_Jeol(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "bruker") return (.set_Metadata_Bruker(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "varian") return (.set_Metadata_Varian(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "nmrml")  return (.set_Metadata_nmrML(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "jeol")   return (.set_Metadata_Jeol(RAWDIR, procParams, SampleFile))
    return(NULL)
 }
 
-.set_Metadata_File_Bruker <- function(RAWDIR, procParams, SampleFile)
+.set_Metadata_Bruker <- function(RAWDIR, procParams, SampleFile)
 {
    samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
    samplesize <- dim(samples)
@@ -243,7 +243,7 @@ set_Metadata_File <- function(RAWDIR, procParams, SampleFile)
    return(metadata)
 }
 
-.set_Metadata_File_Varian <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_Varian <- function(RAWDIR, DATADIR, procParams, SampleFile)
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
@@ -297,17 +297,17 @@ set_Metadata_File <- function(RAWDIR, procParams, SampleFile)
    return(metadata)
 }
 
-.set_Metadata_File_nmrML <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_nmrML <- function(RAWDIR, DATADIR, procParams, SampleFile)
 {
-   return(.set_Metadata_File_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML"))
+   return(.set_Metadata_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML"))
 }
 
-.set_Metadata_File_Jeol <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_Jeol <- function(RAWDIR, DATADIR, procParams, SampleFile)
 {
-   return(.set_Metadata_File_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="jdf"))
+   return(.set_Metadata_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="jdf"))
 }
 
-.set_Metadata_File_ext <- function(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML")
+.set_Metadata_ext <- function(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML")
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
