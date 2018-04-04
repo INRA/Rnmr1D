@@ -23,9 +23,9 @@ library(doParallel)
 library(Rnmr1D)
 
 # Test with the provided example data
-data_dir <- system.file("data", package = "Rnmr1D")
+data_dir <- system.file("extra", package = "Rnmr1D")
 RAWDIR <- file.path(data_dir, "ADG19007")
-CMDFILE <- RAWDIR <- file.path(data_dir, "NP_macro_cmd_ADG19007.txt")
+CMDFILE <- file.path(data_dir, "NP_macro_cmd_ADG19007.txt")
 
 # Detect the number of Cores
 detectCores()
