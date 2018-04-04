@@ -1,7 +1,6 @@
 
 Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
 {
-
    if( ! file.exists(path))
        stop(paste0("ERROR: ",path," does NOT exist\n"), call.=FALSE)
    if( ! file.exists(cmdfile))
@@ -12,6 +11,8 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
        stop(paste0("ERROR: ",bucketfile," does NOT exist\n"), call.=FALSE)
    if ( check_MacroCmdFile(cmdfile) == 0 )
        stop(paste0("ERROR: ",cmdfile," seems to include errors\n"), call.=FALSE)
+
+   trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 
    Write.LOG(LOGFILE, "Rnmr1D:  --- READING and CONVERTING ---\n", mode="at")
 

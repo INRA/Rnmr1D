@@ -1,6 +1,5 @@
 
 # returns string w/o leading or trailing whitespace
-trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 .N <- function(x) { as.numeric(as.vector(x)) }
 .C <- function(x) { as.vector(x) }
 
@@ -168,14 +167,14 @@ generate_Metadata_1r <- function(RAWDIR, procParams)
 
 set_Metadata_File <- function(RAWDIR, procParams, SampleFile)
 {
-   if (procParams$VENDOR == "bruker") return (set_Metadata_File_Bruker(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "varian") return (set_Metadata_File_Varian(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "nmrml")  return (set_Metadata_File_nmrML(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "jeol")   return (set_Metadata_File_Jeol(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "bruker") return (.set_Metadata_File_Bruker(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "varian") return (.set_Metadata_File_Varian(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "nmrml")  return (.set_Metadata_File_nmrML(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "jeol")   return (.set_Metadata_File_Jeol(RAWDIR, procParams, SampleFile))
    return(NULL)
 }
 
-set_Metadata_File_Bruker <- function(RAWDIR, procParams, SampleFile)
+.set_Metadata_File_Bruker <- function(RAWDIR, procParams, SampleFile)
 {
    samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
    samplesize <- dim(samples)
@@ -244,7 +243,7 @@ set_Metadata_File_Bruker <- function(RAWDIR, procParams, SampleFile)
    return(metadata)
 }
 
-set_Metadata_File_Varian <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_File_Varian <- function(RAWDIR, DATADIR, procParams, SampleFile)
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
@@ -298,17 +297,17 @@ set_Metadata_File_Varian <- function(RAWDIR, DATADIR, procParams, SampleFile)
    return(metadata)
 }
 
-set_Metadata_File_nmrML <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_File_nmrML <- function(RAWDIR, DATADIR, procParams, SampleFile)
 {
-   return(set_Metadata_File_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML"))
+   return(.set_Metadata_File_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML"))
 }
 
-set_Metadata_File_Jeol <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_File_Jeol <- function(RAWDIR, DATADIR, procParams, SampleFile)
 {
-   return(set_Metadata_File_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="jdf"))
+   return(.set_Metadata_File_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="jdf"))
 }
 
-set_Metadata_File_ext <- function(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML")
+.set_Metadata_File_ext <- function(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML")
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
@@ -359,7 +358,7 @@ set_Metadata_File_ext <- function(RAWDIR, DATADIR, procParams, SampleFile, ext="
 #------------------------------
 # airPLS
 #------------------------------
-WhittakerSmooth <- function(x,w,lambda,differences=1)
+.WhittakerSmooth <- function(x,w,lambda,differences=1)
 {
   x=matrix(x,nrow = 1, ncol=length(x))
   L=length(x)
@@ -370,7 +369,7 @@ WhittakerSmooth <- function(x,w,lambda,differences=1)
   return(as.vector(background))
 }
  
-airPLS <- function(x,lambda=100,porder=1, itermax=8)
+.airPLS <- function(x,lambda=100,porder=1, itermax=8)
 {
   
   x = as.vector(x)
@@ -378,7 +377,7 @@ airPLS <- function(x,lambda=100,porder=1, itermax=8)
   w = rep(1,m)
   i = 1
   repeat {
-     z = WhittakerSmooth(x,w,lambda,porder)
+     z = .WhittakerSmooth(x,w,lambda,porder)
      d = x-z
      sum_smaller = abs(sum(d[d<0])) 
      if(sum_smaller<0.001*sum(abs(x))||i==itermax) break
@@ -401,7 +400,7 @@ airPLS <- function(x,lambda=100,porder=1, itermax=8)
 #   - baselineThresh: removal of all the peaks with intensity lower than this threshold, Default value: 50000
 # Output parameters
 #   - peak lists of the spectra
-detectSpecPeaks <- function (X, nDivRange, scales=seq(1, 16, 2), baselineThresh, SNR.Th=-1) 
+.detectSpecPeaks <- function (X, nDivRange, scales=seq(1, 16, 2), baselineThresh, SNR.Th=-1) 
 {
   nFea <- ncol(X)
   nSamp <- nrow(X)
@@ -447,7 +446,7 @@ detectSpecPeaks <- function (X, nDivRange, scales=seq(1, 16, 2), baselineThresh,
 #   - maxShift:  maximum number of the points for a shift step
 # Output parameters
 #   - aligned spectra: same format as input
-dohCluster <- function (X, peakList, refInd = 1, maxShift = 50, acceptLostPeak = TRUE) 
+.dohCluster <- function (X, peakList, refInd = 1, maxShift = 50, acceptLostPeak = TRUE) 
 {
   refSpec = X[refInd, ]
   Y <- foreach(tarInd=1:nrow(X), .combine=rbind) %dopar% {
@@ -472,7 +471,7 @@ dohCluster <- function (X, peakList, refInd = 1, maxShift = 50, acceptLostPeak =
 #   - baselineThresh: removal of all the peaks with intensity lower than this threshold, Default value: 50000
 # Output parameters
 #   - Y: n x p datamatrix
-CluPA <- function(data, reference=reference, nDivRange, scales = seq(1, 16, 2), baselineThresh,  SNR.Th = -1, maxShift=50, DEBUG=FALSE)
+.CluPA <- function(data, reference=reference, nDivRange, scales = seq(1, 16, 2), baselineThresh,  SNR.Th = -1, maxShift=50, DEBUG=FALSE)
 {
   LOGMSG <- ""
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, "Rnmr1D:  BEGIN CluPA\n");
@@ -480,7 +479,7 @@ CluPA <- function(data, reference=reference, nDivRange, scales = seq(1, 16, 2), 
   ## Peak picking
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Peak detection : nDivRange =",nDivRange,"\n"));
   startTime <- proc.time()
-  peakList <- detectSpecPeaks(X=data, nDivRange=nDivRange, scales=scales, baselineThresh=baselineThresh, SNR.Th = SNR.Th)
+  peakList <- .detectSpecPeaks(X=data, nDivRange=nDivRange, scales=scales, baselineThresh=baselineThresh, SNR.Th = SNR.Th)
   endTime <- proc.time()
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Peak detection time: ",(endTime[3]-startTime[3])," sec\n"));
 
@@ -499,7 +498,7 @@ CluPA <- function(data, reference=reference, nDivRange, scales = seq(1, 16, 2), 
   ## Spectra alignment to the reference
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Spectra alignment to the reference: maxShift =",maxShift,"\n"));
   startTime <- proc.time()
-  Y <- dohCluster(data, peakList=peakList, refInd=refInd, maxShift=maxShift, acceptLostPeak)
+  Y <- .dohCluster(data, peakList=peakList, refInd=refInd, maxShift=maxShift, acceptLostPeak)
   endTime <- proc.time()
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Spectra alignment time: ",(endTime[3]-startTime[3])," sec\n"));
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, "Rnmr1D:  END CluPA\n");
@@ -738,7 +737,7 @@ RairPLSbc1D <- function(specMat, zone, clambda)
    # Baseline Estimation for each spectrum
    BLList <- foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
        x <- specMat$int[i,c(i1:i2)]
-       bc <- airPLS(x, lambda)
+       bc <- .airPLS(x, lambda)
        gc()
        bc
    }
@@ -833,7 +832,7 @@ RCluPA1D <- function(specMat, zonenoise, zone, resolution=0.02, SNR=3, idxSref=0
    # Subpart of spectra
    if( is.null(Selected)) M<-specMat$int[, c(i1:i2) ] else  M<-specMat$int[Selected, c(i1:i2) ];
 
-   out <- CluPA(M, reference=idxSref, nDivRange, scales = seq(1, 8, 2), 
+   out <- .CluPA(M, reference=idxSref, nDivRange, scales = seq(1, 8, 2), 
                           baselineThresh,  SNR.Th = 0.1, maxShift=maxshift, DEBUG=DEBUG)
 
    if( is.null(Selected)) specMat$int[ ,c(i1:i2)] <- out$M else specMat$int[ Selected,c(i1:i2)] <- out$M

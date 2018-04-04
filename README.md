@@ -34,12 +34,13 @@ library(Rnmr1D)
 data_dir <- system.file("extra", package = "Rnmr1D")
 RAWDIR <- file.path(data_dir, "MMBBI_14P05")
 CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+SAMPLEFILE <- file.path(data_dir, "Samples.txt")
 
 # Detect the number of Cores
 detectCores()
 
 # Launch the pre-processing then the processing defined in the macro-command file
-out <- Rnmr1D(RAWDIR, cmdfile=CMDFILE, ncpu=detectCores())
+out <- Rnmr1D(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
 
 # Have a look on returned data structure
 ls(out)
