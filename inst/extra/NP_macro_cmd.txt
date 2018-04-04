@@ -1,0 +1,65 @@
+#%% Vendor=bruker; Type=fid; LB=0.3; ZF=2; BLPHC=FALSE; PHC1=FALSE; FP=0; TSP=TRUE;
+
+#
+# Normalisation ( CSN ) of the Intensities based on the selected PPM ranges...
+#
+normalisation CSN
+5.204 9.435
+0.607 4.578
+EOL
+
+#
+# Global Baseline Correction: PPM Range = (  -0.499909071543063  ,  10.9999706891186  )
+#
+gbaseline 10.2 10.5 -0.499909071543063 10.9999706891186 50 30 
+
+#
+# Baseline Correction: PPM Range = (  0.644  ,  2.927  )
+#
+airpls 0.644 2.927 4 
+
+#
+# Zeroing the selected zones ...
+#
+zero
+2.736 2.79
+2.235 2.289
+1.547 1.639
+1.264 1.359
+0.856 0.94
+EOL
+
+#
+# Baseline Correction: PPM Range = (  2.924  ,  5.529  )
+#
+airpls 2.924 5.529 2.6 
+
+#
+# Zeroing the selected zones ...
+#
+zero
+4.626 4.978
+EOL
+
+#
+# Baseline Correction: PPM Range = (  5.795  ,  8.393  )
+#
+airpls 5.795 8.393 2 
+
+#
+# Alignment of the selected zones ( 5.776 , 8.389 )
+#
+clupa 10.2 10.5 5.776 8.389 0.03 5 0
+
+#
+# Alignment of the selected zones ( 0.554 , 4.731 )
+#
+clupa 10.2 10.5 0.554 4.731 0.03 5 0
+
+#
+# Bucketing - AIBIN
+#
+bucket aibin 10.2 10.5 0.3 3 0
+9.309 4.788
+4.67 0.615
+EOL

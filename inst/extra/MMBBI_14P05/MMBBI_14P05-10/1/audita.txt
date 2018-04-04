@@ -1,0 +1,23 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.0
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= mica
+$$ /donnees/data/mica/nmr/MMBBI_14P05-10/1/audita.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-09-15 17:37:22.622 +0200>,<mica>,<mhpbf141>,<go>,<TOPSPIN 3.0>,
+      <created by zg
+	started at 2014-09-15 17:13:01.216 +0200,
+	POWCHK enabled, PULCHK disabled,
+       configuration hash MD5:
+       BA 70 69 08 47 38 D1 CF B0 31 64 0F 32 7C E6 90
+       data hash MD5: 32K
+       D2 97 90 6C 1E 2E 10 7B 11 B5 02 EA 19 93 27 8D>)
+(   2,<2014-09-15 17:37:24.679 +0200>,<mica>,<mhpbf141>,<audit>,<TOPSPIN 3.0>,
+      <user comment:
+       ICON-NMR User ID: mica
+       data hash MD5: 32K
+       D2 97 90 6C 1E 2E 10 7B 11 B5 02 EA 19 93 27 8D>)
+##END=
+
+$$ hash MD5
+$$ 83 0A 8F 49 40 3C 28 08 03 9F 1A 3B 55 83 C1 B9

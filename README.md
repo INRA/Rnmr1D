@@ -24,8 +24,8 @@ library(Rnmr1D)
 
 # Test with the provided example data
 data_dir <- system.file("extra", package = "Rnmr1D")
-RAWDIR <- file.path(data_dir, "ADG19007")
-CMDFILE <- file.path(data_dir, "NP_macro_cmd_ADG19007.txt")
+RAWDIR <- file.path(data_dir, "MMBBI_14P05")
+CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
 
 # Detect the number of Cores
 detectCores()

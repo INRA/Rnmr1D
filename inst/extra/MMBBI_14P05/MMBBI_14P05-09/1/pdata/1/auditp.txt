@@ -1,0 +1,38 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.0
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= mica
+$$ /donnees/data/mica/nmr/MMBBI_14P05-09/1/pdata/1/auditp.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-09-15 17:07:37.890 +0200>,<mica>,<mhpbf141>,<go>,<TOPSPIN 3.0>,
+      <created by zg
+	started at 2014-09-15 16:43:16.484 +0200,
+	POWCHK enabled, PULCHK disabled,
+       configuration hash MD5:
+       BA 70 69 08 47 38 D1 CF B0 31 64 0F 32 7C E6 90
+       data hash MD5: 32K
+       2B FA DC 1B 3A 81 9B 07 29 86 DD 7A B0 7B 4A BC>)
+(   2,<2014-09-15 17:07:39.951 +0200>,<mica>,<mhpbf141>,<audit>,<TOPSPIN 3.0>,
+      <user comment:
+       ICON-NMR User ID: mica
+       data hash MD5: 32K
+       2B FA DC 1B 3A 81 9B 07 29 86 DD 7A B0 7B 4A BC>)
+(   3,<2014-09-16 09:11:24.775 +0200>,<mica>,<mhpbf141>,<proc1d>,<TOPSPIN 3.0>,
+      <Start of raw data processing
+       efp LB = 0.3 FT_mod = 6 PKNL = 1 PHC0 = 26.23458 PHC1 = 0.6474711 SI = 32K 
+       data hash MD5: 32K
+       16 36 F6 D9 5E E7 93 35 88 04 AE 6C 4A E0 84 E9>)
+(   4,<2014-09-16 09:11:39.666 +0200>,<mica>,<mhpbf141>,<proc1d>,<TOPSPIN 3.0>,
+      <pk fgphup PHC0 = -0.1125 PHC1 = 0 
+       data hash MD5: 32K
+       5E 5B C2 DA 73 AF 24 CA 40 FD A7 A9 97 62 68 12>)
+(   5,<2014-09-16 09:11:42.461 +0200>,<mica>,<mhpbf141>,<proc1d>,<TOPSPIN 3.0>,
+      <duadd offset = 10 scale = 1 Hz y of
+       1 1 "MMBBI_14P05-09" "/donnees/data/mica/nmr"
+       1 100 "Eretic_Digital_Calibration" "/donnees/data/mica/nmr"
+       data hash MD5: 32K
+       EA 55 0F E2 73 28 30 43 B9 B8 0C CA 38 4F BB 1D>)
+##END=
+
+$$ hash MD5
+$$ 2C AD 75 81 C3 C5 CD E3 88 04 99 B3 BB 48 93 2C

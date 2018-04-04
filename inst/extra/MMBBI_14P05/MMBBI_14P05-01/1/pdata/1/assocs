@@ -1,0 +1,11 @@
+##TITLE= Parameter file, TOPSPIN		Version 3.2
+##JCAMPDX= 5.0
+##DATATYPE= Parameter Values
+##NPOINTS= 3	$$ modification sequence number
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= mmaucourt
+$$ 2015-11-24 08:31:32.317 +0100  INRA\mmaucourt@BAVO-MDEBF09
+$$ D:/data/MET2014-P05-CB Tournesol Sunrise/nmr/MMBBI_14P05-01/1/pdata/1/assocs
+$$ process C:\Bruker\TopSpin3.2\prog\mod\dataserver.exe
+##$MULTDISP= <D:\data\MET2014-P05-CB Tournesol Sunrise\nmr\MMBBI_14P05-01b\1\pdata\1>
+##END=

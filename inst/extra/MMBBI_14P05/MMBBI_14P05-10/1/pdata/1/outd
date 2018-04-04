@@ -1,0 +1,16 @@
+##TITLE= Parameter file, TOPSPIN		Version 3.0
+##JCAMPDX= 5.0
+##DATATYPE= Parameter Values
+##NPOINTS= 1	$$ modification sequence number
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= mica
+$$ 2014-09-15 17:07:40.440 +0200  mica@mhpbf141
+$$ /donnees/data/mica/nmr/MMBBI_14P05-10/1/pdata/1/outd
+$$ process /opt/topspin3.0/prog/mod/xwish3
+##$CURPLOT= <HP-Pro8000>
+##$CURPRIN= <dconpeaks.txt>
+##$DFORMAT= <normdp>
+##$LAYOUT= <+/1D_H.xwp>
+##$LFORMAT= <normlp>
+##$PFORMAT= <normpl>
+##END=

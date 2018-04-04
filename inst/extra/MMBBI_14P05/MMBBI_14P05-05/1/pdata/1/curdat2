@@ -1,0 +1,18 @@
+##TITLE= Parameter file, TOPSPIN		Version 3.0
+##JCAMPDX= 5.0
+##DATATYPE= Parameter Values
+##NPOINTS= 2	$$ modification sequence number
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= mica
+$$ 2014-09-15 16:07:49.019 +0200  mica@mhpbf141
+$$ /donnees/data/mica/nmr/MMBBI_14P05-05/1/pdata/1/curdat2
+$$ process /opt/topspin3.0/prog/au/bin/user/Eretic_Digital
+##$DATPATH2= </donnees/data/mica/nmr>
+##$DATPATH3= </donnees/data/mica/nmr>
+##$EXPNO2= 100
+##$EXPNO3= 1
+##$NAME2= <Eretic_Digital_Calibration>
+##$NAME3= <MMBBI_14P05-05>
+##$PROCNO2= 1
+##$PROCNO3= 1
+##END=
