@@ -4,9 +4,17 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 
 * Inside NMRProcFlow, Rnmr1D allows users to process their NMR spectra within a GUI application and thus the macro-command sequence coming from this process can be saved. 
 
-* Outside NMRProcFlow Rnmr1D become a CLI application allowing users to replay  the macro-command sequence generated within NMRProcFlow. Moreover, without using NMRProcFlow, this module can also be used to replace any 'home-made script'  by a macro-command sequence.
+* Outside NMRProcFlow Rnmr1D become an R package allowing users to replay  the macro-command sequence generated within NMRProcFlow. Moreover, without using NMRProcFlow, this package can also be used to replace any 'home-made script'  by a macro-command sequence.
 
-## Installation
+## Installation of some dependencies
+
+```R
+source('http://bioconductor.org/biocLite.R');
+biocLite('MassSpecWavelet'); biocLite('impute');
+install.packages(c('doParallel', 'ptw', 'signal', 'speaq'), repos='http://cran.rstudio.com')
+```
+
+## Installation of the R package 
 
 ```R
 require(devtools)
