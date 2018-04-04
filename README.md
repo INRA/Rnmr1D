@@ -46,8 +46,11 @@ out <- Rnmr1D(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores()
 ls(out)
 ls(out$specMat)
 
-# Stacked Plot 
+# Stacked Plot with a perspective effect
 plotSpecMat(out$specMat, ppm_lim=c(0.5,5))
+
+# Overlaid Plot
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0)
 
 # Get the data matrix 
 outMat <- get_Buckets_dataset(out, norm_meth='CSN')
