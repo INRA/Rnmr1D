@@ -474,34 +474,32 @@ set_Metadata <- function(RAWDIR, procParams, SampleFile)
 .CluPA <- function(data, reference=reference, nDivRange, scales = seq(1, 16, 2), baselineThresh,  SNR.Th = -1, maxShift=50, DEBUG=FALSE)
 {
   LOGMSG <- ""
-  if( DEBUG ) LOGMSG <- paste0(LOGMSG, "Rnmr1D:  BEGIN CluPA\n");
 
   ## Peak picking
-  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Peak detection : nDivRange =",nDivRange,"\n"));
+  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     --- Peak detection : nDivRange =",nDivRange,"\n"));
   startTime <- proc.time()
   peakList <- .detectSpecPeaks(X=data, nDivRange=nDivRange, scales=scales, baselineThresh=baselineThresh, SNR.Th = SNR.Th)
   endTime <- proc.time()
-  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Peak detection time: ",(endTime[3]-startTime[3])," sec\n"));
+  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     --- Peak detection time: ",(endTime[3]-startTime[3])," sec\n"));
 
   ## Reference spectrum determination
   if (reference == 0) {
-     if( DEBUG ) LOGMSG <- paste0(LOGMSG, "Rnmr1D:  --- Find the spectrum reference...\n");
      #resFindRef<- speaq::findRef(peakList)
      #refInd <- resFindRef$refInd
      V <- bestref(data, optim.crit="WCC")
      refInd  <- V$best.ref
 
-     if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- The reference is: ",refInd,"\n"));
   } else  {
      refInd=reference
   }
+  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     --- The reference spectrum is: ",refInd,"\n"));
+
   ## Spectra alignment to the reference
-  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Spectra alignment to the reference: maxShift =",maxShift,"\n"));
+  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     --- Spectra alignment to the reference: maxShift =",maxShift,"\n"));
   startTime <- proc.time()
   Y <- .dohCluster(data, peakList=peakList, refInd=refInd, maxShift=maxShift, acceptLostPeak)
   endTime <- proc.time()
-  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:  --- Spectra alignment time: ",(endTime[3]-startTime[3])," sec\n"));
-  if( DEBUG ) LOGMSG <- paste0(LOGMSG, "Rnmr1D:  END CluPA\n");
+  if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     --- Spectra alignment time: ",(endTime[3]-startTime[3])," sec\n"));
 
   ## Output  
   return(list(M=Y, LOGMSG=LOGMSG))
