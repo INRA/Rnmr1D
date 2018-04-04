@@ -1,10 +1,17 @@
 
-Rnmr1D <- function (path, cmdfile, samplefile=NULL, ncpu=1 )
+Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
 {
 
-   if( ! file.exists(path)) Write.LOG(LOGFILE, paste0("ERROR: ",path," does NOT exist\n"))
-   if( ! file.exists(cmdfile)) Write.LOG(LOGFILE, paste0("ERROR: ",cmdfile," does NOT exist\n"))
-   if ( check_MacroCmdFile(cmdfile) == 0 ) Write.LOG(LOGFILE, paste0("ERROR: ",cmdfile," seems to include errors\n"))
+   if( ! file.exists(path))
+       stop(paste0("ERROR: ",path," does NOT exist\n"), call.=FALSE)
+   if( ! file.exists(cmdfile))
+       stop(paste0("ERROR: ",cmdfile," does NOT exist\n"), call.=FALSE)
+   if( ! is.null(samplefile) && ! file.exists(samplefile))
+       stop(paste0("ERROR: ",samplefile," does NOT exist\n"), call.=FALSE)
+   if( ! is.null(bucketfile) && ! file.exists(bucketfile))
+       stop(paste0("ERROR: ",bucketfile," does NOT exist\n"), call.=FALSE)
+   if ( check_MacroCmdFile(cmdfile) == 0 )
+       stop(paste0("ERROR: ",cmdfile," seems to include errors\n"), call.=FALSE)
 
    Write.LOG(LOGFILE, "Rnmr1D:  --- READING and CONVERTING ---\n", mode="at")
 
@@ -200,7 +207,26 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, ncpu=1 )
      # Process the Macro-commands file
        specMat <- RProcCMD1D(specObj, CMDTEXT, NCPU=ncpu, DEBUG=TRUE)
        if (specMat$fWriteSpec) specObj$specMat <- specMat
+       gc()
 
+     # Performs the bucketing based on the bucket list file 
+       if( ! is.null(bucketfile) && file.exists(bucketfile)) {
+           Write.LOG(LOGFILE, "Rnmr1D: ------------------------------------\n")
+           Write.LOG(LOGFILE, "Rnmr1D: Process the file of buckets\n")
+           Write.LOG(LOGFILE, "Rnmr1D: ------------------------------------\n")
+           Write.LOG(LOGFILE, "Rnmr1D: \n")
+
+           # The bucket zones file
+           buckets_infile <- read.table(bucketfile, header=T, sep=sep,stringsAsFactors=FALSE)
+           if ( sum(c('min','max') %in% colnames(buckets_infile)) == 2 ) {
+                buckets <- cbind( buckets_infile$max, buckets_infile$min )
+                specObj$specMat$buckets_zones <- buckets
+                Write.LOG(LOGFILE, paste0("Rnmr1D:     NB Buckets = ",dim(buckets)[1],"\n"))
+                Write.LOG(LOGFILE, "Rnmr1D: \n")
+           } else {
+                Write.LOG(LOGFILE,"ERROR: the file of bucket's areas does not contain the 2 mandatory columns having 'min' and 'max' in its header line\n")
+           }
+       }
    }, error=function(e) {
        cat(paste0("ERROR: ",e))
    })

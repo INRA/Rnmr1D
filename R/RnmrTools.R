@@ -787,7 +787,7 @@ RZero1D <- function(specMat, zones, DEBUG=FALSE)
        i1<-length(which(specMat$ppm>max(zones[i,])))
        i2<-which(specMat$ppm<=min(zones[i,]))[1]
        specMat$int[,c(i1:i2)] <- matrix(0,specMat$nspec,(i2-i1+1))
-       if( DEBUG ) LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),")\n")
+       if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),")\n"))
    }
    specMat$LOGMSG <- LOGMSG
    return(specMat)
