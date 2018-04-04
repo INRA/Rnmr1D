@@ -1274,6 +1274,8 @@ get_Buckets_table <- function(specObj)
    buckets <- specMat$buckets_zones
    if ( ! is.null(buckets) ) {
       colnames(buckets) <- c("max","min")
+      buckets <- as.data.frame(buckets, stringsAsFactors=FALSE)
+
       buckets$center <- 0.5*(buckets[,1]+buckets[,2])
       buckets$width <-  0.5*abs(buckets[,1]-buckets[,2])
       buckets$name <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets$center))) )
@@ -1346,7 +1348,7 @@ get_SNR_dataset <- function(specObj, zone_noise, ratio=TRUE)
       # get index of buckets' ranges
       colnames(buckets) <- c("max","min")
       buckets_m <- t(simplify2array(lapply( c( 1:(dim(buckets)[1]) ), 
-                     function(x) { c( length(which(specMat$ppm>buckets[x,]$max)), length(which(specMat$ppm>buckets[x,]$min)) ) }
+                     function(x) { c( length(which(specMat$ppm>buckets[x,1])), length(which(specMat$ppm>buckets[x,2])) ) }
                     )))
       # Compute Vnoise vector & Maxvals maxtrix
       i1 <- ifelse( max(zone_noise)>=specMat$ppm_max, 1, length(which(specMat$ppm>max(zone_noise))) )
