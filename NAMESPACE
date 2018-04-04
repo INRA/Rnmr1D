@@ -1,0 +1,13 @@
+useDynLib(Rnmr1D)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
+import(Matrix)
+import(MASS)
+import(signal)
+import(ptw)
+import(speaq)
+import(base64enc)
+import(XML)
+import(doParallel)
+export("PPM_MIN", "PPM_MAX", "PPM_MIN_13C", "PPM_MAX_13C", "sep", "LOGFILE")
+
