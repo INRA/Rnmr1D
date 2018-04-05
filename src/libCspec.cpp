@@ -1,15 +1,9 @@
-// [[Rcpp::depends(RcppGSL)]]
 #include <Rcpp.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <math.h>
 #include <float.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_sort.h>
-#include <gsl/gsl_sort_vector.h>
-#include <gsl/gsl_statistics.h>
 
 // [[Rcpp::plugins(openmp)]]
 
@@ -902,6 +896,7 @@ SEXP C_buckets_CSN_normalize (SEXP b)
 //  Spectra pre-processing
 // ---------------------------------------------------
 
+
 // [[Rcpp::export]]
 double C_estime_sd(SEXP x, int cut)
 {
@@ -910,14 +905,15 @@ double C_estime_sd(SEXP x, int cut)
    const size_t n2 = n/cut;
    size_t i,k;
 
-   double v[n2];
+   //double v[n2];
+   NumericVector v(n2);
    double sdx, sdev;
 
    // Sdev estimation
    sdev=0;
    for (i=2; i<(size_t)(cut-1); ++i) {
        for (k=0; k<n2; ++k) v[k] = X[i*n2+k];
-       sdx = fabs(gsl_stats_sd (v,1,n2));
+       sdx = Rcpp::sd(v);
        if (i==2 || sdx<sdev) sdev=sdx;
    }
    return sdev;
@@ -943,16 +939,22 @@ SEXP ajustBL (SEXP x, int flg) {
    size_t i,k;
 
    NumericVector Y( X.size() );
+   NumericVector m(n2);
+   //double m[n2];
+   double mx, sdx, med, sdev;
 
-   double m[n2];
-   double mx, sdx, median, sdev;
+  Rcpp::Environment base("package:stats"); 
+  Rcpp::Function median_r = base["median"];
 
+  // Call the function and receive its list output
+
+   sdx=0; mx=0;
    for (i=3; i<30; ++i) {
        for (k=0; k<n2; ++k) m[k] = X[i*n2+k];
-       gsl_sort(m,1,n2);
-       median = gsl_stats_median_from_sorted_data (m,1,n2);
-       sdev = fabs(gsl_stats_sd (m,1,n2));
-       if (i==3 || sdev<sdx) { mx=median; sdx=sdev; }
+       NumericVector res = median_r(m);
+       med = res[0];
+       sdev=Rcpp::sd(m);
+       if (i==3 || sdev<sdx) { mx=med; sdx=sdev; }
    }
    for (i=0; i<n; ++i)
      if (flg==0 || i>n3 || i<(n-n3))
@@ -1041,11 +1043,11 @@ double fmin(SEXP l, double x, int flg)
    if (flg==0) phc0=x;
    if (flg==1) phc1=x;
 
-   double Y[n], V[n];
+   double Y[n]; //, V[n];
    double quant, SSpos, SStot, ysign, ytrim;
    double phi, dn;
 
-   NumericVector X(n), lb(n);
+   NumericVector X(n), lb(n), V(n), P(1);
    dn=n*alpha;
    for (i=0; i<n; i++) {
        phi = phc0 + phc1*(i-dn)/n;
@@ -1064,8 +1066,12 @@ double fmin(SEXP l, double x, int flg)
          Y[i] = 0;
      V[i]= (Y[i] > 0 ? Y[i]:-Y[i]);
    }
-   gsl_sort(V,1,n);
-   quant = gsl_stats_quantile_from_sorted_data (V,1,n,p);
+
+  Rcpp::Environment base("package:stats"); 
+  Rcpp::Function quantile_r = base["quantile"];
+  P[0]=p;
+  NumericVector res = quantile_r(V, _["probs"] = P);
+  quant=res[0];
 
    SSpos=SStot=0;
    for (i=0; i<n; ++i) {
