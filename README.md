@@ -27,7 +27,8 @@ require(devtools)
 install_github("djacob65/Rnmr1D", dependencies = TRUE)
 ```
 
-* Note: For Windows 7/10, it is highly recommended to proceed within R Studio so that the C++ code compilation will be correctly done.
+* Note: For Windows 7/10, it is highly recommended to proceed within R Studio so that the C++ code compilation will be correctly done. Before performing the installation within R GUI it may require to specify the Compiler binaries path in the PATH environment variable ( check with Sys.getenv("PATH") )
+
 
 ## Quick tutorial
 
