@@ -10,6 +10,10 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 
 ## Installation of some dependencies
 
+* You may need to install a C++ compiler if not the case yet (see https://teuder.github.io/rcpp4everyone_en/020_install.html)
+
+* Some R packages:
+
 ```R
 source('http://bioconductor.org/biocLite.R');
 biocLite('MassSpecWavelet'); biocLite('impute');
