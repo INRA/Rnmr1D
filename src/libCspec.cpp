@@ -1,3 +1,4 @@
+// See https://teuder.github.io/rcpp4everyone_en/
 #include <Rcpp.h>
 #include <iostream>
 #include <fstream>

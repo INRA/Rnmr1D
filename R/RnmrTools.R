@@ -916,15 +916,15 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
           n_bucs <- length(seq_buc) - 1
           buckets_m <- cbind ( seq_buc[1:n_bucs], seq_buc[2:(n_bucs+1)])
        }
-       if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),"), Nb Buckets =",dim(buckets_m)[1],"\n"))
        # Keep only the buckets for which the SNR average is greater than 'snr'
        MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
-       # buckets_m <- buckets_m[ which( apply(t(MaxVals/(2*Vnoise)),1,mean)>snr), ]
        buckets_m <- buckets_m[ which( apply(t(MaxVals/(2*Vnoise)),1,quantile)[4,]>snr), ]
-       cbind( specMat$ppm[buckets_m[,1]], specMat$ppm[buckets_m[,2]] )
-
+       LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),"), Nb Buckets =",dim(buckets_m)[1],"\n")
+       cbind( specMat$ppm[buckets_m[,1]], specMat$ppm[buckets_m[,2]], LOGMSG )
    }
+   if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste(unique(buckets_zones[,3]), collapse=""))
 
+   buckets_zones <- cbind( .N(buckets_zones[,1]), .N(buckets_zones[,2]) )
    if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     Total Buckets =",dim(buckets_zones)[1],"\n"))
 
    if( buckets_zones[1,1]>buckets_zones[1,2] )  {  colnames(buckets_zones) <- c('max','min') }
