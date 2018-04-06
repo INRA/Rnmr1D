@@ -29,7 +29,7 @@ require(devtools)
 install_github("djacob65/Rnmr1D", dependencies = TRUE)
 ```
 
-## Quick tutorial
+## Example of use
 
 
 ```R
