@@ -12,6 +12,8 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
    if ( check_MacroCmdFile(cmdfile) == 0 )
        stop(paste0("ERROR: ",cmdfile," seems to include errors\n"), call.=FALSE)
 
+   require(doParallel)
+
    trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 
    Write.LOG(LOGFILE, "Rnmr1D:  --- READING and CONVERTING ---\n", mode="at")
@@ -80,16 +82,13 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
    }
    gc()
 
-   #return(metadata)
-
-   LIST <- metadata$rawids
-
    cl <- makeCluster(ncpu)
    registerDoParallel(cl)
-   #registerDoParallel(cores=ncpu)
    Sys.sleep(1)
 
    Write.LOG(LOGFILE, paste0("Rnmr1D:  -- Nb Spectra = ",dim(LIST)[1]," -- Nb Cores = ",ncpu,"\n"))
+
+   LIST <- metadata$rawids
 
    tryCatch({
        specList <- foreach(x=1:(dim(LIST)[1]), .combine=cbind) %dopar% {
