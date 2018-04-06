@@ -206,7 +206,7 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
        Write.LOG(LOGFILE,"Rnmr1D: \n")
 
      # Process the Macro-commands file
-       specMat <- RProcCMD1D(specObj, CMDTEXT, NCPU=ncpu, DEBUG=TRUE)
+       specMat <- RProcCMD1D(specObj, CMDTEXT, DEBUG=TRUE)
        if (specMat$fWriteSpec) specObj$specMat <- specMat
        gc()
 
