@@ -86,9 +86,8 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
    registerDoParallel(cl)
    Sys.sleep(1)
 
-   Write.LOG(LOGFILE, paste0("Rnmr1D:  -- Nb Spectra = ",dim(LIST)[1]," -- Nb Cores = ",ncpu,"\n"))
-
    LIST <- metadata$rawids
+   Write.LOG(LOGFILE, paste0("Rnmr1D:  -- Nb Spectra = ",dim(LIST)[1]," -- Nb Cores = ",ncpu,"\n"))
 
    tryCatch({
        specList <- foreach(x=1:(dim(LIST)[1]), .combine=cbind) %dopar% {
