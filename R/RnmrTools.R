@@ -1314,12 +1314,11 @@ get_Buckets_dataset <- function(specObj, norm_meth='CSN', zoneref=NA)
       }
       # read samples
       samples <- specObj$samples
-      # read factors
-      factors <- specObj$factors
       # write the data table
       bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets[,1]))) )
-      outdata <- cbind( samples[, -1], buckets_IntVal )
-      colnames(outdata) <- c( factors[,2], bucnames )
+      outdata <- buckets_IntVal
+      colnames(outdata) <- bucnames
+      rownames(outdata) <- samples[,2]
    }
    return(outdata)
 }
@@ -1334,10 +1333,6 @@ get_SNR_dataset <- function(specObj, zone_noise, ratio=TRUE)
    buckets <- specMat$buckets_zones
 
    if ( ! is.null(buckets) ) {
-      # read samples
-      samples <- specObj$samples
-      # read factors
-      factors <- specObj$factors
       # get index of buckets' ranges
       colnames(buckets) <- c("max","min")
       buckets_m <- t(simplify2array(lapply( c( 1:(dim(buckets)[1]) ), 
@@ -1349,16 +1344,19 @@ get_SNR_dataset <- function(specObj, zone_noise, ratio=TRUE)
       flg <- 1
       Vnoise <- abs( C_noise_estimate(specMat$int, i1, i2, flg) )
       MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
+
+      # read samples
+      samples <- specObj$samples
       # write the data table
       bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets[,1]))) )
       if (ratio) {
-         outdata <- cbind( samples[, -1], MaxVals/(2*Vnoise))
-         colnames(outdata) <- c( factors[,2], bucnames )
+         outdata <- cbind( MaxVals/(2*Vnoise))
+         colnames(outdata) <- bucnames
       } else {
-         outdata <- cbind( samples[, -1], Vnoise, MaxVals )
-         colnames(outdata) <- c( factors[,2], 'Noise', bucnames )
+         outdata <- cbind( Vnoise, MaxVals )
+         colnames(outdata) <- c( 'Noise', bucnames )
       }
-      outdata <- data.frame(outdata, stringsAsFactors=FALSE)
+      rownames(outdata) <- samples[,2]
    }
    return(outdata)
 }
