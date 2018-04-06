@@ -33,7 +33,6 @@ install_github("djacob65/Rnmr1D", dependencies = TRUE)
 
 
 ```R
-library(doParallel)
 library(Rnmr1D)
 
 # Test with the provided example data
