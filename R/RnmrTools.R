@@ -1049,7 +1049,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, NCPU=1, DEBUG=FALSE)
                  PPM_NOISE <- c( min(params[1:2]), max(params[1:2]) )
                  PPMRANGE <- c( min(params[3:4]), max(params[3:4]) )
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Baseline Correction: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"));
-                 registerDoParallel(cores=NCPU)
+                 #registerDoParallel(cores=NCPU)
                  if (cmdName == lbBASELINE) {
                      if (params[5]>0) { # to be compliant with version<1.1.4
                         BCMETH <- params[5]
@@ -1078,7 +1078,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, NCPU=1, DEBUG=FALSE)
                  PPMRANGE <- c( min(params[3:4]), max(params[3:4]) )
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Baseline Correction: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     Type=q-NMR\n"))
-                 registerDoParallel(cores=NCPU)
+                 #registerDoParallel(cores=NCPU)
                  specMat <- Rqnmrbc1D(specMat,PPM_NOISE, PPMRANGE)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
@@ -1092,7 +1092,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, NCPU=1, DEBUG=FALSE)
                  LAMBDA <- params[3]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Baseline Correction: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste("Rnmr1D:     Type=airPLS, lambda=",LAMBDA,"\n"))
-                 registerDoParallel(cores=NCPU)
+                 #registerDoParallel(cores=NCPU)
                  specMat <- RairPLSbc1D(specMat, PPMRANGE, LAMBDA)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
@@ -1108,7 +1108,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, NCPU=1, DEBUG=FALSE)
                  FLENGTH <- params[4]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Denoising: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"));
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     Filter Order=",FORDER," - Filter Length=",FLENGTH,"\n"));
-                 registerDoParallel(cores=NCPU)
+                 #registerDoParallel(cores=NCPU)
                  specMat <- RFilter1D(specMat,PPMRANGE, FORDER, FLENGTH)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
@@ -1204,7 +1204,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, NCPU=1, DEBUG=FALSE)
               }
               Write.LOG(LOGFILE,"Rnmr1D:  Bucketing the selected PPM ranges ...\n")
               Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2])," - Resolution =",params[3]," - SNR threshold=",params[4], " - Append=",params[5],"\n"))
-              registerDoParallel(cores=NCPU)
+              #registerDoParallel(cores=NCPU)
               specMat <- RBucket1D(specMat, cmdPars[2], params[3], params[4], zones, PPM_NOISE, params[5], DEBUG=DEBUG)
               specMat$buckets_zones <- specMat$buckets_zones[order(specMat$buckets_zones[,1]), ]
               Write.LOG(LOGFILE, specMat$LOGMSG )

@@ -84,7 +84,9 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
 
    LIST <- metadata$rawids
 
-   registerDoParallel(cores=ncpu)
+   cl <- makeCluster(ncpu)
+   registerDoParallel(cl)
+   #registerDoParallel(cores=ncpu)
    Sys.sleep(1)
 
    Write.LOG(LOGFILE, paste0("Rnmr1D:  -- Nb Spectra = ",dim(LIST)[1]," -- Nb Cores = ",ncpu,"\n"))
@@ -231,6 +233,8 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
    }, error=function(e) {
        cat(paste0("ERROR: ",e))
    })
+
+   stopCluster(cl)
 
    return(specObj)
 
