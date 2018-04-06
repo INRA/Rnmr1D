@@ -6,7 +6,7 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 
 * Outside NMRProcFlow Rnmr1D become an R package allowing users to replay  the macro-command sequence generated within NMRProcFlow. Moreover, without using NMRProcFlow, this package can also be used to replace any 'home-made script'  by a macro-command sequence.
 
-* See the [Macro-command Reference Guide](https://drive.google.com/file/d/1Dy6n7obX8tJFxi4xiNi0MEjMHZu3aMc7/view?usp=sharing) to have more details about macro-commands.
+* See the [Macro-command Reference Guide](https://nmrprocflow.org/themes/pdf/Macrocommand.pdf) to have more details about macro-commands.
 
 ## Installation of some dependencies
 
