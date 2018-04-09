@@ -243,7 +243,7 @@ set_Metadata <- function(RAWDIR, procParams, SampleFile)
    return(metadata)
 }
 
-.set_Metadata_Varian <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_Varian <- function(RAWDIR, procParams, SampleFile)
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
@@ -297,17 +297,17 @@ set_Metadata <- function(RAWDIR, procParams, SampleFile)
    return(metadata)
 }
 
-.set_Metadata_nmrML <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_nmrML <- function(RAWDIR, procParams, SampleFile)
 {
-   return(.set_Metadata_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML"))
+   return(.set_Metadata_ext(RAWDIR, procParams, SampleFile, ext="nmrML"))
 }
 
-.set_Metadata_Jeol <- function(RAWDIR, DATADIR, procParams, SampleFile)
+.set_Metadata_Jeol <- function(RAWDIR, procParams, SampleFile)
 {
-   return(.set_Metadata_ext(RAWDIR, DATADIR, procParams, SampleFile, ext="jdf"))
+   return(.set_Metadata_ext(RAWDIR, procParams, SampleFile, ext="jdf"))
 }
 
-.set_Metadata_ext <- function(RAWDIR, DATADIR, procParams, SampleFile, ext="nmrML")
+.set_Metadata_ext <- function(RAWDIR, procParams, SampleFile, ext="nmrML")
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
