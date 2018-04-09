@@ -1280,7 +1280,7 @@ get_Buckets_table <- function(specObj)
 #----
 # Generates the buckets data set
 #----
-get_Buckets_dataset <- function(specObj, norm_meth='CSN', zoneref=NA)
+get_Buckets_dataset <- function(specObj, norm_meth='none', zoneref=NA)
 {
    outdata <- NULL
    specMat <- specObj$specMat
@@ -1294,11 +1294,11 @@ get_Buckets_dataset <- function(specObj, norm_meth='CSN', zoneref=NA)
                     )))
       # Integration
       buckets_IntVal <- C_all_buckets_integrate (specMat$int, buckets_m, 0)
-      buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
       if (norm_meth == 'CSN') {
-          buckets_IntVal <- buckets_IntVal_CSN
+          buckets_IntVal <- C_buckets_CSN_normalize( buckets_IntVal )
       }
       if (norm_meth == 'PQN') {
+          buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
           bucVref_IntVal <- C_MedianSpec(buckets_IntVal_CSN)
           bucRatio <- buckets_IntVal_CSN / bucVref_IntVal
           Coeff <- apply(bucRatio,1,median)
@@ -1326,7 +1326,7 @@ get_Buckets_dataset <- function(specObj, norm_meth='CSN', zoneref=NA)
 #----
 # Generates the SNR dataset
 #----
-get_SNR_dataset <- function(specObj, zone_noise, ratio=TRUE)
+get_SNR_dataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
 {
    outdata <- NULL
    specMat <- specObj$specMat

@@ -228,6 +228,10 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
                 Write.LOG(LOGFILE,"ERROR: the file of bucket's areas does not contain the 2 mandatory columns having 'min' and 'max' in its header line\n")
            }
        }
+
+       specObj$specMat$fWriteSpec <- NULL
+       specObj$specMat$LOGMSG <- NULL
+
    }, error=function(e) {
        cat(paste0("ERROR: ",e))
    })
