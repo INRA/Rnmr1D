@@ -62,14 +62,14 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
               break
           }
           if ( procParams$INPUT_SIGNAL=="1r" )  {
-              metadata <- generate_Metadata_1r(RawDir, procParams )
+              metadata <- generate_Metadata_1r(path, procParams )
               break
           }
           break
       }
       # Varian or nmrML without sample file 
       else {
-          metadata <- set_Metadata(RawDir, procParams, samplefile )
+          metadata <- set_Metadata(path, procParams, samplefile )
           break
       }
       break
