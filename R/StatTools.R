@@ -264,7 +264,7 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
        cvals <- seq(from=params$CVAL_MIN, to=params$CVAL_MAX, by=params$CVAL_STEP)
        vstats <- estime_cval(cor_mat, cvals, params$NCPU)
        if (params$CVAL==0) {
-           sub1 <- which( vstats[,4]<40 )
+           sub1 <- which( vstats[,4]<params$MAXCSIZE )
            sub2 <- which ( vstats[ sub1, 2 ]==max(vstats[ sub1, 2 ] ) ) + sub1[1] - 1
            indx <- sub2[ which(vstats[sub2,4]==min(vstats[sub2,4]))[1] ]
            params$CVAL <- vstats[indx, 1]
