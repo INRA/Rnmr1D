@@ -9,5 +9,6 @@ import(speaq)
 import(base64enc)
 import(XML)
 import(doParallel)
+import(igraph)
 export("PPM_MIN", "PPM_MAX", "PPM_MIN_13C", "PPM_MAX_13C", "sep", "LOGFILE")
 
