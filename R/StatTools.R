@@ -414,7 +414,7 @@ get_Merged_dataset <- function(data, clustObj, onlycluster=FALSE)
    matrix
 }
 
-plotVstat <- function(clustObj)
+plot.Criterion <- function(clustObj)
 {
     Vstats <- clustObj$vstats
     Vcrit <- clustObj$vcrit
@@ -446,7 +446,7 @@ plotVstat <- function(clustObj)
      mtext("Number of Clusters", side=4, line=3)
 }
 
-plotClusters <- function(data, clustObj)
+plot.Clusters <- function(data, clustObj)
 {
      CLUST <- unique(clustObj$clustertab[,2])
      X <- get_Merged_dataset(data, outclust, onlycluster=T)
@@ -482,7 +482,7 @@ plotClusters <- function(data, clustObj)
 ##     http://www.earth-time.org/projects/upb/public_docs/ErrorEllipses.pdf
 ##########################################################################
 
-plot.loadings <- function (data,pc1,pc2, associations=NULL,
+plot.Loadings <- function (data,pc1,pc2, associations=NULL,
          main="Loadings", xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1)
 {
    require(ade4)

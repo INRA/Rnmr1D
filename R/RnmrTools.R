@@ -1227,7 +1227,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
 #                  1 : symmetric trapeze
 #  beta        Correction of horizontal parallax effect   (0 .. 0.2) (defaut 0)
 #  cols        Vector of colors (same size that the number of spectra, i.e dim(specmat)[1])
-plotSpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), K=0.67, pY=1, dppm_max=0.2*(max(ppm_lim) - min(ppm_lim)), asym=1, beta=0, cols=NULL)
+plot.SpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), K=0.67, pY=1, dppm_max=0.2*(max(ppm_lim) - min(ppm_lim)), asym=1, beta=0, cols=NULL)
 {
    specmat <- specMat$int
    ppm <- specMat$ppm
