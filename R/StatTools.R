@@ -2,9 +2,6 @@
 # Copyright (C) 2017 INRA
 # Authors: D. Jacob
 #
-suppressMessages(library(ade4))
-suppressMessages(library(car))
-
 trim<-function(x) gsub("^\\s+|\\s+$", "", x)
 
 colors <- c("red", "cornflowerblue", "darkgreen", "blueviolet", "orange", 
@@ -488,6 +485,9 @@ plotClusters <- function(data, clustObj)
 plot.loadings <- function (data,pc1,pc2, associations=NULL,
          main="Loadings", xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1)
 {
+   require(ade4)
+   require(car)
+
    V <- t(data[,c(pc1,pc2)])
    colnames(V) <- rownames(data)
    plot(t(V),pch=20, adj=1, lwd=1, main=main,
