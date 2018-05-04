@@ -193,10 +193,10 @@ get_Clusters_hca <- function(data, vcutusr=0, scalemeth='Zscore', log=0, distmet
    V <- Vsub[Vsub[,2] == max(Vsub[,2]),1]
 # -- Keep the Vcut value such as the variable count is max
    VcutOpt <- V[which(Vstats[Vstats[,1] %in% V,3]==max(Vstats[Vstats[,1] %in% V,3]))][1]
-   indx <- round(VcutOpt/Vstep) - round(Vcut_min/Vstep) + 1
+   Vcut <- ifelse(params$vcutusr==0, VcutOpt, params$vcutusr)
+   indx <- round(Vcut/Vstep) - round(Vcut_min/Vstep) + 1
 
 # Get the association table: Variables <=> CLusterID
-   Vcut <- ifelse(params$vcutusr==0, VcutOpt, params$vcutusr)
    association <- get_VarSet(hc.c, Vcut)
    association <- cbind( association, gsub(params$BUCCHAR, "", gsub("_", ".", association[,VC])) )
 
