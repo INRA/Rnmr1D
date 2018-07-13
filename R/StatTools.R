@@ -248,7 +248,7 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
 
    )
 
-   matrix <- get_Scaling(outMat,log=params$log, methods=params$scalemeth)
+   matrix <- get_Scaling(data,log=params$log, methods=params$scalemeth)
 
 #---- CLUSTERING -----
 
@@ -471,7 +471,6 @@ plot.Clusters <- function(data, clustObj)
 ##########################################################################
 ## Loadings plot : Input : data [N,PC] N variables (rows), PC (columns)
 ## 
-## dataInMat : original data & factors : original factors
 ## 
 ## use with associations file:
 ## 
