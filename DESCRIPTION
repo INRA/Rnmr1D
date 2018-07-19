@@ -1,11 +1,11 @@
 Package: Rnmr1D
 Type: Package
-Title: What the Package Does in One 'Title Case' Line
+Title: Rnmr1D is the main module in the NMRProcFlow web application (nmrprocflow.org) concerning the NMR spectra processing.
 Version: 1.1
 Date: 2018-05-03
 Author: Daniel Jacob
 Maintainer: Daniel Jacob <djacob65@gmail.com>
-Description: One paragraph description of what the package does as one or more full sentences.
+Description: Rnmr1D allows users to replay the macro-command sequence generated within NMRProcFlow. Moreover, without using NMRProcFlow, this package can also be used to replace any 'home-made script' by a macro-command sequence.
 License: GPL (>= 2)
-Imports: Rcpp (>= 0.12.7)
+Imports: Rcpp (>= 0.12.7), base64enc, XML, igraph, ade4, car, foreach, doParallel, ptw, signal, speaq
 LinkingTo: Rcpp
