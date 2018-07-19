@@ -7,8 +7,8 @@ Write.LOG <- function(logfile=stdout(), ...) cat(sprintf(...), sep='', file=logf
 
 
 detectCores <- function(...) {
-   require(doParallel)
-   doParallel::detectCores(...)
+   require(parallel)
+   parallel::detectCores(...)
 }
 
 # -----
