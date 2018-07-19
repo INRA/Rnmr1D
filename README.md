@@ -34,7 +34,6 @@ install_github("djacob65/Rnmr1D", dependencies = TRUE)
 
 ```R
 library(Rnmr1D)
-library(doParallel)
 
 # Test with the provided example data
 data_dir <- system.file("extra", package = "Rnmr1D")
