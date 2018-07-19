@@ -7,7 +7,7 @@ Write.LOG <- function(logfile=stdout(), ...) cat(sprintf(...), sep='', file=logf
 
 
 detectCores <- function(...) {
-   require(parallel)
+   suppressMessages(require(parallel))
    parallel::detectCores(...)
 }
 

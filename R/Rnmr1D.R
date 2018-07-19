@@ -12,8 +12,8 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
    if ( check_MacroCmdFile(cmdfile) == 0 )
        stop(paste0("ERROR: ",cmdfile," seems to include errors\n"), call.=FALSE)
 
-   require(foreach)
-   require(doParallel)
+   suppressMessages(require(foreach))
+   suppressMessages(require(doParallel))
 
    trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 
