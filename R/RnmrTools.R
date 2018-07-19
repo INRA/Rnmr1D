@@ -6,6 +6,11 @@
 Write.LOG <- function(logfile=stdout(), ...) cat(sprintf(...), sep='', file=logfile, append=TRUE)
 
 
+detectCores <- function(...) {
+   require(doParallel)
+   doParallel::detectCores(...)
+}
+
 # -----
 # Generate the metadata from the list of raw spectra
 # -----
