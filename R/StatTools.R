@@ -511,8 +511,8 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL,
                    else
                       for (j in 1:dim(XY)[1]) lines(rbind( XY[j, ] , M), col=clcols[i])
                 }
-                points(XY, pch=19, col=colors[i %% length(colors)])
-                text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel)
+                points(XY, pch=19, col=clcols[i])
+                text(adj=0, M[1], M[2], Clusters[i], col=clcols[i], cex=cexlabel)
              }
              for (i in 1:length(Clusters)) {
                 XY <- t(P[,colnames(P)==Clusters[i]])
