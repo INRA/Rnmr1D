@@ -514,11 +514,6 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL,
                 points(XY, pch=19, col=clcols[i])
                 text(adj=0, M[1], M[2], Clusters[i], col=clcols[i], cex=cexlabel)
              }
-             for (i in 1:length(Clusters)) {
-                XY <- t(P[,colnames(P)==Clusters[i]])
-                M<-c(mean(XY[,1]),mean(XY[,2]))
-                text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel)
-             }
           }
           else {
 		     clcols=rainbow(length(Clusters), s=0.9, v=0.8)
