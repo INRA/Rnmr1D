@@ -501,14 +501,15 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL,
           cols <- "red"
           Clusters <- unique(associations[order(associations[,1],decreasing=T),2])
           if (length(Clusters)<length(colnames(P))) {
+             clcols=rainbow(length(Clusters), s=0.9, v=0.8)
              for (i in 1:length(Clusters)) {
                 XY <- t(P[,colnames(P)==Clusters[i]])
                 M<-c(mean(XY[,1]),mean(XY[,2]))
                 if (dim(XY)[1]>1) {
                    if (dim(XY)[1]>2)
-  				      plot.ellipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=colors[i %% length(colors)], lty=3, lwd=0.1, type="l")
+  				      plot.ellipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=clcols[i], lty=3, lwd=0.1, type="l")
                    else
-                      for (j in 1:dim(XY)[1]) lines(rbind( XY[j, ] , M), col="black")
+                      for (j in 1:dim(XY)[1]) lines(rbind( XY[j, ] , M), col=clcols[i])
                 }
                 points(XY, pch=19, col=colors[i %% length(colors)])
                 text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel)
@@ -520,8 +521,8 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL,
              }
           }
           else {
-             col_ids <- c(1:length(Clusters))
-             cols <- NULL; for (i in 1:length(colnames(P))) cols <- c(cols,  col_ids[Clusters == colnames(P)[i]])
+		     clcols=rainbow(length(Clusters), s=0.9, v=0.8)
+             cols <- NULL; for (i in 1:length(colnames(P))) cols <- c(cols,  clcols[Clusters == colnames(P)[i]])
              points(t(P), pch=19, col="red")
              text( adj=0, t(P)[,1], t(P)[,2], col=cols, colnames(P), cex=cexlabel )
           }
