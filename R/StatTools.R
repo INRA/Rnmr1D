@@ -404,7 +404,7 @@ get_Merged_dataset <- function(data, clustObj, onlycluster=FALSE)
    association <- clustObj$clustertab
    matrix <- data
    if (class(association)=="matrix" && dim(association)[1]>1) {
-      Clusters <- unique(sort(association[,2]))
+      Clusters <- unique(association[,2])
       M <- simplify2array(lapply( 1:length(Clusters), function(x) { apply( matrix[, colnames(matrix) %in% association[association[,2] == Clusters[x],1] ], 1, mean ) } ))
       colnames(M) <- Clusters
       if (!onlycluster)
@@ -459,11 +459,11 @@ plot.Clusters <- function(data, clustObj)
      nbrank <- max(Rank) - min(Rank) + 1
 
      boxplot(t(cent),cex.axis=0.5, main="Boxplot by clusters (log10 transformed)",
-          xlab='\n\n\n\n\nClusters',ylab='Intensity (log10)', outline=F, horizontal=F, border=cols[Rank], las=2, cex.axis=0.5)
+          ylab='\n\n\n\n\nClusters',xlab='Intensity (log10)', outline=F, horizontal=T, border=cols[Rank], las=2, cex.axis=0.5)
      abline(v=c(1:length(CLUST)), col="gray95")
      par(new=TRUE)
      boxplot(t(cent),cex.axis=0.5, main="Boxplot by clusters (log10 transformed)",
-          xlab='\n\n\n\n\nClusters',ylab='Intensity (log10)', outline=F, horizontal=F, border=cols[Rank], las=2, cex.axis=0.5)
+          ylab='\n\n\n\n\nClusters',xlab='Intensity (log10)', outline=F, horizontal=T, border=cols[Rank], las=2, cex.axis=0.5)
 }
 
 ##########################################################################
@@ -484,19 +484,13 @@ plot.Clusters <- function(data, clustObj)
 plot.Loadings <- function (data,pc1,pc2, associations=NULL,
          main="Loadings", xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1)
 {
-   require(ade4)
-   require(car)
-
    V <- t(data[,c(pc1,pc2)])
    colnames(V) <- rownames(data)
    plot(t(V),pch=20, adj=1, lwd=1, main=main,
             xlab= colnames(data)[pc1], ylab= colnames(data)[pc2], 
             xlim=xlimu, ylim=ylimu, col='red')
    abline(h=0,v=0)
-   #elcentre <- c(mean(data[,pc1]),mean(data[,pc2]))
-   elcentre <- c(0,0)
-   ellipse(elcentre, cov(data[,c(pc1,pc2)]), 1.5, log="", center.pch=19, center.cex=1.5, 
-                 segments=35, add=TRUE, xlab="", ylab="",  col=palette()[2], lty=4, lwd=0.5, fill=FALSE, fill.alpha=0.3, grid=F)
+   plot.ellipse( data[, pc1], data[, pc2], center=c(0,0), level=0.666, col="red", lty=3, lwd=0.1, type="l")
 
    # Use Associations (assoc1=T)
    if (class(associations)=="matrix" && dim(associations)[1]>1) {
@@ -512,7 +506,7 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL,
                 M<-c(mean(XY[,1]),mean(XY[,2]))
                 if (dim(XY)[1]>1) {
                    if (dim(XY)[1]>2)
-                      scatterutil.ellipse(t(P[1,]),t(P[2,]),as.integer(colnames(P)==Clusters[i]), cell=2,ax=F, colors[i %% length(colors)])
+  				      plot.ellipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=colors[i %% length(colors)], lty=3, lwd=0.1, type="l")
                    else
                       for (j in 1:dim(XY)[1]) lines(rbind( XY[j, ] , M), col="black")
                 }
@@ -535,4 +529,51 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL,
    else {
       text( adj=0, t(V)[,1], t(V)[,2], col="cornflowerblue", colnames(V), cex=cexlabel )
    }
+}
+
+##########################################################################
+## Fonction plot.loadings                                               ##
+##########################################################################
+## Compute confidence ellipses.
+##  x and y variables for drawing.
+##  level confidence level used to construct the ellipses. By default, 0.95.
+##  npoint number of points used to draw the ellipses.
+##  bary logical value. If TRUE, the coordinates of the ellipse around the barycentre of individuals are calculated.
+## See https://github.com/kassambara/ggpubr/blob/master/R/stat_conf_ellipse.R
+##########################################################################
+
+plot.ellipse <- function ( x, y, center=NULL, level = 0.95, npoint = 100, bary = FALSE, ... )
+{
+  .ellipse <- function(x, scale = c(1, 1), centre = c(0, 0), t = 1.5, which = c(1,2), npoints = 100) {
+    names <- c("x", "y")
+    if (is.matrix(x)) {
+      xind <- which[1]
+      yind <- which[2]
+      r <- x[xind, yind]
+      if (missing(scale)) {
+        scale <- sqrt(c(x[xind, xind], x[yind, yind]))
+        if (scale[1] > 0)
+          r <- r/scale[1]
+        if (scale[2] > 0)
+          r <- r/scale[2]
+      }
+      if (!is.null(dimnames(x)[[1]]))
+        names <- dimnames(x)[[1]][c(xind, yind)]
+    }
+    else r <- x
+    r <- min(max(r, -1), 1)
+    d <- acos(r)
+    a <- seq(0, 2 * pi, len = npoints)
+    matrix(c(t*scale[1]*cos(a + d/2) + centre[1], t*scale[2]*cos(a - d/2) + centre[2]), npoints, 2, dimnames = list(NULL, names))
+  }
+
+
+  if (is.null(center)) center <- c(mean(x, na.rm = TRUE), mean(y, na.rm = TRUE))
+  tab <- data.frame(x = x, y = y)
+  mat.cov <- stats::cov(tab)
+  t = sqrt(stats::qchisq(level, 2))
+  if (bary)
+  mat.cov = mat.cov/nrow(tab)
+  res <- .ellipse(mat.cov, centre = center, t=t, npoints = npoint)
+  lines(res, adj=1, main="", xlab="", ylab="", ... )
 }
