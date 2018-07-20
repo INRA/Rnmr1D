@@ -22,7 +22,7 @@ install.packages(c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', '
 
 ## Installation of the R package 
 
-* Note: For Windows 7/10, it is highly recommended to proceed within R Studio so that the C++ code compilation will be correctly done. Before performing the installation within R GUI it may require to specify the Compiler binaries path in the PATH environment variable ( check with Sys.getenv("PATH") )
+* Note for Windows 7/10: Before performing the installation within R GUI it may require to specify the Compiler binaries path in the PATH environment variable so that the C++ code compilation will be correctly done ( check with Sys.getenv("PATH") )
 
 ```R
 require(devtools)

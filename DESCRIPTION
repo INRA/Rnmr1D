@@ -7,5 +7,6 @@ Author: Daniel Jacob
 Maintainer: Daniel Jacob <djacob65@gmail.com>
 Description: Rnmr1D allows users to replay the macro-command sequence generated within NMRProcFlow. Moreover, without using NMRProcFlow, this package can also be used to replace any 'home-made script' by a macro-command sequence.
 License: GPL (>= 2)
-Imports: Rcpp (>= 0.12.7), base64enc, XML, igraph, ade4, car, foreach, doParallel, ptw, signal, speaq
+Imports: Rcpp (>= 0.12.7), base64enc (>= 0.1),
+		 doParallel (>= 1.0.11), foreach (>= 1.4.4), igraph (>= 1.2.1), impute (>= 1.54.0), MassSpecWavelet (>= 1.46.0), ptw (>= 1.9), signal (>= 0.7), speaq (>= 2.3.3), XML (>= 3.98)
 LinkingTo: Rcpp
