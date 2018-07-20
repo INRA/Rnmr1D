@@ -428,6 +428,8 @@ plot.Criterion <- function(clustObj)
     params <- clustObj$params
     MaxSize <- params$MAXCSIZE
     method <- params$method
+    association <- clustObj$clustertab
+    lclust <- unique(sort(association[,2]))
 
    # PNG image - Vstats plots
      legNames <- c( colnames(Vstats)[3], colnames(Vstats)[2], colnames(Vstats)[4])
@@ -435,7 +437,7 @@ plot.Criterion <- function(clustObj)
      xlim <- c(min(Vstats[,1]), max(Vstats[,1]))
      plot(Vstats[,1],Vstats[,3], xlim=xlim, ylim=c(0,1.2*max(Vstats[,3])), type="l", col=colors[1],
          xlab="Critere", ylab="Number of variables / Clust Max Size",
-         main=sprintf("Critere = %4.3f,  Nb Clust = %d,  Nb Vars = %d,  Clust Max Size = %d",Vcrit, Vstats[n,2], Vstats[n,3], Vstats[n,4]))
+         main=sprintf("Critere = %4.3f,  Nb Clust = %d,  Nb Vars = %d,  Clust Max Size = %d",Vcrit, length(lclust), Vstats[n,3], Vstats[n,4]))
      lines(Vstats[,1],Vstats[,4], col=colors[3])
      abline(v=Vcrit, col="red")
      abline(h=MaxSize, col="green")
@@ -511,7 +513,7 @@ plot.Scores <- function(data, samples, factor=NULL, level=0.95) {
 ##########################################################################
 
 plot.Loadings <- function (data,pc1,pc2, associations=NULL, main="Loadings", 
-                    xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1)
+                    xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1, pch=20)
 {
    V <- t(data[,c(pc1,pc2)])
    colnames(V) <- rownames(data)
@@ -520,39 +522,33 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL, main="Loadings",
             xlim=xlimu, ylim=ylimu, col='red')
    abline(h=0,v=0)
    plot.ellipse( data[, pc1], data[, pc2], center=c(0,0), level=0.666, col="red", lty=3, lwd=0.1, type="l")
-
    # Use Associations (assoc1=T)
    if (class(associations)=="matrix" && dim(associations)[1]>1) {
-          points(t(V), pch=19, col="grey")
-          text( adj=0, t(V)[,1], t(V)[,2], col="lightgrey", colnames(V), cex=cexlabel )
-          colnames(V) <- as.vector(sapply(rownames(data),function(x) { ifelse(sum( associations[,1] %in% x), associations[,2][associations[,1] %in%  x ], x) }))
-          P <- V[,colnames(V) %in% associations[,2] ]
-          cols <- "red"
-          Clusters <- unique(associations[order(associations[,1],decreasing=T),2])
-          if (length(Clusters)<length(colnames(P))) {
-             clcols=rainbow(length(Clusters), s=0.9, v=0.8)
-             for (i in 1:length(Clusters)) {
-                XY <- t(P[,colnames(P)==Clusters[i]])
-                M<-c(mean(XY[,1]),mean(XY[,2]))
-                if (dim(XY)[1]>1) {
-                   if (dim(XY)[1]>2)
-  				      plot.ellipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=clcols[i], lty=3, lwd=0.1, type="l")
-                   else
-                      for (j in 1:dim(XY)[1]) lines(rbind( XY[j, ] , M), col=clcols[i])
-                }
-                points(XY, pch=19, col=clcols[i])
-                text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel, font=2)
-             }
+       points(t(V), pch=pch, col="grey")
+       text( adj=0, t(V)[,1], t(V)[,2], col="lightgrey", colnames(V), cex=cexlabel )
+       colnames(V) <- as.vector(sapply(rownames(data),function(x) { ifelse(sum( associations[,1] %in% x), associations[,2][associations[,1] %in%  x ], x) }))
+       P <- V[,colnames(V) %in% associations[,2] ]
+       cols <- "red"
+       Clusters <- unique(associations[order(associations[,1],decreasing=T),2])
+       if (length(Clusters)<length(colnames(P))) {
+          clcols=rainbow(length(Clusters), s=0.9, v=0.8)
+          for (i in 1:length(Clusters)) {
+             XY <- t(P[,colnames(P)==Clusters[i]])
+             M<-c(mean(XY[,1]),mean(XY[,2]))
+             points(XY, pch=pch, col=clcols[i])
+             if (dim(XY)[1]>1) plot.ellipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=clcols[i], lty=3, lwd=0.1, type="l")
+             text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel, font=2)
           }
-          else {
-		     clcols=rainbow(length(Clusters), s=0.9, v=0.8)
-             cols <- NULL; for (i in 1:length(colnames(P))) cols <- c(cols,  clcols[Clusters == colnames(P)[i]])
-             points(t(P), pch=19, col="red")
-             text( adj=0, t(P)[,1], t(P)[,2], col=cols, colnames(P), cex=cexlabel )
-          }
+       }
+       else {
+		   clcols=rainbow(length(Clusters), s=0.9, v=0.8)
+          cols <- NULL; for (i in 1:length(colnames(P))) cols <- c(cols,  clcols[Clusters == colnames(P)[i]])
+          points(t(P), pch=pch, col="red")
+          text( adj=0, t(P)[,1], t(P)[,2], col=cols, colnames(P), cex=cexlabel )
+       }
    }
    else {
-      text( adj=0, t(V)[,1], t(V)[,2], col="cornflowerblue", colnames(V), cex=cexlabel )
+       text( adj=0, t(V)[,1], t(V)[,2], col="cornflowerblue", colnames(V), cex=cexlabel )
    }
 }
 
@@ -600,11 +596,14 @@ plot.ellipse <- function ( x, y, center=NULL, level = 0.95, npoint = 100, bary =
 
 
   if (is.null(center)) center <- c(mean(x, na.rm = TRUE), mean(y, na.rm = TRUE))
-  tab <- data.frame(x = x, y = y)
-  mat.cov <- stats::cov(tab)
-  t = sqrt(stats::qchisq(level, 2))
-  if (bary)
-  mat.cov = mat.cov/nrow(tab)
-  res <- .ellipse(mat.cov, centre = center, t=t, npoints = npoint)
-  lines(res, adj=1, main="", xlab="", ylab="", ... )
+  if (length(as.vector(x))>2) {
+     tab <- data.frame(x = x, y = y)
+     mat.cov <- stats::cov(tab)
+     t = sqrt(stats::qchisq(level, 2))
+     if (bary) mat.cov = mat.cov/nrow(tab)
+     res <- .ellipse(mat.cov, centre = center, t=t, npoints = npoint)
+     lines(res, adj=1, main="", xlab="", ylab="", ... )
+  } else {
+     lines(cbind(x, y), adj=1, main="", xlab="", ylab="", ... )
+  }
 }
