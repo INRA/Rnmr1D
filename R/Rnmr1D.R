@@ -24,7 +24,7 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
    procParams$VENDOR <- "bruker"
    procParams$INPUT_SIGNAL <- "1r"
    procParams$READ_RAW_ONLY <- TRUE
-   
+
    # Rnmr1D macrocommand file: Get the preprocessing parameter line if exists
    CMDTEXT <- gsub("\t", "", readLines(cmdfile))
    if ( length(grep("#%%", CMDTEXT[1]))==1 ) {
@@ -49,32 +49,13 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
 
    # Generate the 'samples.csv' & 'factors' files from the list of raw spectra
    Write.LOG(LOGFILE, "Rnmr1D:  Generate the 'samples' & 'factors' files from the list of raw spectra\n")
+
    metadata <- NULL
-   repeat {
-      # Bruker, Varian or nmrML with a provided sample file 
-      if (! is.null(samplefile) ) {
-          metadata <- set_Metadata(path, procParams, samplefile )
-          break
-      }
-      # Bruker without sample file 
-      if ( procParams$VENDOR=="bruker" ) {
-          if ( procParams$INPUT_SIGNAL=="fid" ) {
-              metadata <- generate_Metadata_fid(path, procParams )
-              break
-          }
-          if ( procParams$INPUT_SIGNAL=="1r" )  {
-              metadata <- generate_Metadata_1r(path, procParams )
-              break
-          }
-          break
-      }
-      # Varian or nmrML without sample file 
-      else {
-          metadata <- set_Metadata(path, procParams, samplefile )
-          break
-      }
-      break
-   }
+   samples <- NULL
+   if (!is.null(samplefile) && file.exists(samplefile))
+      samples <- read.table(samplefile, sep="\t", header=T,stringsAsFactors=FALSE)
+
+   metadata <- generate_Metadata(path, procParams, samples)
 
    # If ERROR occurs ...
    if (is.null(metadata)) {
@@ -108,19 +89,19 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
        }
        Write.LOG(LOGFILE,"\n")
        gc()
-   
+
        if (dim(LIST)[1]>1) {
           # Ensure that the specList array is in the same order than both  samples and IDS arrays
           L <- simplify2array(sapply( order(simplify2array(specList[1,])), function(x) { specList[2,x] } ) )
           specList <- L
        }
-   
+
        Write.LOG(LOGFILE, "Rnmr1D:  Generate the final matrix of spectra...\n")
-   
+
        M <- NULL
        N <- dim(LIST)[1]
        vpmin<-0; vpmax<-0
-   
+
        for(i in 1:N) {
            if (N>1) { spec <- specList[,i]; } else { spec <- specList; }
            if (spec$acq$NUC == "13C") { PPM_MIN <- PPM_MIN_13C; PPM_MAX <- PPM_MAX_13C; }
@@ -143,7 +124,7 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
            }
            M <- rbind(M, rev(V))
        }
-   
+
        cur_dir <- getwd()
 
        specMat <- NULL
@@ -162,22 +143,22 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
 
        samples <- metadata$samples
 
-       # Raw IDs : expno & procno 
+       # Raw IDs : expno & procno
        IDS <- cbind(basename(dirname(as.vector(LIST[,1]))), LIST[, c(2:3)])
        if (N>1) {
           if (specList[,1]$acq$INSTRUMENT=="Bruker") {
              PARS <- t(sapply(c(1:N), function(x) { c( samples[x, 1], samples[x, 2], IDS[x,c(2:3)],
-                       specList[,x]$acq$PULSE, specList[,x]$acq$NUC, specList[,x]$acq$SOLVENT, specList[,x]$acq$GRPDLY, 
+                       specList[,x]$acq$PULSE, specList[,x]$acq$NUC, specList[,x]$acq$SOLVENT, specList[,x]$acq$GRPDLY,
                        specList[,x]$proc$phc0, specList[,x]$proc$phc1,
-                       specList[,x]$acq$SFO1, specList[,x]$proc$SI, specList[,x]$acq$SW, specList[,x]$acq$SWH, 
+                       specList[,x]$acq$SFO1, specList[,x]$proc$SI, specList[,x]$acq$SW, specList[,x]$acq$SWH,
                        specList[,x]$acq$RELAXDELAY, specList[,x]$acq$O1 )
              }))
             colnames(PARS) <- c("Spectrum", "Samplecode", "EXPNO", "PROCNO", "PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
           } else {
-             PARS <- t(sapply(c(1:N), function(x) { c( samples[x, 1], samples[x, 2], 
+             PARS <- t(sapply(c(1:N), function(x) { c( samples[x, 1], samples[x, 2],
                        specList[,x]$acq$PULSE, specList[,x]$acq$NUC, specList[,x]$acq$SOLVENT,
                        specList[,x]$acq$GRPDLY, specList[,x]$proc$phc0, specList[,x]$proc$phc1,
-                       specList[,x]$acq$SFO1, specList[,x]$proc$SI, specList[,x]$acq$SW, specList[,x]$acq$SWH, 
+                       specList[,x]$acq$SFO1, specList[,x]$proc$SI, specList[,x]$acq$SW, specList[,x]$acq$SWH,
                        specList[,x]$acq$RELAXDELAY, specList[,x]$acq$O1 )
              }))
             colnames(PARS) <- c("Spectrum", "Samplecode", "PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
@@ -200,7 +181,7 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
        specObj$infos <- PARS
        specObj$origin <- paste(procParams$VENDOR, procParams$INPUT_SIGNAL)
 
-     # Rnmr1D processing macrocommand file     
+     # Rnmr1D processing macrocommand file
        Write.LOG(LOGFILE,"Rnmr1D: ------------------------------------\n")
        Write.LOG(LOGFILE,"Rnmr1D: Process the Macro-commands file\n")
        Write.LOG(LOGFILE,"Rnmr1D: ------------------------------------\n")
@@ -211,7 +192,7 @@ Rnmr1D <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
        if (specMat$fWriteSpec) specObj$specMat <- specMat
        gc()
 
-     # Performs the bucketing based on the bucket list file 
+     # Performs the bucketing based on the bucket list file
        if( ! is.null(bucketfile) && file.exists(bucketfile)) {
            Write.LOG(LOGFILE, "Rnmr1D: ------------------------------------\n")
            Write.LOG(LOGFILE, "Rnmr1D: Process the file of buckets\n")

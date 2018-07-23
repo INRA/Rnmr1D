@@ -16,7 +16,7 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 
 ```R
 source('http://bioconductor.org/biocLite.R');
-biocLite('MassSpecWavelet'); biocLite('impute');
+biocLite(c('MassSpecWavelet','impute'));
 install.packages(c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph'), repos='http://cran.rstudio.com')
 ```
 

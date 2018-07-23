@@ -16,10 +16,54 @@ detectCores <- function(...) {
 # -----
 # Inputs: 
 #    RAWDIR : the directory containing the unzipped files
-#    SampleFile : the Samples file
-# Outputs 
+#    procParams : the list of processing parameters
 #    samples : the Sample list
-#    factors : the list of the severals factors
+# Outputs 
+#    metadata : the list of metadata
+#       samples : the Sample list
+#       factors : the list of the severals factors
+#       rawids  : the list of full paths of rawdata
+generate_Metadata <- function(RAWDIR, procParams, samples=NULL)
+{
+   metadata <- list()
+   repeat {
+      # Bruker, Varian or nmrML with a provided sample file 
+      if (! is.null(samples) ) {
+          metadata <- set_Metadata(RAWDIR, procParams, samples )
+          break
+      }
+      # Bruker without sample file 
+      if ( procParams$VENDOR=="bruker" ) {
+          if ( procParams$INPUT_SIGNAL=="fid" ) {
+              metadata <- generate_Metadata_fid(RAWDIR, procParams )
+              break
+          }
+          if ( procParams$INPUT_SIGNAL=="1r" )  {
+              metadata <- generate_Metadata_1r(RAWDIR, procParams )
+              break
+          }
+          break
+      }
+      # Varian or nmrML without sample file 
+      else {
+          metadata <- set_Metadata(RAWDIR, procParams, samples )
+          break
+      }
+      break
+   }
+
+   
+   # Bruker without sample file 
+   if ( procParams$VENDOR=="bruker" ) {
+       if ( procParams$INPUT_SIGNAL=="fid" ) {
+           metadata <- generate_Metadata_fid(RAWDIR, procParams )
+       } else {
+           metadata <- generate_Metadata_1r(RAWDIR, procParams )
+       }
+   }
+   return(metadata)
+}
+
 generate_Metadata_fid <- function(RAWDIR, procParams)
 {
    metadata <- list()
@@ -170,85 +214,86 @@ generate_Metadata_1r <- function(RAWDIR, procParams)
    return(metadata)
 }
 
-set_Metadata <- function(RAWDIR, procParams, SampleFile)
+set_Metadata <- function(RAWDIR, procParams, samples)
 {
-   if (procParams$VENDOR == "bruker") return (.set_Metadata_Bruker(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "varian") return (.set_Metadata_Varian(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "nmrml")  return (.set_Metadata_nmrML(RAWDIR, procParams, SampleFile))
-   if (procParams$VENDOR == "jeol")   return (.set_Metadata_Jeol(RAWDIR, procParams, SampleFile))
+   if (procParams$VENDOR == "bruker") return (.set_Metadata_Bruker(RAWDIR, procParams, samples))
+   if (procParams$VENDOR == "varian") return (.set_Metadata_Varian(RAWDIR, procParams, samples))
+   if (procParams$VENDOR == "nmrml")  return (.set_Metadata_nmrML(RAWDIR, procParams, samples))
+   if (procParams$VENDOR == "jeol")   return (.set_Metadata_Jeol(RAWDIR, procParams, samples))
    return(NULL)
 }
 
-.set_Metadata_Bruker <- function(RAWDIR, procParams, SampleFile)
+.set_Metadata_Bruker <- function(RAWDIR, procParams, samples)
 {
-   samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
-   samplesize <- dim(samples)
-   nraw <- samplesize[1]
-   nbcol <- samplesize[2]
-
-   lstfac <- matrix(c(1,"Samplecode"), nrow=1)
-   rawdir <- NULL
    metadata <- list()
-   ERRORLIST <- c()
-   OKRAW <- 1
-
-   if (procParams$INPUT_SIGNAL == "1r") {
-      LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = "1r$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-      if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
-      LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
+   if (!is.null(samples)) {
+      samplesize <- dim(samples)
+      nraw <- samplesize[1]
+      nbcol <- samplesize[2]
       
-      # Check if we have a Bruker directory structure
-      nDir <- dim(simplify2array(strsplit(RAWDIR,'/')))[1]
-      nc <- dim(LIST)[2]
-      if ((nc-nDir)>5) {
-          RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-5))]), sep="/"))
-      }
-      for (i in 1:nraw) {
-          if ( file.exists( paste(RAWDIR, samples[i,1],samples[i,3],"pdata",samples[i,4], "1r", sep="/")) ) {
-              rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], samples[i,3], sep="/"), samples[i,3], samples[1,4] ) )
-          } else {
-              ERRORLIST <- c( ERRORLIST, paste(samples[1,1],samples[i,3],"pdata",samples[i,4], "1r", sep="/") )
-              OKRAW <- 0
-          }
-      }
-   } else {
-      LIST <- gsub("//", "/", list.files(path = RAWDIR, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-      LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
+      lstfac <- matrix(c(1,"Samplecode"), nrow=1)
+      rawdir <- NULL
+      ERRORLIST <- c()
+      OKRAW <- 1
       
-      # Check if we have a Bruker directory structure
-      nDir <- dim(simplify2array(strsplit(RAWDIR,'/')))[1]
-      nc <- dim(LIST)[2]
-      if ((nc-nDir)>3) {
-          RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-3))]), sep="/"))
+      if (procParams$INPUT_SIGNAL == "1r") {
+         LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = "1r$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
+         if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
+         LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
+         
+         # Check if we have a Bruker directory structure
+         nDir <- dim(simplify2array(strsplit(RAWDIR,'/')))[1]
+         nc <- dim(LIST)[2]
+         if ((nc-nDir)>5) {
+             RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-5))]), sep="/"))
+         }
+         for (i in 1:nraw) {
+             if ( file.exists( paste(RAWDIR, samples[i,1],samples[i,3],"pdata",samples[i,4], "1r", sep="/")) ) {
+                 rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], samples[i,3], sep="/"), samples[i,3], samples[1,4] ) )
+             } else {
+                 ERRORLIST <- c( ERRORLIST, paste(samples[1,1],samples[i,3],"pdata",samples[i,4], "1r", sep="/") )
+                 OKRAW <- 0
+             }
+         }
+      } else {
+         LIST <- gsub("//", "/", list.files(path = RAWDIR, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
+         LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
+         
+         # Check if we have a Bruker directory structure
+         nDir <- dim(simplify2array(strsplit(RAWDIR,'/')))[1]
+         nc <- dim(LIST)[2]
+         if ((nc-nDir)>3) {
+             RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-3))]), sep="/"))
+         }
+         for (i in 1:nraw) {
+             if ( file.exists( paste(RAWDIR, samples[i,1],samples[i,3],"fid", sep="/")) ) {
+                 rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], samples[i,3], sep="/"), samples[i,3], 0 ) )
+             } else {
+                 ERRORLIST <- c( ERRORLIST, paste(samples[i,1],samples[i,3],"fid", sep="/") )
+                 OKRAW <- 0
+             }
+         }
       }
-      for (i in 1:nraw) {
-          if ( file.exists( paste(RAWDIR, samples[i,1],samples[i,3],"fid", sep="/")) ) {
-              rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], samples[i,3], sep="/"), samples[i,3], 0 ) )
-          } else {
-              ERRORLIST <- c( ERRORLIST, paste(samples[i,1],samples[i,3],"fid", sep="/") )
-              OKRAW <- 0
-          }
+      
+      if (nbcol==4) {
+          M <- cbind(samples[,1], samples[,2])
       }
-   }
-
-   if (nbcol==4) {
-       M <- cbind(samples[,1], samples[,2])
-   }
-   if (nbcol>4) {
-       M <- samples[,c(-3:-4)]
-       lstfac <- rbind( lstfac, cbind( c(2:(nbcol-3)), colnames(samples)[c(-1:-4)] ) )
-   }
-
-   metadata$ERRORLIST <- ERRORLIST
-   if (OKRAW==1) {
-      metadata$samples <- M
-      metadata$rawids <- gsub("//", "/", rawdir)
-      metadata$factors <- lstfac
+      if (nbcol>4) {
+          M <- samples[,c(-3:-4)]
+          lstfac <- rbind( lstfac, cbind( c(2:(nbcol-3)), colnames(samples)[c(-1:-4)] ) )
+      }
+      
+      metadata$ERRORLIST <- ERRORLIST
+      if (OKRAW==1) {
+         metadata$samples <- M
+         metadata$rawids <- gsub("//", "/", rawdir)
+         metadata$factors <- lstfac
+      }
    }
    return(metadata)
 }
 
-.set_Metadata_Varian <- function(RAWDIR, procParams, SampleFile)
+.set_Metadata_Varian <- function(RAWDIR, procParams, samples)
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
@@ -259,8 +304,9 @@ set_Metadata <- function(RAWDIR, procParams, SampleFile)
    LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
    if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
 
-   if (!is.null(SampleFile) && file.exists(SampleFile)) {
-       samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
+#   if (!is.null(SampleFile) && file.exists(SampleFile)) {
+#       samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
+   if (!is.null(samples)) {
        samplesize <- dim(samples)
        nraw <- samplesize[1]
        nbcol <- samplesize[2]
@@ -302,17 +348,17 @@ set_Metadata <- function(RAWDIR, procParams, SampleFile)
    return(metadata)
 }
 
-.set_Metadata_nmrML <- function(RAWDIR, procParams, SampleFile)
+.set_Metadata_nmrML <- function(RAWDIR, procParams, samples)
 {
-   return(.set_Metadata_ext(RAWDIR, procParams, SampleFile, ext="nmrML"))
+   return(.set_Metadata_ext(RAWDIR, procParams, samples, ext="nmrML"))
 }
 
-.set_Metadata_Jeol <- function(RAWDIR, procParams, SampleFile)
+.set_Metadata_Jeol <- function(RAWDIR, procParams, samples)
 {
-   return(.set_Metadata_ext(RAWDIR, procParams, SampleFile, ext="jdf"))
+   return(.set_Metadata_ext(RAWDIR, procParams, samples, ext="jdf"))
 }
 
-.set_Metadata_ext <- function(RAWDIR, procParams, SampleFile, ext="nmrML")
+.set_Metadata_ext <- function(RAWDIR, procParams, samples, ext="nmrML")
 {
    lstfac <- matrix(c(1,"Samplecode"), nrow=1)
    rawdir <- NULL
@@ -323,8 +369,7 @@ set_Metadata <- function(RAWDIR, procParams, SampleFile)
    LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = pattern, all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
    if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
 
-   if ( !is.null(SampleFile) && file.exists(SampleFile)) {
-      samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
+   if (!is.null(samples)) {
       samplesize <- dim(samples)
       nraw <- samplesize[1]
       nbcol <- samplesize[2]
