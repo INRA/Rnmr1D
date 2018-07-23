@@ -1,3 +1,17 @@
+lbALIGN <- 'align'
+lbGBASELINE <- 'gbaseline'
+lbBASELINE <- 'baseline'
+lbQNMRBL <- 'qnmrbline'
+lbAIRPLS <- 'airpls'
+lbBIN <- 'binning'
+lbCALIB <- 'calibration'
+lbNORM <- 'normalisation'
+lbFILTER <- 'denoising'
+lbWARP <- 'warp'
+lbCLUPA <- 'clupa'
+lbBUCKET <- 'bucket'
+lbZERO <- 'zero'
+EOL <- 'EOL'
 
 # returns string w/o leading or trailing whitespace
 .N <- function(x) { as.numeric(as.vector(x)) }
@@ -1014,23 +1028,67 @@ check_MacroCmdFile <- function(CMD.filename) {
 # ------------------------------------
 # Process the Macro-commands file
 # ------------------------------------
+RWrapperCMD1D <- function(cmdName, specMat, ...)
+{
+   repeat {
+       if (cmdName == lbCALIB) {
+          specMat <- RCalib1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbNORM) {
+          specMat <- RNorm1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbGBASELINE) {
+          specMat <- RGbaseline1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbBASELINE) {
+          specMat <- RBaseline1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbQNMRBL) {
+          specMat <- Rqnmrbc1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbAIRPLS) {
+          specMat <- RairPLSbc1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbFILTER) {
+          specMat <- RFilter1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbZERO) {
+          specMat <- RZero1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbALIGN) {
+          specMat <- RAlign1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbCLUPA) {
+          specMat <- RCluPA1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbWARP) {
+          specMat <- RWarp1D(specMat, ...)
+          break
+       }
+       if (cmdName == lbBUCKET) {
+          specMat <- RBucket1D(specMat, ...)
+          break
+       }
+       break
+    }
+   return(specMat)
+}
+
+# ------------------------------------
+# Process the Macro-commands file
+# ------------------------------------
 RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
 {
-   lbALIGN <- 'align'
-   lbGBASELINE <- 'gbaseline'
-   lbBASELINE <- 'baseline'
-   lbQNMRBL <- 'qnmrbline'
-   lbAIRPLS <- 'airpls'
-   lbBIN <- 'binning'
-   lbCALIB <- 'calibration'
-   lbNORM <- 'normalisation'
-   lbFILTER <- 'denoising'
-   lbWARP <- 'warp'
-   lbCLUPA <- 'clupa'
-   lbBUCKET <- 'bucket'
-   lbZERO <- 'zero'
-   EOL <- 'EOL'
-
  # specMat
    specMat <- specObj$specMat
 
@@ -1061,7 +1119,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  PPMREF <- params[3]
                  PPM_NOISE <- ifelse( length(params)==5, c( min(params[4:5]), max(params[4:5]) ), c( 10.2, 10.5 ) )
                  Write.LOG(LOGFILE, paste0("Rnmr1D:  Calibration: PPM REF =",PPMREF,", Zone Ref = (",PPMRANGE[1],",",PPMRANGE[2],")\n"));
-                 specMat <- RCalib1D(specMat, PPM_NOISE, PPMRANGE, PPMREF)
+                 specMat <- RWrapperCMD1D(cmdName,specMat, PPM_NOISE, PPMRANGE, PPMREF)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1073,7 +1131,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  params <- as.numeric(params)
                  PPMRANGE <- c( min(params[1:2]), max(params[1:2]) )
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Normalisation: Zone Ref = (",PPMRANGE[1],",",PPMRANGE[2],")\n"));
-                 specMat <- RNorm1D(specMat, normmeth='CSN', zones=matrix(PPMRANGE,nrow=1, ncol=2))
+                 specMat <- RWrapperCMD1D(cmdName,specMat, normmeth='CSN', zones=matrix(PPMRANGE,nrow=1, ncol=2))
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1087,7 +1145,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  }
                  Write.LOG(LOGFILE,"Rnmr1D:  Normalisation of the Intensities based on the selected PPM ranges...\n")
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     Method =",NORM_METH,"\n"))
-                 specMat <- RNorm1D(specMat, normmeth=NORM_METH, zones=zones)
+                 specMat <- RWrapperCMD1D(cmdName,specMat, normmeth=NORM_METH, zones=zones)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1108,12 +1166,12 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                         WINDOWSIZE <- round(( 1/2^(params[6]-2) )*(SI/64))
                      }
                      Write.LOG(LOGFILE,paste0("Rnmr1D:     Type=Local - Window Size = ",WINDOWSIZE,"\n"));
-                     specMat <- RBaseline1D(specMat,PPM_NOISE, PPMRANGE, WINDOWSIZE)
+                     specMat <- RWrapperCMD1D(cmdName,specMat,PPM_NOISE, PPMRANGE, WINDOWSIZE)
                  } else {
                      WS <- params[5]
                      NEIGH <- params[6]
                      Write.LOG(LOGFILE,paste0("Rnmr1D:     Type=Global - Smoothing Parameter=",WS," - Window Size=",NEIGH,"\n"));
-                     specMat <- RGbaseline1D(specMat,PPM_NOISE, PPMRANGE, WS, NEIGH)
+                     specMat <- RWrapperCMD1D(cmdName,specMat,PPM_NOISE, PPMRANGE, WS, NEIGH)
                  }
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
@@ -1127,7 +1185,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  PPMRANGE <- c( min(params[3:4]), max(params[3:4]) )
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Baseline Correction: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     Type=q-NMR\n"))
-                 specMat <- Rqnmrbc1D(specMat,PPM_NOISE, PPMRANGE)
+                 specMat <- RWrapperCMD1D(cmdName,specMat,PPM_NOISE, PPMRANGE)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1140,7 +1198,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  LAMBDA <- params[3]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Baseline Correction: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste("Rnmr1D:     Type=airPLS, lambda=",LAMBDA,"\n"))
-                 specMat <- RairPLSbc1D(specMat, PPMRANGE, LAMBDA)
+                 specMat <- RWrapperCMD1D(cmdName,specMat, PPMRANGE, LAMBDA)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1155,7 +1213,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  FLENGTH <- params[4]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Denoising: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"));
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     Filter Order=",FORDER," - Filter Length=",FLENGTH,"\n"));
-                 specMat <- RFilter1D(specMat,PPMRANGE, FORDER, FLENGTH)
+                 specMat <- RWrapperCMD1D(cmdName,specMat,PPMRANGE, FORDER, FLENGTH)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1174,7 +1232,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  idxSref=params[4]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Alignment: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     Rel. Shift Max.=",RELDECAL," - Reference=",idxSref,"\n"))
-                 specMat <- RAlign1D(specMat, PPMRANGE, RELDECAL, idxSref, Selected=Selected)
+                 specMat <- RWrapperCMD1D(cmdName,specMat, PPMRANGE, RELDECAL, idxSref, Selected=Selected)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1193,7 +1251,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  warpcrit=.C(params[4])
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Alignment: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Parametric Time Warping Method - Reference=",idxSref," - Optim. Crit=",warpcrit,"\n"))
-                 specMat <- RWarp1D(specMat, PPMRANGE, idxSref, warpcrit, Selected=Selected)
+                 specMat <- RWrapperCMD1D(cmdName,specMat, PPMRANGE, idxSref, warpcrit, Selected=Selected)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1214,7 +1272,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  idxSref=params[7]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Alignment: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     CluPA - Resolution =",RESOL," - SNR threshold=",SNR, " - Reference=",idxSref,"\n"))
-                 specMat <- RCluPA1D(specMat, PPM_NOISE, PPMRANGE, RESOL, SNR, idxSref, Selected=Selected, DEBUG=DEBUG)
+                 specMat <- RWrapperCMD1D(cmdName,specMat, PPM_NOISE, PPMRANGE, RESOL, SNR, idxSref, Selected=Selected, DEBUG=DEBUG)
                  Write.LOG(LOGFILE, specMat$LOGMSG )
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
@@ -1229,7 +1287,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
                   CMD <- CMD[-1]
               }
               Write.LOG(LOGFILE,"Rnmr1D:  Zeroing the selected PPM ranges ...\n")
-              specMat <- RZero1D(specMat, zones2, DEBUG=DEBUG)
+              specMat <- RWrapperCMD1D(cmdName,specMat, zones2, DEBUG=DEBUG)
               Write.LOG(LOGFILE, specMat$LOGMSG )
               specMat$fWriteSpec <- TRUE
               CMD <- CMD[-1]
@@ -1250,7 +1308,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
               }
               Write.LOG(LOGFILE,"Rnmr1D:  Bucketing the selected PPM ranges ...\n")
               Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2])," - Resolution =",params[3]," - SNR threshold=",params[4], " - Append=",params[5],"\n"))
-              specMat <- RBucket1D(specMat, cmdPars[2], params[3], params[4], zones, PPM_NOISE, params[5], DEBUG=DEBUG)
+              specMat <- RWrapperCMD1D(cmdName,specMat, cmdPars[2], params[3], params[4], zones, PPM_NOISE, params[5], DEBUG=DEBUG)
               specMat$buckets_zones <- specMat$buckets_zones[order(specMat$buckets_zones[,1]), ]
               Write.LOG(LOGFILE, specMat$LOGMSG )
               specMat$fWriteSpec <- TRUE
