@@ -70,7 +70,7 @@ outBucket <- getBucketsTable(out)
 spectra <- getSpectraData(out)
 ```
 
-# See a more complete illustation within the vignette
+## See a more complete illustation within the vignette
 ```R
 vignette("Rnmr1D")
 ```
