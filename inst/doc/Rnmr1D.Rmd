@@ -1,0 +1,259 @@
+---
+title: "Features illustration of the Rnmr1D package"
+author: "Daniel Jacob"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{"Features illustration of the Rnmr1D package"}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+<style>
+body { max-width:900px; }
+</style>
+
+## Features illustration of the Rnmr1D package
+
+#### Rnmr1D is the main module in the NMRProcFlow web application (nmrprocflow.org) concerning the NMR spectra processing.
+
+### Description
+* Rnmr1D R package is aimed to performs the complete processing of a set of 1D NMR spectra from the FID (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong.
+
+* NMRProcFlow allows experts to build their own spectra processing workflow, in order to become re-applicable to similar NMR spectra sets, i.e. stated as use-cases. By extension, the implementation of NMR spectra processing workflows executed in batch mode can be considered as relevant provided that we want to process in this way very well-mastered and very reproducible use cases, i.e. by applying the same Standard Operating Procedures (SOP). A subset of NMR spectra is firstly processed in interactive mode in order to build a well-suited workflow. This mode can be considered as the 'expert mode'. Then, other subsets that are regarded as either similar or being included in the same case study, can be processed in batch mode, operating directly within a R session.
+
+* See the NMRProcFlow online documentation https://nmrprocflow.org/ for further information.
+
+<br>
+
+### Test with the extra data provided within the package
+
+To illustrate the possibilities of Rnmr1D 1.0, we will use the dataset provided within the package. This is a small set of 1H NMR spectra (12 samples) acquired on a Bruker Advanced III 500Mz instrument (ZG sequence, solvent D20, pH 6), derived from sunflower leaves. The experimental design of the study focused on a treatment (A vs. B) on two genotypes (G1, G2) with 3 replicates for each samples.
+
+```{r init-object0, echo=TRUE, include=TRUE}
+library(Rnmr1D)
+data_dir <- system.file("extra", package = "Rnmr1D")
+RAWDIR <- file.path(data_dir, "MMBBI_14P05")
+CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+SAMPLEFILE <- file.path(data_dir, "Samples.txt")
+```
+
+The samples matrix with the correspondence of the raw spectra, as well as the levels of the experimental factors
+```{r init-object1, echo=TRUE, include=TRUE}
+samples <- read.table(SAMPLEFILE, sep="\t", header=T,stringsAsFactors=FALSE)
+samples
+```
+
+The Macro-commands list for processing 
+```{r init-object2, echo=TRUE, include=TRUE}
+CMDTEXT <- readLines(CMDFILE)
+options(width=128)
+CMDTEXT[grep("^#$", CMDTEXT, invert=TRUE)]
+```
+
+<br>
+
+### Do the processing
+
+**doProcessing** is the main function of this package. Indeed, this function performs the complete processing of a set of 1D NMR spectra from the FID (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong. In this way it is possible to select only a subset of spectra instead of the whole set. 
+
+```{r eval0, echo=TRUE, eval=FALSE}
+out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
+```
+```{r proc1, echo=FALSE, eval=TRUE}
+data(test)
+out <- test[[1]]
+outclust <- test[[2]]
+```
+
+<pre>
+Rnmr1D:  --- READING and CONVERTING ---
+Rnmr1D:  Vendor=bruker, Type=fid, LB=0.3, ZF=2, BLPHC=FALSE, PHC1=FALSE, FP=0, TSP=TRUE;
+Rnmr1D:  Generate the 'samples' & 'factors' files from the list of raw spectra
+Rnmr1D:  -- Nb Spectra = 12 -- Nb Cores = 8
+
+Rnmr1D:  Generate the final matrix of spectra...
+Rnmr1D: ------------------------------------
+Rnmr1D: Process the Macro-commands file
+Rnmr1D: ------------------------------------
+Rnmr1D: 
+Rnmr1D:  Normalisation of the Intensities based on the selected PPM ranges...
+Rnmr1D:     Method =CSN
+Rnmr1D:  Baseline Correction: PPM Range = ( -0.499909071543063 , 10.9999706891186 )
+Rnmr1D:     Type=Global - Smoothing Parameter=50 - Window Size=30
+Rnmr1D:  Baseline Correction: PPM Range = ( 0.644 , 2.927 )
+Rnmr1D:     Type=airPLS, lambda= 4 
+Rnmr1D:  Zeroing the selected PPM ranges ...
+Rnmr1D:     Zone 1 = ( 2.736 , 2.79 )
+Rnmr1D:     Zone 2 = ( 2.235 , 2.289 )
+Rnmr1D:     Zone 3 = ( 1.547 , 1.639 )
+Rnmr1D:     Zone 4 = ( 1.264 , 1.359 )
+Rnmr1D:     Zone 5 = ( 0.856 , 0.94 )
+Rnmr1D:  Baseline Correction: PPM Range = ( 2.924 , 5.529 )
+Rnmr1D:     Type=airPLS, lambda= 2.6 
+Rnmr1D:  Zeroing the selected PPM ranges ...
+Rnmr1D:     Zone 1 = ( 4.626 , 4.978 )
+Rnmr1D:  Baseline Correction: PPM Range = ( 5.795 , 8.393 )
+Rnmr1D:     Type=airPLS, lambda= 2 
+Rnmr1D:  Alignment: PPM Range = ( 5.776 , 8.389 )
+Rnmr1D:     CluPA - Resolution =0.03 - SNR threshold=5 - Reference=0
+Rnmr1D:     --- Peak detection : nDivRange = 164 
+Rnmr1D:     --- Peak detection time:  2.39  sec
+Rnmr1D:     --- The reference spectrum is:  1 
+Rnmr1D:     --- Spectra alignment to the reference: maxShift = 41 
+Rnmr1D:     --- Spectra alignment time:  0.509999999999998  sec
+Rnmr1D:  Alignment: PPM Range = ( 0.554 , 4.731 )
+Rnmr1D:     CluPA - Resolution =0.03 - SNR threshold=5 - Reference=0
+Rnmr1D:     --- Peak detection : nDivRange = 164 
+Rnmr1D:     --- Peak detection time:  3.13  sec
+Rnmr1D:     --- The reference spectrum is:  1 
+Rnmr1D:     --- Spectra alignment to the reference: maxShift = 41 
+Rnmr1D:     --- Spectra alignment time:  0.900000000000002  sec
+Rnmr1D:  Bucketing the selected PPM ranges ...
+Rnmr1D:     AIBIN - Resolution =0.3 - SNR threshold=3 - Append=0
+Rnmr1D:     Zone 1 = ( 4.788 , 9.309 ), Nb Buckets = 216 
+Rnmr1D:     Zone 2 = ( 0.615 , 4.67 ), Nb Buckets = 341 
+Rnmr1D:     Total Buckets = 557 
+</pre>
+
+<br>
+The ouput list includes severals metadata, data and other information.
+```{r proc2, echo=TRUE, eval=TRUE}
+ls(out)
+
+out$infos
+```
+
+<br>
+
+### Stacked Plot with a perspective effect
+```{r plot1, echo=TRUE, fig.align='center', fig.width=12 }
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5))
+```
+
+### Overlaid Plot
+```{r plot2, echo=TRUE, fig.align='center', fig.width=12}
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0)
+```
+
+### Some other plots to illustrate the possibilities
+```{r plot3, echo=TRUE, fig.align='center', fig.width=12}
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.33, asym=0)
+cols <- c(rep("red",6), rep("blue",6))
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.67, dppm_max=0, cols=cols)
+```
+
+<br>
+
+### Get the data matrix 
+
+Before exporting, in order to make all spectra comparable each other, we have to account for variations of the overall concentrations of samples. In NMR metabolomics, the total intensity normalization (called the Constant Sum Normalization) is often used so that all spectra correspond to the same overall concentration. It simply consists to normalize the total intensity of each individual spectrum to a same value. 
+
+```{r proc3, echo=TRUE, eval=TRUE}
+outMat <- Rnmr1D::getBucketsDataset(out, norm_meth='CSN')
+outMat[, 1:10]
+```
+
+<br>
+
+### Bucket Clustering based on a lower threshold  applied on correlations (cval=0 => threshold automatically estimated )
+
+At the bucketing step (see above),  we have chosen the intelligent bucketing [[1](#ref1)], it means that each bucket exact matches with one resonance peak. Thanks to this, the buckets now have a strong chemical meaning, since the resonance peaks are the fingerprints of chemical compounds. However, to assign a chemical compound, several resonance peaks are generally required in 1D 1 H-NMR metabolic profiling. **To generate relevant clusters** (i.e. clusters possibly matching to chemical compounds), **an appropriate correlation threshold is applied on the correlation matrix before its cluster decomposition** [[2](#ref2)].
+
+Moreover, an improvement can be done by **searching for a trade-off on a tolerance interval of the correlation threshold** : from a fixed threshold of the correlation  (cval), the clustering is calculated for the three values (cval-dC, cval,  cval+dC),  where dC is the tolerance interval of the correlation threshold.
+From these three sets of clusters, we establish a merger according to the following rules: 1) if a large cluster is broken, we keep the two resulting clusters. 2) If a small cluster disappears, the initial cluster is conserved. Generally, an interval of the correlation threshold equal to 0.01 gives a good trade-off.
+
+```{r proc4, echo=TRUE, eval=FALSE}
+outclust <- Rnmr1D::getClusters(outMat, method='corr', cval=0, dC=0.01, ncpu=detectCores())
+```
+<pre>
+#-- Clustering --
+#  Correlation Method: pearson 
+#  Correlation Threshold : 0.982 
+#  Correlation Tolerance: 0.01 
+#  Nb Clusters: 59 
+#
+</pre>
+
+
+```{r proc4b, echo=TRUE, eval=TRUE}
+outclust$clustertab[1:20, ]
+outclust$clusters$C4      # same as outclust$clusters[['C4']]
+```
+
+Based on these clusters, it is possible to find candidate by querying online databases - See for example :
+* HMDB - http://www.hmdb.ca/spectra/nmr/one_d/search/new,
+* PeakForest - https://metabohub.peakforest.org/webapp/home?page=peakmatching, 
+* SpinAssign - http://dmar.riken.jp/spinassign/
+* NMRShiftDB - http://nmrshiftdb.nmr.uni-koeln.de/nmrshiftdb/media-type/html/user/anon/page/default.psml/js_pane/P-Search
+
+<br>
+
+### Plot the criterion curves
+```{r plot4, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
+plotCriterion(outclust)
+```
+
+### Boxplots of clusters
+
+This plot allows us to have an insight on the clusters distribution - We see that they cover four orders (log scaled)
+
+```{r plot5, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
+plotClusters(outMat,outclust)
+```
+
+<br>
+
+### PCA
+
+PCA is a multivariate analysis without prior knowledge on the experiment design. In this way, it allows us to see the dataset as it is, projected in the two main components where data variance is maximal.
+
+```{r proc5, echo=TRUE, eval=TRUE}
+pca <- prcomp(outMat,retx=TRUE,scale=T, rank=2)
+```
+
+<br>
+
+### Plot PCA Scores
+
+Ellipses corresponding to the factors levels are simply added on graph. It is possible to specify their confidence level (95% by default).
+
+```{r plot6, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
+plotScores(pca$x, out$samples, 'Genotype', level=0.8)   # Choose 'Genotype' as factor, confidence level = 80%
+
+plotScores(pca$x, out$samples, 'Treatment', level=0.8)  # Choose 'Treatment' as factor, confidence level = 80%
+```
+
+### Plot PCA Loadings
+
+Having calculated the clustering in the previous step (see above), it can be superimposed on the loadings plot in order to view its distribution and thus its efficiency. We can see that where the clusters are located, this corresponds to the maximum variance of the buckets, i.e. mainly at the ends of the first principal component (PC1).
+
+```{r plot7, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
+plotLoadings(pca$rotation, 1, 2, associations=outclust$clustertab, cexlabel=0.6, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
+```
+
+Plot loadings with the merged variables for each cluster (based on their average)
+
+```{r plot8, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
+outMat.merged <- Rnmr1D::getMergedDataset(outMat, outclust)
+pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
+plotLoadings(pca.merged$rotation, 1,2,  associations=outclust$clustertab, cexlabel=0.6, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
+```
+
+Quod erat demonstrandum !
+
+<br>
+
+### References
+
+<a name="ref1"></a>[1] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), 3783–3790.doi: 10.1021/ac7025964
+
+<a name="ref2"></a>[2] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15) 5049–5061 doi: 10.1007/s00216-013-6852-y
+
