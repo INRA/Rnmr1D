@@ -26,8 +26,7 @@ install.packages(c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', '
 
 ```R
 require(devtools)
-install_github("djacob65/Rnmr1D", dependencies = TRUE)
-build_vignettes(pkg = ".", dependencies = "VignetteBuilder")
+install_github("djacob65/Rnmr1D", dependencies = TRUE, , build_vignettes = TRUE)
 ```
 
 ## Example of use
@@ -69,7 +68,11 @@ outBucket <- getBucketsTable(out)
 
 # Get the spectra data
 spectra <- getSpectraData(out)
+```
 
+# See a more complete illustation within the vignette
+```R
+vignette("Rnmr1D")
 ```
 
 * See a quick presentation online with output examples (https://nmrprocflow.org/themes/pdf/NMRProcFlow_Rstudio.pdf)
