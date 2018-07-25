@@ -26,7 +26,7 @@ install.packages(c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', '
 
 ```R
 require(devtools)
-install_github("djacob65/Rnmr1D", dependencies = TRUE, , build_vignettes = TRUE)
+install_github("djacob65/Rnmr1D", dependencies = TRUE)
 ```
 
 ## Example of use
