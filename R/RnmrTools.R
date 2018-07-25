@@ -1,3 +1,4 @@
+
 lbALIGN <- 'align'
 lbGBASELINE <- 'gbaseline'
 lbBASELINE <- 'baseline'
@@ -19,404 +20,8 @@ EOL <- 'EOL'
 
 Write.LOG <- function(logfile=stdout(), ...) cat(sprintf(...), sep='', file=logfile, append=TRUE)
 
-
-detectCores <- function(...) {
-   suppressMessages(require(parallel))
-   parallel::detectCores(...)
-}
-
-# -----
-# Generate the metadata from the list of raw spectra
-# -----
-# Inputs: 
-#    RAWDIR : the directory containing the unzipped files
-#    procParams : the list of processing parameters
-#    samples : the Sample list
-# Outputs 
-#    metadata : the list of metadata
-#       samples : the Sample list
-#       factors : the list of the severals factors
-#       rawids  : the list of full paths of rawdata
-generate_Metadata <- function(RAWDIR, procParams, samples=NULL)
-{
-   metadata <- list()
-   repeat {
-      # Bruker, Varian or nmrML with a provided sample file 
-      if (! is.null(samples) ) {
-          metadata <- set_Metadata(RAWDIR, procParams, samples )
-          break
-      }
-      # Bruker without sample file 
-      if ( procParams$VENDOR=="bruker" ) {
-          if ( procParams$INPUT_SIGNAL=="fid" ) {
-              metadata <- generate_Metadata_fid(RAWDIR, procParams )
-              break
-          }
-          if ( procParams$INPUT_SIGNAL=="1r" )  {
-              metadata <- generate_Metadata_1r(RAWDIR, procParams )
-              break
-          }
-          break
-      }
-      # Varian or nmrML without sample file 
-      else {
-          metadata <- set_Metadata(RAWDIR, procParams, samples )
-          break
-      }
-      break
-   }
-
-   
-   # Bruker without sample file 
-   if ( procParams$VENDOR=="bruker" ) {
-       if ( procParams$INPUT_SIGNAL=="fid" ) {
-           metadata <- generate_Metadata_fid(RAWDIR, procParams )
-       } else {
-           metadata <- generate_Metadata_1r(RAWDIR, procParams )
-       }
-   }
-   return(metadata)
-}
-
-generate_Metadata_fid <- function(RAWDIR, procParams)
-{
-   metadata <- list()
-   ERRORLIST <- c()
-   OKRAW <- 1
-   lstfac <- matrix(c(1,"Samplecode"), nrow=1)
-   RAWPATH <- gsub("//", "/", RAWDIR)
-   LIST <- gsub("//", "/", list.files(path = RAWPATH, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-   if ( class(LIST)=="character" && length(LIST)==0 ) return(NULL)
-   L <- simplify2array(strsplit(LIST,'/'))
-   if (class(L) != "matrix") {
-      L <- simplify2array(lapply(L, length))
-      LM <- round(mean(L),0)
-      RMLIST <- c()
-      if (sum(L<LM)>0) {
-          ERRORLIST <- c( ERRORLIST, LIST[ which(L < LM) ] )
-          RMLIST <- c( RMLIST, which(L < LM) )
-      }
-      if (sum(L>LM)>0) {
-          ERRORLIST <- c( ERRORLIST, LIST[ which(L > LM) ] )
-          RMLIST <- c( RMLIST, which(L > LM) )
-      }
-      if (length(RMLIST)>0) LIST <- LIST[ -RMLIST ]
-   }
-   LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
-
-   nDir <- dim(simplify2array(strsplit(RAWPATH,'/')))[1]
-   LIST <- LIST[, c(-1:-nDir)]
-   nc <- dim(LIST)[2]
-   nr <- dim(LIST)[1]
-   if (nc<3) {
-      LIST <- cbind(LIST[,1],LIST)
-   }
-
-   SL <- NULL
-   if (nc>3) { SL <- LIST[, c(1:(nc-3)) ]; LIST <- LIST[ , c((nc-2):nc) ]; }
-   nc=3
-
-   if (length(levels(LIST[,1]))<nr && length(levels(LIST[,1]))>1 &&
-       length(levels(LIST[,2]))<nr && length(levels(LIST[,2]))>1) {
-      L <- levels(LIST[,1])
-      LIST2 <- NULL
-      for (i in 1:length(L)) {
-         L2 <- LIST[ LIST[,1]==L[i], ]
-         LIST2 <- rbind( LIST2, L2[ L2[,2]==levels(L2[,2])[1], ] )
-      }
-      LIST <- LIST2
-   }
-   nr <- dim(LIST)[1]
-   MS <- as.matrix(LIST)
-
-   if( !is.null(SL)) { LIST2 <- cbind(SL[c(1: dim(LIST)[1])], LIST); } else { LIST2 <- LIST; }
-   nc <- dim(LIST2)[2]
-   rawdir <- cbind( sapply(1:nr, function(x){ do.call( paste, c( RAWPATH, as.list(LIST2[x,c(1:(nc-1))]), sep="/")) }), MS[, 2], rep(0,nr) )
-
-   if (length(levels(LIST[,1]))==nr) {
-      M <-  MS[, c(1,1) ]
-   } else {
-      M <-  MS[, c(1,2) ]
-   }
-   if (nr==1 && class(M)=="character") M <- as.matrix(t(M))
-
-   metadata$ERRORLIST <- ERRORLIST
-   if (OKRAW==1) {
-      metadata$samples <- M
-      metadata$rawids <- gsub("//", "/", rawdir)
-      metadata$factors <- lstfac
-   }
-   return(metadata)
-}
-
-generate_Metadata_1r <- function(RAWDIR, procParams)
-{
-   metadata <- list()
-   ERRORLIST <- c()
-   OKRAW <- 1
-   lstfac <- matrix(c(1,"Samplecode"), nrow=1)
-   RAWPATH <- gsub("//", "/", RAWDIR)
-
-   LIST <- gsub("//", "/", list.files(path = RAWPATH, pattern = "1r$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-   if ( class(LIST)=="character" && length(LIST)==0 ) return(NULL)
-   L <- simplify2array(strsplit(LIST,'/'))
-   if (class(L) != "matrix") {
-      L <- simplify2array(lapply(L, length))
-      LM <- round(mean(L),0)
-      RMLIST <- c()
-      if (sum(L<LM)>0) {
-          ERRORLIST <- c( ERRORLIST, LIST[ which(L < LM) ] )
-          RMLIST <- c( RMLIST, which(L < LM) )
-      }
-      if (sum(L>LM)>0) {
-          ERRORLIST <- c( ERRORLIST, LIST[ which(L > LM) ] )
-          RMLIST <- c( RMLIST, which(L > LM) )
-      }
-      if (length(RMLIST)>0) LIST <- LIST[ -RMLIST ]
-   }
-   LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
-
-   # Check if we have a Bruker directory structure
-   nDir <- dim(simplify2array(strsplit(RAWPATH,'/')))[1]
-   LIST <- LIST[, c(-1:-nDir)]
-   nc <- dim(LIST)[2]
-   nr <- dim(LIST)[1]
-   if (nc<5) {
-      LIST <- cbind(LIST[,1],LIST)
-   }
-
-   SL <- NULL
-   if (nc>5) { SL <- LIST[, c(1:(nc-5)) ]; LIST <- LIST[ , c((nc-4):nc) ]; }
-   nc=5
-
-   L <- levels(LIST[,4])
-   if (length(L)>1) {
-      LIST <- LIST[ LIST[,4]==L[1], ]
-   }
-   nr <- dim(LIST)[1]
-
-   if (length(levels(LIST[,1]))<nr && length(levels(LIST[,1]))>1 &&
-       length(levels(LIST[,2]))<nr && length(levels(LIST[,2]))>1) {
-      L <- levels(LIST[,1])
-      LIST2 <- NULL
-      for (i in 1:length(L)) {
-         L2 <- LIST[ LIST[,1]==L[i], ]
-         LIST2 <- rbind( LIST2, L2[ L2[,2]==levels(L2[,2])[1], ] )
-      }
-      LIST <- LIST2
-   }
-   nr <- dim(LIST)[1]
-   MS <- as.matrix(LIST)
-
-   if( !is.null(SL)) { LIST2 <- cbind(SL[c(1: dim(LIST)[1])], LIST); } else { LIST2 <- LIST; }
-   nc <- dim(LIST2)[2]
-   rawdir <- cbind( sapply(1:nr, function(x){ do.call( paste, c( RAWPATH, as.list(LIST2[x,c(1:(nc-3))]), sep="/")) }), MS[, 2], MS[, 4] )
-
-   if (length(levels(LIST[,1]))==nr) {
-      M <-  MS[, c(1,1) ]
-   } else {
-      M <-  MS[, c(1,2) ]
-   }
-   if (nr==1 && class(M)=="character") M <- as.matrix(t(M))
-
-   metadata$ERRORLIST <- ERRORLIST
-   if (OKRAW==1) {
-      metadata$samples <- M
-      metadata$rawids <- gsub("//", "/", rawdir)
-      metadata$factors <- lstfac
-   }
-   return(metadata)
-}
-
-set_Metadata <- function(RAWDIR, procParams, samples)
-{
-   if (procParams$VENDOR == "bruker") return (.set_Metadata_Bruker(RAWDIR, procParams, samples))
-   if (procParams$VENDOR == "varian") return (.set_Metadata_Varian(RAWDIR, procParams, samples))
-   if (procParams$VENDOR == "nmrml")  return (.set_Metadata_nmrML(RAWDIR, procParams, samples))
-   if (procParams$VENDOR == "jeol")   return (.set_Metadata_Jeol(RAWDIR, procParams, samples))
-   return(NULL)
-}
-
-.set_Metadata_Bruker <- function(RAWDIR, procParams, samples)
-{
-   metadata <- list()
-   if (!is.null(samples)) {
-      samplesize <- dim(samples)
-      nraw <- samplesize[1]
-      nbcol <- samplesize[2]
-      
-      lstfac <- matrix(c(1,"Samplecode"), nrow=1)
-      rawdir <- NULL
-      ERRORLIST <- c()
-      OKRAW <- 1
-      
-      if (procParams$INPUT_SIGNAL == "1r") {
-         LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = "1r$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-         if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
-         LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
-         
-         # Check if we have a Bruker directory structure
-         nDir <- dim(simplify2array(strsplit(RAWDIR,'/')))[1]
-         nc <- dim(LIST)[2]
-         if ((nc-nDir)>5) {
-             RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-5))]), sep="/"))
-         }
-         for (i in 1:nraw) {
-             if ( file.exists( paste(RAWDIR, samples[i,1],samples[i,3],"pdata",samples[i,4], "1r", sep="/")) ) {
-                 rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], samples[i,3], sep="/"), samples[i,3], samples[1,4] ) )
-             } else {
-                 ERRORLIST <- c( ERRORLIST, paste(samples[1,1],samples[i,3],"pdata",samples[i,4], "1r", sep="/") )
-                 OKRAW <- 0
-             }
-         }
-      } else {
-         LIST <- gsub("//", "/", list.files(path = RAWDIR, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-         LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
-         
-         # Check if we have a Bruker directory structure
-         nDir <- dim(simplify2array(strsplit(RAWDIR,'/')))[1]
-         nc <- dim(LIST)[2]
-         if ((nc-nDir)>3) {
-             RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-3))]), sep="/"))
-         }
-         for (i in 1:nraw) {
-             if ( file.exists( paste(RAWDIR, samples[i,1],samples[i,3],"fid", sep="/")) ) {
-                 rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], samples[i,3], sep="/"), samples[i,3], 0 ) )
-             } else {
-                 ERRORLIST <- c( ERRORLIST, paste(samples[i,1],samples[i,3],"fid", sep="/") )
-                 OKRAW <- 0
-             }
-         }
-      }
-      
-      if (nbcol==4) {
-          M <- cbind(samples[,1], samples[,2])
-      }
-      if (nbcol>4) {
-          M <- samples[,c(-3:-4)]
-          lstfac <- rbind( lstfac, cbind( c(2:(nbcol-3)), colnames(samples)[c(-1:-4)] ) )
-      }
-      
-      metadata$ERRORLIST <- ERRORLIST
-      if (OKRAW==1) {
-         metadata$samples <- M
-         metadata$rawids <- gsub("//", "/", rawdir)
-         metadata$factors <- lstfac
-      }
-   }
-   return(metadata)
-}
-
-.set_Metadata_Varian <- function(RAWDIR, procParams, samples)
-{
-   lstfac <- matrix(c(1,"Samplecode"), nrow=1)
-   rawdir <- NULL
-   metadata <- list()
-   ERRORLIST <- c()
-   OKRAW <- 1
-
-   LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-   if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
-
-#   if (!is.null(SampleFile) && file.exists(SampleFile)) {
-#       samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
-   if (!is.null(samples)) {
-       samplesize <- dim(samples)
-       nraw <- samplesize[1]
-       nbcol <- samplesize[2]
-
-       LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
-      
-       # Check directory structure
-       nDir <- dim(simplify2array(strsplit(RAWDIR,'/')))[1]
-       nc <- dim(LIST)[2]
-       if ((nc-nDir)>2) {
-           RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-2))]), sep="/"))
-       }
-      for (i in 1:nraw) {
-          if ( file.exists( paste(RAWDIR, samples[i,1],"fid", sep="/")) ) {
-              rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], sep="/"), 0, 0 ) )
-          } else {
-              ERRORLIST <- c( ERRORLIST, paste(samples[i,1],"fid", sep="/") )
-              OKRAW <- 0
-          }
-      }
-      if (nbcol==2) {
-          M <- cbind(samples[,1], samples[,2])
-      }
-      if (nbcol>2) {
-         M <- samples
-         lstfac <- rbind( lstfac, cbind( c(2:(nbcol-1)), colnames(samples)[c(-1:-2)] ) )
-      }
-   } else {
-      rawdir <- cbind( dirname(LIST), rep(0, length(LIST)), rep(0, length(LIST)) )
-      M <- cbind( basename(dirname(LIST)), basename(dirname(LIST)) )
-   }
-
-   metadata$ERRORLIST <- ERRORLIST
-   if (OKRAW==1) {
-      metadata$samples <- M
-      metadata$rawids <- gsub("//", "/", rawdir)
-      metadata$factors <- lstfac
-   }
-   return(metadata)
-}
-
-.set_Metadata_nmrML <- function(RAWDIR, procParams, samples)
-{
-   return(.set_Metadata_ext(RAWDIR, procParams, samples, ext="nmrML"))
-}
-
-.set_Metadata_Jeol <- function(RAWDIR, procParams, samples)
-{
-   return(.set_Metadata_ext(RAWDIR, procParams, samples, ext="jdf"))
-}
-
-.set_Metadata_ext <- function(RAWDIR, procParams, samples, ext="nmrML")
-{
-   lstfac <- matrix(c(1,"Samplecode"), nrow=1)
-   rawdir <- NULL
-   metadata <- list()
-   ERRORLIST <- c()
-   OKRAW <- 1
-   pattern <- paste0('.',ext,'$')
-   LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = pattern, all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
-   if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
-
-   if (!is.null(samples)) {
-      samplesize <- dim(samples)
-      nraw <- samplesize[1]
-      nbcol <- samplesize[2]
-
-      LIST2 <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
-      nc <- dim(LIST2)[2]
-      for (i in 1:nraw) {
-          if (sum( samples[i,1] == LIST2[,nc]) == 1) {
-              rawdir <- rbind( rawdir,  c( LIST[ which(samples[i,1] == LIST2[,nc]) ], 0, 0)  )
-          } else {
-              ERRORLIST <- c( ERRORLIST, samples[i,1] )
-              OKRAW <- 0
-          }
-      }
-      if (nbcol==2) {
-          M <- cbind(samples[,1], samples[,2])
-      }
-      if (nbcol>2) {
-         M <- samples
-         lstfac <- rbind( lstfac, cbind( c(2:(nbcol-1)), colnames(samples)[c(-1:-2)] ) )
-      }
-   } else {
-      rawdir <- cbind( LIST, rep(0, length(LIST)), rep(0, length(LIST)) )
-      M <- cbind( basename(LIST), gsub(pattern, "", basename(LIST)) )
-   }
-
-   metadata$ERRORLIST <- ERRORLIST
-   if (OKRAW==1) {
-      metadata$samples <- M
-      metadata$rawids <- gsub("//", "/", rawdir)
-      metadata$factors <- lstfac
-   }
-   return(metadata)
+fitdistr <- function(...) {
+   MASS::fitdistr(...)
 }
 
 #------------------------------
@@ -426,9 +31,9 @@ set_Metadata <- function(RAWDIR, procParams, samples)
 {
   x=matrix(x,nrow = 1, ncol=length(x))
   L=length(x)
-  E=spMatrix(L,L,i=seq(1,L),j=seq(1,L),rep(1,L))
-  D=as(diff(E,1,differences),"dgCMatrix")
-  W=as(spMatrix(L,L,i=seq(1,L),j=seq(1,L),w),"dgCMatrix")
+  E=Matrix::spMatrix(L,L,i=seq(1,L),j=seq(1,L),rep(1,L))
+  D=methods::as(diff(E,1,differences),"dgCMatrix")
+  W=methods::as(Matrix::spMatrix(L,L,i=seq(1,L),j=seq(1,L),w),"dgCMatrix")
   background=solve((W+lambda*t(D)%*%D),t((w*x)));
   return(as.vector(background))
 }
@@ -470,7 +75,8 @@ set_Metadata <- function(RAWDIR, procParams, samples)
   nSamp <- nrow(X)
   noiseEsp <- 0.005
   if (SNR.Th < 0) SNR.Th <- max(scales) * 0.05
-  pList <- foreach(i=1:nSamp) %dopar% {
+  i<-0
+  pList <- foreach::foreach(i=1:nSamp) %dopar% {
      myPeakRes <- NULL
      mySpec <- X[i, ]
      for (k in 1:length(nDivRange)) {
@@ -482,7 +88,7 @@ set_Metadata <- function(RAWDIR, procParams, samples)
            if (endR > nFea) endR <- nFea
            xRange <- mySpec[startR:endR]
            xMean <- mean(xRange)
-           xMedian <- median(xRange)
+           xMedian <- stats::median(xRange)
            if ((xMean == xMedian) || abs(xMean - xMedian)/((xMean + xMedian) * 2) < noiseEsp) next
            peakInfo <- MassSpecWavelet::peakDetectionCWT(mySpec[startR:endR], scales = scales, SNR.Th = SNR.Th)
            majorPeakInfo <- peakInfo$majorPeakInfo
@@ -513,7 +119,8 @@ set_Metadata <- function(RAWDIR, procParams, samples)
 .dohCluster <- function (X, peakList, refInd = 1, maxShift = 50, acceptLostPeak = TRUE) 
 {
   refSpec = X[refInd, ]
-  Y <- foreach(tarInd=1:nrow(X), .combine=rbind) %dopar% {
+  tarInd<-0
+  Y <- foreach::foreach(tarInd=1:nrow(X), .combine=rbind) %dopar% {
      if (tarInd == refInd) { refSpec; } else {
      tarSpec <- X[tarInd, ]
      myPeakList <- c(peakList[[refInd]], peakList[[tarInd]])
@@ -561,7 +168,7 @@ set_Metadata <- function(RAWDIR, procParams, samples)
   ## Spectra alignment to the reference
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     --- Spectra alignment to the reference: maxShift =",maxShift,"\n"));
   startTime <- proc.time()
-  Y <- .dohCluster(data, peakList=peakList, refInd=refInd, maxShift=maxShift, acceptLostPeak)
+  Y <- .dohCluster(data, peakList=peakList, refInd=refInd, maxShift=maxShift, acceptLostPeak=TRUE)
   endTime <- proc.time()
   if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     --- Spectra alignment time: ",(endTime[3]-startTime[3])," sec\n"));
 
@@ -583,7 +190,6 @@ RCalib1D <- function(specMat, PPM_NOISE_AREA, zoneref, ppmref)
        ppm0 <- specMat$ppm_max - (i0-1)*specMat$dppm
        dppmref <- ppm0 - ppmref
        decal <- 0
-       # sig <- fitdistr(specMat$int[i, length(which(specMat$ppm>PPM_NOISE_AREA[2])):(which(specMat$ppm<=PPM_NOISE_AREA[1])[1])], "normal")$estimate[2]
        sig <- C_estime_sd(specMat$int[i, 1:specMat$size],128)
        if (abs(dppmref) > specMat$dppm) {
            decal <- trunc(dppmref/specMat$dppm)
@@ -597,11 +203,11 @@ RCalib1D <- function(specMat, PPM_NOISE_AREA, zoneref, ppmref)
 
        if (decal<0) {
           specMat$int[i, 1:(specMat$size-abs(decal))] <- specMat$int[i,(1+abs(decal)):specMat$size]
-          specMat$int[i, (specMat$size-abs(decal)+1):specMat$size] <- rnorm(length((specMat$size-abs(decal)+1):specMat$size), mean=specMat$int[i,specMat$size-abs(decal)-1], sd=sig)
+          specMat$int[i, (specMat$size-abs(decal)+1):specMat$size] <- stats::rnorm(length((specMat$size-abs(decal)+1):specMat$size), mean=specMat$int[i,specMat$size-abs(decal)-1], sd=sig)
        }
        if (decal>0) {
           specMat$int[i,(1+abs(decal)):specMat$size] <- specMat$int[i, 1:(specMat$size-abs(decal))]
-          specMat$int[i, 1:abs(decal)] <- rnorm(length(1:abs(decal)), mean=specMat$int[i,abs(decal)+1], sd=sig)
+          specMat$int[i, 1:abs(decal)] <- stats::rnorm(length(1:abs(decal)), mean=specMat$int[i,abs(decal)+1], sd=sig)
        }
    }
    return(specMat)
@@ -616,7 +222,8 @@ RNorm1D <- function(specMat, normmeth, zones)
 
    if (normmeth=='CSN') {
       # 1/ Integration of each zone ...
-      SUM <- foreach(i=1:N, .combine='+') %dopar% {
+      i <- 0
+      SUM <- foreach::foreach(i=1:N, .combine='+') %dopar% {
           i1<-length(which(specMat$ppm>max(zones[i,])))
           i2<-which(specMat$ppm<=min(zones[i,]))[1]
           simplify2array(lapply( 1:specMat$nspec, function(x) { 
@@ -627,16 +234,17 @@ RNorm1D <- function(specMat, normmeth, zones)
    }
    if (normmeth=='PQN') {
       # 1/ Get spectra values for each zone ...
-      SUBMAT <- foreach(i=1:N, .combine=cbind) %dopar% {
+      i <- 0
+      SUBMAT <- foreach::foreach(i=1:N, .combine=cbind) %dopar% {
           i1<-length(which(specMat$ppm>max(zones[i,])))
           i2<-which(specMat$ppm<=min(zones[i,]))[1]
           # .. for each spectrum
           t(simplify2array(lapply( 1:specMat$nspec, function(x) { specMat$int[x,i1:i2] })))
       }
       # Calculate the most probabe quotient
-      V <- apply(SUBMAT, 2, median)
+      V <- apply(SUBMAT, 2, stats::median)
       MQ <- t(t(SUBMAT)/V)
-      COEFF <- apply(MQ,1,median)
+      COEFF <- apply(MQ,1, stats::median)
    }
 
    # 2/ Apply to each spectrum, its corresponding coefficient
@@ -653,13 +261,14 @@ RGbaseline1D <- function(specMat,PPM_NOISE_AREA, zone, WS, NEIGH)
    NFAC <- 1.5
    NEGFAC <- 10
    NBPASS <- 2
-
+   
    i1 <- ifelse( max(zone)>=specMat$ppm_max, 1, length(which(specMat$ppm>max(zone))) )
    i2 <- ifelse( min(zone)<=specMat$ppm_min, specMat$size - 1, which(specMat$ppm<=min(zone))[1] )
    TD <- specMat$size
 
    # Baseline Estimation for each spectrum
-   BLList <- foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
+   i <- 0
+   BLList <- foreach::foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
        sig <- fitdistr(specMat$int[i, length(which(specMat$ppm>PPM_NOISE_AREA[2])):(which(specMat$ppm<=PPM_NOISE_AREA[1])[1])], "normal")$estimate[2]
        mv <- simplify2array(lapply( c(3:61), function(x) { mean(abs(specMat$int[i, ((x-1)*TD/64):(x*TD/64)])); }))
        mmoy<-min(mv); mv <- NULL
@@ -729,7 +338,8 @@ RBaseline1D <- function(specMat,PPM_NOISE_AREA, zone, WINDOWSIZE)
    }
 
    # Baseline Estimation for each spectrum
-   BLList <- foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
+   i<-0
+   BLList <- foreach::foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
        specSig <- fitdistr(specMat$int[i,length(which(specMat$ppm>PPM_NOISE_AREA[2])):(which(specMat$ppm<=PPM_NOISE_AREA[1])[1])], "normal")$estimate[2]
        x <- specMat$int[i,c(i1:i2)]
        xmat <- matrix(x, nrow=WINDOWSIZE)
@@ -763,7 +373,8 @@ Rqnmrbc1D <- function(specMat, PPM_NOISE_AREA, zone)
    CSIG <- 5
 
    # Baseline Estimation for each spectrum
-   BLList <- foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
+   i<-0
+   BLList <- foreach::foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
        specSig <- fitdistr(specMat$int[i,length(which(specMat$ppm>PPM_NOISE_AREA[2])):(which(specMat$ppm<=PPM_NOISE_AREA[1])[1])], "normal")$estimate[2]
        x <- specMat$int[i,c(i1:i2)]
        bc <- 0*rep(1:n)
@@ -797,7 +408,7 @@ RairPLSbc1D <- function(specMat, zone, clambda)
 
    lambda <- ifelse (clambda==cmax, 5, 10^(cmax-clambda) )
    # Baseline Estimation for each spectrum
-   BLList <- foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
+   BLList <- foreach::foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
        x <- specMat$int[i,c(i1:i2)]
        bc <- .airPLS(x, lambda)
        gc()
@@ -967,7 +578,8 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
    # For each PPM range
    buckets_zones <- NULL
    N <- dim(zones)[1]
-   buckets_zones <- foreach(i=1:N, .combine=rbind) %dopar% {
+   i<-0
+   buckets_zones <- foreach::foreach(i=1:N, .combine=rbind) %dopar% {
        i2<-which(specMat$ppm<=min(zones[i,]))[1]
        i1<-length(which(specMat$ppm>max(zones[i,])))
        if (Algo=='aibin') {
@@ -982,7 +594,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
        }
        # Keep only the buckets for which the SNR average is greater than 'snr'
        MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
-       buckets_m <- buckets_m[ which( apply(t(MaxVals/(2*Vnoise)),1,quantile)[4,]>snr), ]
+       buckets_m <- buckets_m[ which( apply(t(MaxVals/(2*Vnoise)),1,stats::quantile)[4,]>snr), ]
        LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),"), Nb Buckets =",dim(buckets_m)[1],"\n")
        cbind( specMat$ppm[buckets_m[,1]], specMat$ppm[buckets_m[,2]], LOGMSG )
    }
@@ -1003,16 +615,26 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
    return(specMat)
 }
 
-#------------------------------
-# Check if the macro-command file (CMD.filename) is compliant with the allowed commands
-#------------------------------
-check_MacroCmdFile <- function(CMD.filename) {
+#' checkMacroCmdFile
+#'
+#' \code{checkMacroCmdFile} Check if the macro-commands included in the input file (commandfile) are compliant with the allowed commands.
+#'
+#' @param commandfile  The macro-commands file - the allowed commands are : 'align', 'warp', 'clupa', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 'normalisation', 'denoising', 'bucket', 'zero'.
+#'
+#' @return return 1 if the macro-commands included in the input file are compliant, 0 if not.
+#'
+#' @exemple
+#'   CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+#'   ret <- checkMacroCmdFile(CMDFILE)
+#'
+#' @seealso the NMRProcFlow online documentation \url{https://nmrprocflow.org/} and especially the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
+checkMacroCmdFile <- function(commandfile) {
    ret <- 1
    allowKW <- c( 'align', 'warp', 'clupa', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 'normalisation', 'denoising', 'bucket', 'zero', 'EOL' )
 
    tryCatch({
       # Read the macrocommand file
-      CMDTEXT <- gsub("\t", "", readLines(CMD.filename))
+      CMDTEXT <- gsub("\t", "", readLines(commandfile))
       CMDTEXT <- CMDTEXT[ grep( "^[^ ]", CMDTEXT ) ]
       CMD <- CMDTEXT[ grep( "^[^#]", CMDTEXT ) ]
       CMD <- gsub("^ ", "", gsub(" $", "", gsub(" +", ";", CMD)))
@@ -1087,7 +709,7 @@ RWrapperCMD1D <- function(cmdName, specMat, ...)
 # ------------------------------------
 # Process the Macro-commands file
 # ------------------------------------
-RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
+doProcCmd <- function(specObj, CMDTEXT, DEBUG=FALSE)
 {
  # specMat
    specMat <- specObj$specMat
@@ -1335,7 +957,7 @@ RProcCMD1D <- function(specObj, CMDTEXT, DEBUG=FALSE)
 #                  1 : symmetric trapeze
 #  beta        Correction of horizontal parallax effect   (0 .. 0.2) (defaut 0)
 #  cols        Vector of colors (same size that the number of spectra, i.e dim(specmat)[1])
-plot.SpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), K=0.67, pY=1, dppm_max=0.2*(max(ppm_lim) - min(ppm_lim)), asym=1, beta=0, cols=NULL)
+plotSpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), K=0.67, pY=1, dppm_max=0.2*(max(ppm_lim) - min(ppm_lim)), asym=1, beta=0, cols=NULL)
 {
    specmat <- specMat$int
    ppm <- specMat$ppm
@@ -1348,27 +970,27 @@ plot.SpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), 
    Ymax <- pY*max(specmat_sub)         # intensity limit
    diffppm <- max(ppm_sub) - min(ppm_sub)
    Cy <- 1-beta*(max(ppm_sub)-asym*dppm_max - ppm_sub)/(max(ppm_sub)-asym*dppm_max - min(ppm_sub))
-   if (is.null(cols)) cols <- rainbow(dim(specmat_sub)[1], s=0.8, v=0.75)
+   if (is.null(cols)) cols <- grDevices::rainbow(dim(specmat_sub)[1], s=0.8, v=0.75)
 
-   plot( cbind(ppm_sub, specmat_sub[1,]), xlim=rev(ppm_lim), ylim=c(0,Ymax), type="h", col="white", xlab="ppm", ylab="Intensity (u.a)")
+   graphics::plot( cbind(ppm_sub, specmat_sub[1,]), xlim=rev(ppm_lim), ylim=c(0,Ymax), type="h", col="white", xlab="ppm", ylab="Intensity (u.a)")
 
-   segments( max(ppm_sub) - asym*dppm_max, K*Ymax, min(ppm_sub) + dppm_max, (1-beta)*K*Ymax , col="lightgrey" )
-   segments( max(ppm_sub), 0, min(ppm_sub), 0, col="lightgrey" )
-   segments( max(ppm_sub), 0, max(ppm_sub) - asym*dppm_max, K*Ymax , col="lightgrey" )
-   segments( min(ppm_sub) + dppm_max, (1-beta)*K*Ymax, min(ppm_sub), 0, col="lightgrey" )
+   graphics::segments( max(ppm_sub) - asym*dppm_max, K*Ymax, min(ppm_sub) + dppm_max, (1-beta)*K*Ymax , col="lightgrey" )
+   graphics::segments( max(ppm_sub), 0, min(ppm_sub), 0, col="lightgrey" )
+   graphics::segments( max(ppm_sub), 0, max(ppm_sub) - asym*dppm_max, K*Ymax , col="lightgrey" )
+   graphics::segments( min(ppm_sub) + dppm_max, (1-beta)*K*Ymax, min(ppm_sub), 0, col="lightgrey" )
 
    for( i in 1:dim(specmat_sub)[1] ) {
       dppm <- dppm_max*(i-1)/(dim(specmat_sub)[1]-1)
       ppmi <- ppm_sub*(1-(1+asym)*dppm/diffppm) + dppm*(1+(1+asym)*min(ppm_sub)/diffppm)
       y_offset <- K*Ymax*Cy*(i-1)/(dim(specmat_sub)[1]-1)
-      lines(cbind(ppmi, specmat_sub[i,] + y_offset), col=cols[i])
+      graphics::lines(cbind(ppmi, specmat_sub[i,] + y_offset), col=cols[i])
    }
 }
 
 #----
 # Generates the buckets table
 #----
-get_Buckets_table <- function(specObj)
+getBucketsTable <- function(specObj)
 {
    outtable <- NULL
    specMat <- specObj$specMat
@@ -1388,7 +1010,7 @@ get_Buckets_table <- function(specObj)
 #----
 # Generates the buckets data set
 #----
-get_Buckets_dataset <- function(specObj, norm_meth='none', zoneref=NA)
+getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
 {
    outdata <- NULL
    specMat <- specObj$specMat
@@ -1409,7 +1031,7 @@ get_Buckets_dataset <- function(specObj, norm_meth='none', zoneref=NA)
           buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
           bucVref_IntVal <- C_MedianSpec(buckets_IntVal_CSN)
           bucRatio <- buckets_IntVal_CSN / bucVref_IntVal
-          Coeff <- apply(bucRatio,1,median)
+          Coeff <- apply(bucRatio,1, stats::median)
           buckets_IntVal <- buckets_IntVal_CSN / Coeff
       }
       # if supplied, integrate of all spectra within the PPM range of the reference signal
@@ -1434,7 +1056,7 @@ get_Buckets_dataset <- function(specObj, norm_meth='none', zoneref=NA)
 #----
 # Generates the SNR dataset
 #----
-get_SNR_dataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
+getSnrDataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
 {
    outdata <- NULL
    specMat <- specObj$specMat
@@ -1473,7 +1095,7 @@ get_SNR_dataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
 #----
 # Generates the Spectra Data
 #----
-get_Spectra_Data <- function(specObj)
+getSpectraData <- function(specObj)
 {
    # read samples
    specMat <- specObj$specMat

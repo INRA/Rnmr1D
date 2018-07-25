@@ -1,0 +1,21 @@
+#' test
+#'
+#' A dataset provided within the package to illustrate 
+#' the possibilities of Rnmr1D 1.0, A dataset provided 
+#' within the package. 
+#' This is a small set of 1H NMR spectra (12 samples) 
+#' acquired on a Bruker Advanced III 500Mz instrument 
+#' (ZG sequence, solvent D20, pH 6), derived from 
+#' sunflower leaves. 
+#' The experimental design of the study focused on a 
+#' treatment (A vs. B) on two genotypes (G1, G2) 
+#' with 3 replicates for each samples.
+#'
+#' @format A data list with precalculated objetcs
+#' \describe{
+#'   \item{[[1]]}{ output of the doProcessing function }
+#'   \item{[[2]]}{ output of the getClusters function }
+#'   ...
+#' }
+#' @source \url{http://www.diamondse.info/}
+"test"

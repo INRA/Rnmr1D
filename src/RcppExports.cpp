@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // SDL
 SEXP SDL(SEXP x, double Sigma);
-RcppExport SEXP Rnmr1D_SDL(SEXP xSEXP, SEXP SigmaSEXP) {
+RcppExport SEXP _Rnmr1D_SDL(SEXP xSEXP, SEXP SigmaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -19,7 +19,7 @@ END_RCPP
 }
 // C_write_pack
 void C_write_pack(SEXP x, double pmin, double pmax, SEXP ff);
-RcppExport SEXP Rnmr1D_C_write_pack(SEXP xSEXP, SEXP pminSEXP, SEXP pmaxSEXP, SEXP ffSEXP) {
+RcppExport SEXP _Rnmr1D_C_write_pack(SEXP xSEXP, SEXP pminSEXP, SEXP pmaxSEXP, SEXP ffSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
@@ -32,7 +32,7 @@ END_RCPP
 }
 // C_read_pack
 SEXP C_read_pack(SEXP ff);
-RcppExport SEXP Rnmr1D_C_read_pack(SEXP ffSEXP) {
+RcppExport SEXP _Rnmr1D_C_read_pack(SEXP ffSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -43,7 +43,7 @@ END_RCPP
 }
 // C_GlobSeg
 SEXP C_GlobSeg(SEXP v, int dN, double sig);
-RcppExport SEXP Rnmr1D_C_GlobSeg(SEXP vSEXP, SEXP dNSEXP, SEXP sigSEXP) {
+RcppExport SEXP _Rnmr1D_C_GlobSeg(SEXP vSEXP, SEXP dNSEXP, SEXP sigSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -56,7 +56,7 @@ END_RCPP
 }
 // lowpass1
 SEXP lowpass1(SEXP x, double alpha);
-RcppExport SEXP Rnmr1D_lowpass1(SEXP xSEXP, SEXP alphaSEXP) {
+RcppExport SEXP _Rnmr1D_lowpass1(SEXP xSEXP, SEXP alphaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -68,7 +68,7 @@ END_RCPP
 }
 // WinMoy
 double WinMoy(SEXP v, int n1, int n2);
-RcppExport SEXP Rnmr1D_WinMoy(SEXP vSEXP, SEXP n1SEXP, SEXP n2SEXP) {
+RcppExport SEXP _Rnmr1D_WinMoy(SEXP vSEXP, SEXP n1SEXP, SEXP n2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -81,7 +81,7 @@ END_RCPP
 }
 // Smooth
 SEXP Smooth(SEXP v, int n);
-RcppExport SEXP Rnmr1D_Smooth(SEXP vSEXP, SEXP nSEXP) {
+RcppExport SEXP _Rnmr1D_Smooth(SEXP vSEXP, SEXP nSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -93,7 +93,7 @@ END_RCPP
 }
 // Ajust_LB
 void Ajust_LB(SEXP s, SEXP b, int n1, int n2);
-RcppExport SEXP Rnmr1D_Ajust_LB(SEXP sSEXP, SEXP bSEXP, SEXP n1SEXP, SEXP n2SEXP) {
+RcppExport SEXP _Rnmr1D_Ajust_LB(SEXP sSEXP, SEXP bSEXP, SEXP n1SEXP, SEXP n2SEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type s(sSEXP);
@@ -106,7 +106,7 @@ END_RCPP
 }
 // C_Estime_LB
 SEXP C_Estime_LB(SEXP s, int istart, int iend, double WS, double NEIGH, double sig);
-RcppExport SEXP Rnmr1D_C_Estime_LB(SEXP sSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP WSSEXP, SEXP NEIGHSEXP, SEXP sigSEXP) {
+RcppExport SEXP _Rnmr1D_C_Estime_LB(SEXP sSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP WSSEXP, SEXP NEIGHSEXP, SEXP sigSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -122,7 +122,7 @@ END_RCPP
 }
 // C_Estime_LB2
 SEXP C_Estime_LB2(SEXP s, int istart, int iend, double WS, double NEIGH, double sig);
-RcppExport SEXP Rnmr1D_C_Estime_LB2(SEXP sSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP WSSEXP, SEXP NEIGHSEXP, SEXP sigSEXP) {
+RcppExport SEXP _Rnmr1D_C_Estime_LB2(SEXP sSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP WSSEXP, SEXP NEIGHSEXP, SEXP sigSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -138,7 +138,7 @@ END_RCPP
 }
 // C_noise_estimate
 SEXP C_noise_estimate(SEXP x, int n1, int n2, int flg);
-RcppExport SEXP Rnmr1D_C_noise_estimate(SEXP xSEXP, SEXP n1SEXP, SEXP n2SEXP, SEXP flgSEXP) {
+RcppExport SEXP _Rnmr1D_C_noise_estimate(SEXP xSEXP, SEXP n1SEXP, SEXP n2SEXP, SEXP flgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -152,7 +152,7 @@ END_RCPP
 }
 // C_spec_ref_interval
 SEXP C_spec_ref_interval(SEXP x, int istart, int iend, IntegerVector v);
-RcppExport SEXP Rnmr1D_C_spec_ref_interval(SEXP xSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP vSEXP) {
+RcppExport SEXP _Rnmr1D_C_spec_ref_interval(SEXP xSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -166,7 +166,7 @@ END_RCPP
 }
 // C_spec_ref
 SEXP C_spec_ref(SEXP x, IntegerVector v);
-RcppExport SEXP Rnmr1D_C_spec_ref(SEXP xSEXP, SEXP vSEXP) {
+RcppExport SEXP _Rnmr1D_C_spec_ref(SEXP xSEXP, SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -178,7 +178,7 @@ END_RCPP
 }
 // C_MedianSpec
 SEXP C_MedianSpec(SEXP x);
-RcppExport SEXP Rnmr1D_C_MedianSpec(SEXP xSEXP) {
+RcppExport SEXP _Rnmr1D_C_MedianSpec(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -189,7 +189,7 @@ END_RCPP
 }
 // C_Derive1
 SEXP C_Derive1(SEXP v);
-RcppExport SEXP Rnmr1D_C_Derive1(SEXP vSEXP) {
+RcppExport SEXP _Rnmr1D_C_Derive1(SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -200,7 +200,7 @@ END_RCPP
 }
 // C_Derive
 SEXP C_Derive(SEXP x);
-RcppExport SEXP Rnmr1D_C_Derive(SEXP xSEXP) {
+RcppExport SEXP _Rnmr1D_C_Derive(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -211,7 +211,7 @@ END_RCPP
 }
 // C_Integre
 SEXP C_Integre(SEXP x, int istart, int iend);
-RcppExport SEXP Rnmr1D_C_Integre(SEXP xSEXP, SEXP istartSEXP, SEXP iendSEXP) {
+RcppExport SEXP _Rnmr1D_C_Integre(SEXP xSEXP, SEXP istartSEXP, SEXP iendSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -224,7 +224,7 @@ END_RCPP
 }
 // C_segment_shifts
 SEXP C_segment_shifts(SEXP x, int idx_vref, int decal_max, int istart, int iend, IntegerVector v);
-RcppExport SEXP Rnmr1D_C_segment_shifts(SEXP xSEXP, SEXP idx_vrefSEXP, SEXP decal_maxSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP vSEXP) {
+RcppExport SEXP _Rnmr1D_C_segment_shifts(SEXP xSEXP, SEXP idx_vrefSEXP, SEXP decal_maxSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -240,7 +240,7 @@ END_RCPP
 }
 // C_align_segment
 int C_align_segment(SEXP x, SEXP s, int istart, int iend, IntegerVector v);
-RcppExport SEXP Rnmr1D_C_align_segment(SEXP xSEXP, SEXP sSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP vSEXP) {
+RcppExport SEXP _Rnmr1D_C_align_segment(SEXP xSEXP, SEXP sSEXP, SEXP istartSEXP, SEXP iendSEXP, SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -255,7 +255,7 @@ END_RCPP
 }
 // C_noise_estimation
 double C_noise_estimation(SEXP x, int n1, int n2);
-RcppExport SEXP Rnmr1D_C_noise_estimation(SEXP xSEXP, SEXP n1SEXP, SEXP n2SEXP) {
+RcppExport SEXP _Rnmr1D_C_noise_estimation(SEXP xSEXP, SEXP n1SEXP, SEXP n2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -268,7 +268,7 @@ END_RCPP
 }
 // C_aibin_buckets
 SEXP C_aibin_buckets(SEXP x, SEXP b, SEXP v, SEXP l, int n1, int n2);
-RcppExport SEXP Rnmr1D_C_aibin_buckets(SEXP xSEXP, SEXP bSEXP, SEXP vSEXP, SEXP lSEXP, SEXP n1SEXP, SEXP n2SEXP) {
+RcppExport SEXP _Rnmr1D_C_aibin_buckets(SEXP xSEXP, SEXP bSEXP, SEXP vSEXP, SEXP lSEXP, SEXP n1SEXP, SEXP n2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -284,7 +284,7 @@ END_RCPP
 }
 // C_spectra_integrate
 SEXP C_spectra_integrate(SEXP x, int istart, int iend);
-RcppExport SEXP Rnmr1D_C_spectra_integrate(SEXP xSEXP, SEXP istartSEXP, SEXP iendSEXP) {
+RcppExport SEXP _Rnmr1D_C_spectra_integrate(SEXP xSEXP, SEXP istartSEXP, SEXP iendSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -297,7 +297,7 @@ END_RCPP
 }
 // C_buckets_integrate
 SEXP C_buckets_integrate(SEXP x, SEXP b, int mode);
-RcppExport SEXP Rnmr1D_C_buckets_integrate(SEXP xSEXP, SEXP bSEXP, SEXP modeSEXP) {
+RcppExport SEXP _Rnmr1D_C_buckets_integrate(SEXP xSEXP, SEXP bSEXP, SEXP modeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -310,7 +310,7 @@ END_RCPP
 }
 // C_all_buckets_integrate
 SEXP C_all_buckets_integrate(SEXP x, SEXP b, int mode);
-RcppExport SEXP Rnmr1D_C_all_buckets_integrate(SEXP xSEXP, SEXP bSEXP, SEXP modeSEXP) {
+RcppExport SEXP _Rnmr1D_C_all_buckets_integrate(SEXP xSEXP, SEXP bSEXP, SEXP modeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -323,7 +323,7 @@ END_RCPP
 }
 // C_maxval_buckets
 SEXP C_maxval_buckets(SEXP x, SEXP b);
-RcppExport SEXP Rnmr1D_C_maxval_buckets(SEXP xSEXP, SEXP bSEXP) {
+RcppExport SEXP _Rnmr1D_C_maxval_buckets(SEXP xSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -335,7 +335,7 @@ END_RCPP
 }
 // C_buckets_CSN_normalize
 SEXP C_buckets_CSN_normalize(SEXP b);
-RcppExport SEXP Rnmr1D_C_buckets_CSN_normalize(SEXP bSEXP) {
+RcppExport SEXP _Rnmr1D_C_buckets_CSN_normalize(SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -346,7 +346,7 @@ END_RCPP
 }
 // C_estime_sd
 double C_estime_sd(SEXP x, int cut);
-RcppExport SEXP Rnmr1D_C_estime_sd(SEXP xSEXP, SEXP cutSEXP) {
+RcppExport SEXP _Rnmr1D_C_estime_sd(SEXP xSEXP, SEXP cutSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -358,7 +358,7 @@ END_RCPP
 }
 // ajustBL
 SEXP ajustBL(SEXP x, int flg);
-RcppExport SEXP Rnmr1D_ajustBL(SEXP xSEXP, SEXP flgSEXP) {
+RcppExport SEXP _Rnmr1D_ajustBL(SEXP xSEXP, SEXP flgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -370,7 +370,7 @@ END_RCPP
 }
 // C_corr_spec_re
 SEXP C_corr_spec_re(SEXP l);
-RcppExport SEXP Rnmr1D_C_corr_spec_re(SEXP lSEXP) {
+RcppExport SEXP _Rnmr1D_C_corr_spec_re(SEXP lSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -381,7 +381,7 @@ END_RCPP
 }
 // C_optim_phc
 SEXP C_optim_phc(double ax, double bx, SEXP l, int flg, double tol);
-RcppExport SEXP Rnmr1D_C_optim_phc(SEXP axSEXP, SEXP bxSEXP, SEXP lSEXP, SEXP flgSEXP, SEXP tolSEXP) {
+RcppExport SEXP _Rnmr1D_C_optim_phc(SEXP axSEXP, SEXP bxSEXP, SEXP lSEXP, SEXP flgSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -393,4 +393,43 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(C_optim_phc(ax, bx, l, flg, tol));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_Rnmr1D_SDL", (DL_FUNC) &_Rnmr1D_SDL, 2},
+    {"_Rnmr1D_C_write_pack", (DL_FUNC) &_Rnmr1D_C_write_pack, 4},
+    {"_Rnmr1D_C_read_pack", (DL_FUNC) &_Rnmr1D_C_read_pack, 1},
+    {"_Rnmr1D_C_GlobSeg", (DL_FUNC) &_Rnmr1D_C_GlobSeg, 3},
+    {"_Rnmr1D_lowpass1", (DL_FUNC) &_Rnmr1D_lowpass1, 2},
+    {"_Rnmr1D_WinMoy", (DL_FUNC) &_Rnmr1D_WinMoy, 3},
+    {"_Rnmr1D_Smooth", (DL_FUNC) &_Rnmr1D_Smooth, 2},
+    {"_Rnmr1D_Ajust_LB", (DL_FUNC) &_Rnmr1D_Ajust_LB, 4},
+    {"_Rnmr1D_C_Estime_LB", (DL_FUNC) &_Rnmr1D_C_Estime_LB, 6},
+    {"_Rnmr1D_C_Estime_LB2", (DL_FUNC) &_Rnmr1D_C_Estime_LB2, 6},
+    {"_Rnmr1D_C_noise_estimate", (DL_FUNC) &_Rnmr1D_C_noise_estimate, 4},
+    {"_Rnmr1D_C_spec_ref_interval", (DL_FUNC) &_Rnmr1D_C_spec_ref_interval, 4},
+    {"_Rnmr1D_C_spec_ref", (DL_FUNC) &_Rnmr1D_C_spec_ref, 2},
+    {"_Rnmr1D_C_MedianSpec", (DL_FUNC) &_Rnmr1D_C_MedianSpec, 1},
+    {"_Rnmr1D_C_Derive1", (DL_FUNC) &_Rnmr1D_C_Derive1, 1},
+    {"_Rnmr1D_C_Derive", (DL_FUNC) &_Rnmr1D_C_Derive, 1},
+    {"_Rnmr1D_C_Integre", (DL_FUNC) &_Rnmr1D_C_Integre, 3},
+    {"_Rnmr1D_C_segment_shifts", (DL_FUNC) &_Rnmr1D_C_segment_shifts, 6},
+    {"_Rnmr1D_C_align_segment", (DL_FUNC) &_Rnmr1D_C_align_segment, 5},
+    {"_Rnmr1D_C_noise_estimation", (DL_FUNC) &_Rnmr1D_C_noise_estimation, 3},
+    {"_Rnmr1D_C_aibin_buckets", (DL_FUNC) &_Rnmr1D_C_aibin_buckets, 6},
+    {"_Rnmr1D_C_spectra_integrate", (DL_FUNC) &_Rnmr1D_C_spectra_integrate, 3},
+    {"_Rnmr1D_C_buckets_integrate", (DL_FUNC) &_Rnmr1D_C_buckets_integrate, 3},
+    {"_Rnmr1D_C_all_buckets_integrate", (DL_FUNC) &_Rnmr1D_C_all_buckets_integrate, 3},
+    {"_Rnmr1D_C_maxval_buckets", (DL_FUNC) &_Rnmr1D_C_maxval_buckets, 2},
+    {"_Rnmr1D_C_buckets_CSN_normalize", (DL_FUNC) &_Rnmr1D_C_buckets_CSN_normalize, 1},
+    {"_Rnmr1D_C_estime_sd", (DL_FUNC) &_Rnmr1D_C_estime_sd, 2},
+    {"_Rnmr1D_ajustBL", (DL_FUNC) &_Rnmr1D_ajustBL, 2},
+    {"_Rnmr1D_C_corr_spec_re", (DL_FUNC) &_Rnmr1D_C_corr_spec_re, 1},
+    {"_Rnmr1D_C_optim_phc", (DL_FUNC) &_Rnmr1D_C_optim_phc, 5},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_Rnmr1D(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

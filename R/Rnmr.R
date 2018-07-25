@@ -4,19 +4,78 @@
 # (C) 2015 - D. JACOB - IMRA UMR1332 BAP
 #------------------------------------------------
 
-require(XML)
-require(base64enc)
-
-#' @export Spec1r.doProc
-Spec1r.doProc <- function(Input, ...) UseMethod("Spec1r.doProc")
-
-Spec1r.doProc.default <- function(Input, ...)
+#' Spec1rDoProc
+#'
+#' \code{Spec1rDoProc}  processes only one raw spectrum at time.
+#' @param Input Full directory path of the raw spectrum
+#' @param param a Spec1rProcpar list
+#' @return spec object
+Spec1rDoProc <- function(Input, param=Spec1rProcpar)
 {
-   .CALL(Input,...)
+   .CALL(Input, param)
 }
 
-### Processing parameters
-Spec1r.Procpar.default <- list (
+#' Spec1rFinalize
+#'
+#' \code{Spec1rFinalize}  finalizes the processing.
+#' @param spec object
+#' @param ... undocumented
+#' @return spec object
+Spec1rFinalize <- function(spec, ...)
+{
+   .Finalize(spec,...)
+}
+
+#' Spec1rReadSpecMatrix
+#'
+#' \code{Spec1rReadSpecMatrix}  Read a Matrix of Spectrum in a binary mode (PACK format)
+#' @param filepack the full path of binary file
+#' @return specMat specMat object - int: the Matrix of Spectrum : 1 row <=> 1 spectrum, 1 column <=> a same value of ppm
+Spec1rReadSpecMatrix <- function(filepack)
+{
+   readSpecMatrix(filepack)
+}
+
+#' Spec1rWriteSpecMatrix
+#'
+#' \code{Spec1rWriteSpecMatrix}  Write a Matrix of Spectrum in a binary mode (PACK format)
+#' @param specmat  the Matrix of Spectrum : 1 row <=> 1 spectrum, 1 column <=> a same value of ppm
+#' @param ... undocumented
+Spec1rWriteSpecMatrix <- function(specmat, ...)
+{
+   writeSpecMatrix(specmat, ...)
+}
+
+#' Spec1rProcpar
+#'
+#' Initialize Parameter Lists by the default ones
+#' @return
+#' \itemize{
+#'   \item \code{DEBUG} : Debug - defaut value = TRUE
+#'   \item \code{LOGFILE} : Messages output file - default value = stderr()
+#'   \item \code{VENDOR} : Instrumental origin of the raw data} (bruker, varian) - default value = 'bruker'
+#'   \item \code{READ_RAW_ONLY} : Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL - default value = FALSE
+#'   \item \code{INPUT_SIGNAL} : What type of input signal: 'fid' or '1r' - default value = 'fid'
+#'   \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
+#'   \item \code{LB} : Exponantial Line Broadening parameter - default value = 0.3
+#'   \item \code{GB} : Gaussian Line Broadening parameter - default value = 0
+#'   \item \code{REVTIME} : Reverse time points - default value = FALSE
+#'   \item \code{BLPHC} : Intensity offset correction - default value = FALSE
+#'   \item \code{SOLVPPM} : ppm of the solvent (D20 by default) - default value = 4.8
+#'   \item \code{ZEROFILLING} : Zero Filling - - default value = FALSE
+#'   \item \code{ZFFAC} : Max factor for Zero Filling - default value = 4
+#'   \item \code{LINEBROADENING} : Line Broading - default value = TRUE
+#'   \item \code{TSP} : PPM referencing - default value = FALSE
+#'   \item \code{RABOT} : Zeroing of Negative Values - default value = FALSE
+#'   \item \code{OPTPHC0} : Zero order phase optimization - default value = TRUE
+#'   \item \code{OPTPHC1} : First order phase optimization - default value = FALSE
+#'   \item \code{ALGO2} : alternative algorithm for phase optimization - default value = FALSE
+#'   \item \code{FRACPPM} : Origin point for adjustment of the first order phase (defined as a fraction of the ppm scale) - default value = 0
+#'   \item \code{INCFRACPPM1} : Incrementation value for search of optimal point for adjustment of the first order phase : step 1 - default value = 0.125
+#'   \item \code{INCFRACPPM2} : Incrementation value for search of optimal point for adjustment of the first order phase : step 2 - default value = 0.0125
+#'   \item \code{JGD_INNER} : JEOL : internal or external estimation for Group Delay - default value = TRUE
+#' }
+Spec1rProcpar <- list (
 
 ### General Parameters
     DEBUG=TRUE,                # Debug 
@@ -49,14 +108,9 @@ Spec1r.Procpar.default <- list (
 )
 
 #--------------------------------
-# Initialize Parameter Lists by the default ones
-#--------------------------------
-Spec1r.Procpar    <- Spec1r.Procpar.default
-
-#--------------------------------
 # verbose function
 #--------------------------------
-.v <- function(..., logfile=Spec1r.Procpar$LOGFILE) cat(sprintf(...), sep='', file=logfile, append=TRUE)
+.v <- function(..., logfile=Spec1rProcpar$LOGFILE) cat(sprintf(...), sep='', file=logfile, append=TRUE)
 
 #--------------------------------
 # READ FID && Acquisition Parameters
@@ -543,7 +597,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
    acq$TD <- length(fid)
 
    # Group Delay : Internal or External
-   if (Spec1r.Procpar$JGD_INNER) {
+   if (Spec1rProcpar$JGD_INNER) {
       GRPDLY <- 0
       factors <- eval(parse(text=paste0("c(",gsub(" +",",",procpar$factors$value),")")))
       orders <- eval(parse(text=paste0("c(",gsub(" +",",",procpar$orders$value),")")))
@@ -644,7 +698,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
 #### Read 1r data and the main parameters needed to generate the real spectrum
 #--  internal routine
 #-- DIR: bruker directory containing the 1r
-.read.1r.bruker <- function(DIR, param=Spec1r.Procpar) {
+.read.1r.bruker <- function(DIR, param=Spec1rProcpar) {
 
    cur_dir <- getwd()
    setwd(DIR)
@@ -732,7 +786,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
 }
 
 ### Group Delay correction
-.groupDelay_correction <- function(spec, param=Spec1r.Procpar)
+.groupDelay_correction <- function(spec, param=Spec1rProcpar)
 {
     fid <- spec$fid
     if (spec$acq$GRPDLY>0) {
@@ -752,12 +806,12 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
        
        i <- complex(real=0,imaginary=1)
        p <- ceiling(m/2); seq1 <- ( (p+1):m ); seq2 <- ( 1:p )
-       Spectrum <- fft(fid)
+       Spectrum <- stats::fft(fid)
        Spectrum <- c( Spectrum[seq1], Spectrum[seq2] )
        Spectrum <- Spectrum * exp(i*spec$acq$GRPDLY*2*pi*Omega)
        p <- length(seq1); seq1 <- ( (p+1):m ); seq2 <- ( 1:p )
        Spectrum <- c( Spectrum[seq1], Spectrum[seq2] )
-       fid <- fft(Spectrum, inverse = TRUE)
+       fid <- stats::fft(Spectrum, inverse = TRUE)
     }
     fid
 }
@@ -768,7 +822,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
 
 #### Apply some preprocessing: zero_filling, line broading
 #--  Generate real and imaginary parts
-.preprocess <- function(spec, param=Spec1r.Procpar)
+.preprocess <- function(spec, param=Spec1rProcpar)
 {
     logfile <- param$LOGFILE
 
@@ -822,7 +876,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
 
     ### FFT of FID
     if(param$DEBUG) .v("\tFFT ...", logfile=logfile)
-    Spectrum <- fft(spec$fid)
+    Spectrum <- stats::fft(spec$fid)
     if(param$DEBUG) .v("OK\n", logfile=logfile)
 
     ### Rotation
@@ -930,7 +984,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
           fid <- spec$fid
       }
       m <- length(fid)
-      Spectrum <- fft(fid)
+      Spectrum <- stats::fft(fid)
       p <- ceiling(m/2); seq1 <- ( (p+1):m ); seq2 <- ( 1:p )
       V <- c( Spectrum[seq1], Spectrum[seq2] )
       if (midzero==1) {
@@ -1027,7 +1081,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
 #--    DIR        : absolute path of the Bruker/Varian directory
 #--    procparams : list of processing parameters, see the  default parameter list 'Spec1rFromFID.params'
 ###
-.CALL <- function ( Input, param=Spec1r.Procpar )
+.CALL <- function ( Input, param=Spec1rProcpar )
 {
 
    logfile <- param$LOGFILE
@@ -1100,7 +1154,7 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
 
           # Zeroing of Negative Values
           if (param$RABOT) {
-              V <- quantile( spec$int[ spec$int < 0 ], 0.25 )
+              V <- stats::quantile( spec$int[ spec$int < 0 ], 0.25 )
               spec$int[ spec$int < V ] <- V
           }
       }
@@ -1112,11 +1166,144 @@ Spec1r.Procpar    <- Spec1r.Procpar.default
       break
    }
 
-   flush.console()
+   utils::flush.console()
    spec
 
 }
 
+## .Finalize
+# Get a list as output with the finalized spectra data ready to be plotted
+# Inputs:
+#   spec   : object obtained from the .CALL() function  (i.e. Spect1r.doProc() as external call)
+#   ratio  : ratio between the max intensity of the plot, and the max intensity of the spectrum; default value = 1
+#   ppm    : ppm window of the plot; default = all the spectrum
+# Outputs:
+#   x,y : spectra data (ppm, intensity)
+#   xlim, ylim : limits (ranges) of ppm(xlim) and intensity (ylim)
+#   tille : origin path of the spectra
+.Finalize <- function(spec, ppm = c(spec$ppm[1], spec$ppm[spec$acq$TD]), ratio=1, reverse=TRUE)
+{
+   if (spec$proc$TSP) spec <- .ppm_calibration(spec)
+
+   # Get real spectrum
+   spec.int <- spec$int
+   if (spec$proc$RABOT) {
+       V <- stats::quantile( spec.int[ spec.int < 0 ], 0.25 )
+       spec.int[ spec.int < V ] <- V
+       spec.int <- ajustBL(spec.int,0)
+   }
+
+   # Graphic
+   i1<-which(spec$ppm>=ppm[1])[1]
+   i2<-length(which(spec$ppm<=ppm[2]))
+   ymax <- max( spec.int[i1:i2]/ratio )
+   ymin <- min( spec.int[spec.int<0], 0.0 )
+   #ymin <- ifelse(ymin>0.0, 0.0, max(1.1*ymin,-0.5*ymax))
+   title <- paste( basename(dirname(spec$path)),basename(spec$path),sep="/")
+   ppmlim <- ppm
+   if(reverse==TRUE) ppmlim <- rev(ppm)
+   list( x=spec$ppm[i1:i2], y=spec.int[i1:i2], xlim=ppmlim, ylim=c(ymin,ymax), title=title )
+}
+
+### Default print for the 'Spectrum' object
+printSpectrum = function(obj)
+{
+   cat(" Dir. Path = ", obj$path, "\n")
+   if (obj$acq$INSTRUMENT == 'bruker') {
+      cat(" Spectrometer = ", obj$acq$ORIGIN, "\n")
+      cat(" SOFTWARE     = ", obj$acq$SOFTWARE, "\n")
+      cat(" ORIGPATH     = ", obj$acq$ORIGPATH, "\n")
+   } else {
+      cat(" Spectrometer = ", obj$acq$INSTRUMENT, "\n")
+   }
+   cat(" PROBE     = ", obj$acq$PROBE, "\n",
+        "PULSE     = ", obj$acq$PULSE, "\n",
+        "SOLVENT   = ", obj$acq$SOLVENT, "\n",
+        "GRPDLY    = ", obj$acq$GRPDLY, "\n",
+        "TD        = ", obj$acq$TD, "\n",
+        "SW        = ", obj$acq$SW, "\n",
+        "SWH       = ", obj$acq$SWH, "\n",
+        "SFO1      = ", obj$acq$SFO1, "\n",
+        "O1        = ", obj$acq$O1, "\n",
+        "-- phc0   = ", obj$phc0, "\n",
+        "-- phc1   = ", obj$phc1, "\n",
+        "ppm_min   = ", obj$pmin, "\n",
+        "ppm_max   = ", obj$pmax, "\n",
+        "delta_ppm = ", obj$dppm, "\n")
+   cat("\n")
+}
+
+### Plot the 'Spectrum' object
+#   ratio  : ratio between the max intensity of the plot, and the max intensity of the spectrum; default value = 1
+#   ppm    : ppm window of the plot; default = all the spectrum
+#   active : 0 => Open a new graphic window; 1 => put in the active graphic window (replace the content)
+plotSpectrum = function(obj, ppm = c(obj$ppm[1], obj$ppm[obj$acq$TD]), ratio=1, title="", 
+                         reverse=TRUE, active=FALSE, col="blue", overlay=FALSE, ovlCol="green" )
+{
+   g <- .Finalize(obj, ppm, ratio=ratio)
+   if (nchar(title)==0) title <- g$title
+   if (overlay) {
+      graphics::lines( g$x, g$y, col=ovlCol )
+   } else {
+      if (active==FALSE) grDevices::dev.new()
+      graphics::plot( cbind( g$x, g$y), type="l", xlim=g$xlim, ylim=g$ylim, col=col, xlab="ppm", ylab="intensities", main=title)
+      graphics::abline(h=0,v=0, col="red")
+   }
+
+}
+
+writeSpec = function(spec, outdir="", mode="bin", name="1r")
+{
+   ENDIAN <- "little"
+   SIZE <- 4
+   if (nchar(outdir)==0) outdir="."
+   binfile <- paste(outdir,name,sep='/')
+
+   if (spec$proc$TSP) spec <- .ppm_calibration(spec)
+
+   # Get real spectrum
+   spec.int <- spec$int
+   if (spec$proc$RABOT) {
+       V <- stats::quantile( spec.int[ spec.int < 0 ], 0.25 )
+       spec.int[ spec.int < V ] <- V
+       spec.int <- ajustBL(spec.int,0)
+   }
+   zz <- file(binfile, "wb")
+   writeBin(as.integer(rev(spec.int)), zz, size=SIZE, endian=ENDIAN)
+   close(zz)
+
+   procfile <- paste(outdir,'procs',sep='/')
+   proclist <- c(
+       '##TITLE= Processing parameters, POSTPROC		Rnmr1D v1.2',
+       '##ORIGIN= Bruker BioSpin GmbH',
+       '@@ *** Processing parameters in the same format as generated by Bruker TopSpin software (procs) ***',
+       '##@BYTORDP= 0',
+       '##@DTYPP= 0',
+       paste('##@LB= ', spec$proc$LB, sep=''),
+       paste('##@GB= ', spec$proc$GB, sep=''),
+       '##@MC2= 0',
+       paste('##@OFFSET= ', spec$pmax, sep=''),
+       paste('##@PHC0= ', spec$phc0, sep=''),
+       paste('##@PHC1= ', spec$phc1*2*pi, sep=''),
+       '##@PH_mod= 1',
+       paste('##@SF= ', spec$acq$SFO1, sep=''),
+       paste('##@SI= ', spec$acq$TD, sep=''),
+       '##@SSB= 0',
+       paste('##@SW_p= ', spec$acq$SWH, sep=''),
+       paste('##@TDeff= ', spec$acq$TD, sep=''),
+       '##@WDW= 1',
+       paste('##@YMAX_p= ', max(spec$int), sep=''),
+       paste('##@YMIN_p= ', min(spec$int), sep=''),
+       '@@ *** Additionnal parameters ***',
+       '##@USER= djacob',
+       '##@EMAIL= djacob65@gmail.com',
+       '##@BLC_mod= Automatic baseline recognition',
+       paste('##@SOLVENT_mod= ', spec$proc$ZERO_SOLVENT_METH, sep=''),
+       paste('##@GRPDELAY= ', spec$acq$GRPDLY, sep='')
+   )
+   utils::write.table(proclist, file=procfile, sep='', row.names=F, col.names=F, quote=F)
+   system(paste("sed -i -e 's/^##@/##\\$/g' ", procfile, sep=''))
+}
 
 ### Write a Matrix of Spectrum in a binary mode (PACK format)
 #   specMat : the Matrix of Spectrum : 1 row <=> 1 spectrum, 1 column <=> a same value of ppm

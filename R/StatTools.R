@@ -1,3 +1,4 @@
+
 # ID StatTools.R
 # Copyright (C) 2017 INRA
 # Authors: D. Jacob
@@ -20,7 +21,7 @@ replace_zero <- function(data)
 {
     nbzero <- length(data[data==0])
     minval <- min(data[data>0])
-    if (nbzero>0) data[data==0]<- abs( rnorm( nbzero, 0.1*minval, 0.01*minval ) )
+    if (nbzero>0) data[data==0]<- abs( stats::rnorm( nbzero, 0.1*minval, 0.01*minval ) )
     data
 }
 
@@ -48,7 +49,7 @@ replace_zero <- function(data)
 ##          NULL
 ##
 ########################################################################################
-get_Scaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Vast","Range","Level","L1","L2","NULL"))
+getScaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Vast","Range","Level","L1","L2","NULL"))
 {
 ## LOG Transformation
    if (log==2) {
@@ -69,10 +70,10 @@ get_Scaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Va
 ## Column-wise
    if ("Centering" %in% methods)   { matrix<-scale(matrix,center=T,scale=F) }
    if ("Zscore" %in% methods)      { matrix<-scale(matrix,center=T,scale=T) }
-   if ("Pareto" %in% methods)      { matrix<-apply(t(matrix), 1,function(x){(x-mean(x))/sqrt(sd(x))}) }
-   if ("Vast" %in% methods)        { matrix<-apply(t(matrix), 1,function(x){(x-mean(x))*mean(x)/(sd(x)*sd(x))}) }
+   if ("Pareto" %in% methods)      { matrix<-apply(t(matrix), 1,function(x){(x-mean(x))/sqrt(stats::sd(x))}) }
+   if ("Vast" %in% methods)        { matrix<-apply(t(matrix), 1,function(x){(x-mean(x))*mean(x)/(stats::sd(x)*stats::sd(x))}) }
    if ("Range" %in% methods)       { matrix<-apply(t(matrix), 1,function(x){(x-mean(x))/(max(x)-min(x))}) }
-   if ("Level" %in% methods)       { matrix<-apply(t(matrix), 1,function(x){(x-mean(x))/median(x)}) }
+   if ("Level" %in% methods)       { matrix<-apply(t(matrix), 1,function(x){(x-mean(x))/stats::median(x)}) }
 
 ## Row-wise
    if ("L1" %in% methods)          { matrix<-scale(matrix,center=T,scale=F)
@@ -88,7 +89,7 @@ get_Scaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Va
 # Clustering - Find the optimal Cutting Tree Value
 #====================================================================#
 
-get_Clusters <- function(data, method='hca', ... )
+getClusters <- function(data, method='hca', ... )
 {
     out <- NULL
     if (method=='hca')  out <- get_Clusters_hca(data, ... )
@@ -127,7 +128,7 @@ get_Clusters_hca <- function(data, vcutusr=0, scalemeth='Zscore', log=0, distmet
    get_VarSet <- function(hc, vcut)
    {
         hcut <- vcut*( max(hc$height) + min(hc$height) )
-        CT <- cutree(hc.c,h=hcut)
+        CT <- stats::cutree(hc.c,h=hcut)
         i <- 1
         V <- NULL
         for (k in 1:length(unique(CT))) {
@@ -141,7 +142,7 @@ get_Clusters_hca <- function(data, vcutusr=0, scalemeth='Zscore', log=0, distmet
         return(VarSet)
    }
 
-   matrix <- get_Scaling(data,log=params$log, methods=params$scalemeth)
+   matrix <- getScaling(data,log=params$log, methods=params$scalemeth)
 
    VC <- 1
    CC <- 2
@@ -153,8 +154,8 @@ get_Clusters_hca <- function(data, vcutusr=0, scalemeth='Zscore', log=0, distmet
    x <- as.matrix(matrix)
 
 # Compute the distance matrix (see ?dist) and the Hierarchical clustering (see ?hclust)
-   dist.c <- dist(t(x), method=params$DISTMETH)
-   hc.c <- hclust(dist.c, method=params$HCMETH)
+   dist.c <- stats::dist(t(x), method=params$DISTMETH)
+   hc.c <- stats::hclust(dist.c, method=params$HCMETH)
 
 # Init
    Vstats <- NULL
@@ -248,14 +249,12 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
 
    )
 
-   matrix <- get_Scaling(data,log=params$log, methods=params$scalemeth)
+   matrix <- getScaling(data,log=params$log, methods=params$scalemeth)
 
 #---- CLUSTERING -----
 
-   require(igraph)
-
  # Method in ("pearson", "kendall", "spearman")
-   cor_mat <- cor(matrix,method=params$CMETH)
+   cor_mat <- stats::cor(matrix,method=params$CMETH)
    cor_mat[ lower.tri(cor_mat, diag=TRUE) ] <- 0
 
    vstats <- NULL
@@ -359,9 +358,6 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
 
 estime_cval <- function(cor_mat, cvals, ncpu)
 {
-   require(igraph)
-   require(doParallel)
-
    compute_crit <- function(cor_mat, cval) {
       cor_mati <- cor_mat
       cor_mati[ cor_mati < cval] <- 0
@@ -387,19 +383,20 @@ estime_cval <- function(cor_mat, cvals, ncpu)
       c(cval,nb_clusters,nb_buckets,size_max,nb_clusters_2,-20*log10(CRIT))
    }
    
-   cl <- makeCluster(ncpu)
-   registerDoParallel(cl)
+   cl <- parallel::makeCluster(ncpu)
+   doParallel::registerDoParallel(cl)
 
-   vstats <- foreach(i=1:length(cvals), .combine=rbind, .packages = c("igraph", "doParallel")) %dopar% {  compute_crit(cor_mat, cvals[i]); }
+   i<-0
+   vstats <- foreach::foreach(i=1:length(cvals), .combine=rbind, .packages = c("igraph", "doParallel")) %dopar% {  compute_crit(cor_mat, cvals[i]); }
 
-   stopCluster(cl)
+   parallel::stopCluster(cl)
 
    colnames(vstats) <- c("Cval","Nb Clusters","Nb Vars","Max Size","Nb Clusters 2","Criterion")
    vstats
 }
 
 
-get_Merged_dataset <- function(data, clustObj, onlycluster=FALSE)
+getMergedDataset <- function(data, clustObj, onlycluster=FALSE)
 {
    association <- clustObj$clustertab
    matrix <- data
@@ -420,7 +417,7 @@ get_Merged_dataset <- function(data, clustObj, onlycluster=FALSE)
 ## plot.Criterion
 ##########################################################################
 
-plot.Criterion <- function(clustObj)
+plotCriterion <- function(clustObj)
 {
     Vstats <- clustObj$vstats
     Vcrit <- clustObj$vcrit
@@ -433,34 +430,34 @@ plot.Criterion <- function(clustObj)
 
    # PNG image - Vstats plots
      legNames <- c( colnames(Vstats)[3], colnames(Vstats)[2], colnames(Vstats)[4])
-     par(mar = c(5, 4, 4, 4) + 0.3)  # Leave space for z axis
+     graphics::par(mar = c(5, 4, 4, 4) + 0.3)  # Leave space for z axis
      xlim <- c(min(Vstats[,1]), max(Vstats[,1]))
-     plot(Vstats[,1],Vstats[,3], xlim=xlim, ylim=c(0,1.2*max(Vstats[,3])), type="l", col=colors[1],
+     graphics::plot(Vstats[,1],Vstats[,3], xlim=xlim, ylim=c(0,1.2*max(Vstats[,3])), type="l", col=colors[1],
          xlab="Critere", ylab="Number of variables / Clust Max Size",
          main=sprintf("Critere = %4.3f,  Nb Clust = %d,  Nb Vars = %d,  Clust Max Size = %d",Vcrit, length(lclust), Vstats[n,3], Vstats[n,4]))
-     lines(Vstats[,1],Vstats[,4], col=colors[3])
-     abline(v=Vcrit, col="red")
-     abline(h=MaxSize, col="green")
+     graphics::lines(Vstats[,1],Vstats[,4], col=colors[3])
+     graphics::abline(v=Vcrit, col="red")
+     graphics::abline(h=MaxSize, col="green")
      if( method=='hca' ) {
           slines <- seq(from=params$Vcut_min, to=params$Vcut_max, by=0.025)
      } else { 
           slines <- seq(from=params$CVAL_MIN, to=params$CVAL_MAX, by=0.0025)
      }
-     abline(v = slines, col = "lightgray", lty = 3)
-     legend("topright", legNames, col=colors[c(1:length(legNames))], lwd=2, lty=1, cex=0.6, horiz=FALSE)
-     par(new=TRUE)
-     plot(Vstats[,1],Vstats[,2], xlim=xlim, type="l", col=colors[2], xaxt="n", yaxt="n", xlab="",ylab="" )
-     axis(side=4, at = pretty(range(Vstats[,2])))
-     mtext("Number of Clusters", side=4, line=3)
+     graphics::abline(v = slines, col = "lightgray", lty = 3)
+     graphics::legend("topright", legNames, col=colors[c(1:length(legNames))], lwd=2, lty=1, cex=0.6, horiz=FALSE)
+     graphics::par(new=TRUE)
+     graphics::plot(Vstats[,1],Vstats[,2], xlim=xlim, type="l", col=colors[2], xaxt="n", yaxt="n", xlab="",ylab="" )
+     graphics::axis(side=4, at = pretty(range(Vstats[,2])))
+     graphics::mtext("Number of Clusters", side=4, line=3)
 }
 
 ##########################################################################
 ## plot.Clusters
 ##########################################################################
 
-plot.Clusters <- function(data, clustObj)
+plotClusters <- function(data, clustObj)
 {
-     X <- get_Merged_dataset(data, outclust, onlycluster=T)
+     X <- getMergedDataset(data, clustObj, onlycluster=T)
      CLUST <- colnames(X)
      X[X<=0]<-0.00001*max(X)
      cent <- log10(t(X))
@@ -470,11 +467,11 @@ plot.Clusters <- function(data, clustObj)
      Rank <- Rank  - min(Rank) + 1
      nbrank <- max(Rank) - min(Rank) + 1
 
-     boxplot(t(cent),cex.axis=0.5, main="Boxplot by clusters (log10 transformed)",
+     graphics::boxplot(t(cent),cex.axis=0.5, main="Boxplot by clusters (log10 transformed)",
           ylab='\n\n\n\n\nClusters',xlab='Intensity (log10)', outline=F, horizontal=T, border=cols[Rank], las=2, cex.axis=0.5)
-     abline(h=c(1:length(CLUST)), col="gray95")
-     par(new=TRUE)
-     boxplot(t(cent),cex.axis=0.5, main="Boxplot by clusters (log10 transformed)",
+     graphics::abline(h=c(1:length(CLUST)), col="gray95")
+     graphics::par(new=TRUE)
+     graphics::boxplot(t(cent),cex.axis=0.5, main="Boxplot by clusters (log10 transformed)",
           ylab='\n\n\n\n\nClusters',xlab='Intensity (log10)', outline=F, horizontal=T, border=cols[Rank], las=2, cex.axis=0.5)
 }
 
@@ -488,17 +485,17 @@ plot.Clusters <- function(data, clustObj)
 ##          level - confidence level for plotting the corresponding ellipse
 ##########################################################################
 
-plot.Scores <- function(data, samples, factor=NULL, level=0.95) {
-    plot(data ,pch=20, adj=0, lwd=2, main="", xlim=1.5*c(min(pca$x[,1]),max(pca$x[,1])), ylim=1.5*c(min(pca$x[,2]),max(pca$x[,2])) )
-    text( adj=0, data[,1], data[,2], rownames(data), pos=4, cex=1.2 )
+plotScores <- function(data, samples, factor=NULL, level=0.95) {
+    graphics::plot(data ,pch=20, adj=0, lwd=2, main="", xlim=1.5*c(min(data[,1]),max(data[,1])), ylim=1.5*c(min(data[,2]),max(data[,2])) )
+    graphics::text( adj=0, data[,1], data[,2], rownames(data), pos=4, cex=1.2 )
 	if (! is.null(factor)) {
        G <- unique(samples[ , factor ])
-       grcols=rainbow(length(G), s=0.9, v=0.8)
+       grcols=grDevices::rainbow(length(G), s=0.9, v=0.8)
        for(i in 1:length(G)) {
            XY <- data[rownames(data) %in% samples$Samplecode[samples[ , factor ]==G[i]], ]
-           plot.ellipse( XY[,1], XY[,2], level=level, col=grcols[i], lty=3, lwd=0.1, type="l")
+           plotEllipse( XY[,1], XY[,2], level=level, col=grcols[i], lty=3, lwd=0.1, type="l")
        }
-	   title(factor)
+	   graphics::title(factor)
     }
 }
 
@@ -512,43 +509,43 @@ plot.Scores <- function(data, samples, factor=NULL, level=0.95) {
 ## 
 ##########################################################################
 
-plot.Loadings <- function (data,pc1,pc2, associations=NULL, main="Loadings", 
+plotLoadings <- function (data,pc1,pc2, associations=NULL, main="Loadings", 
                     xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1, pch=20)
 {
    V <- t(data[,c(pc1,pc2)])
    colnames(V) <- rownames(data)
-   plot(t(V),pch=20, adj=1, lwd=1, main=main,
+   graphics::plot(t(V),pch=20, adj=1, lwd=1, main=main,
             xlab= colnames(data)[pc1], ylab= colnames(data)[pc2], 
             xlim=xlimu, ylim=ylimu, col='red')
-   abline(h=0,v=0)
-   plot.ellipse( data[, pc1], data[, pc2], center=c(0,0), level=0.666, col="red", lty=3, lwd=0.1, type="l")
+   graphics::abline(h=0,v=0)
+   plotEllipse( data[, pc1], data[, pc2], center=c(0,0), level=0.666, col="red", lty=3, lwd=0.1, type="l")
    # Use Associations (assoc1=T)
    if (class(associations)=="matrix" && dim(associations)[1]>1) {
-       points(t(V), pch=pch, col="grey")
-       text( adj=0, t(V)[,1], t(V)[,2], col="lightgrey", colnames(V), cex=cexlabel )
+       graphics::points(t(V), pch=pch, col="grey")
+       graphics::text( adj=0, t(V)[,1], t(V)[,2], col="lightgrey", colnames(V), cex=cexlabel )
        colnames(V) <- as.vector(sapply(rownames(data),function(x) { ifelse(sum( associations[,1] %in% x), associations[,2][associations[,1] %in%  x ], x) }))
        P <- V[,colnames(V) %in% associations[,2] ]
        cols <- "red"
        Clusters <- unique(associations[order(associations[,1],decreasing=T),2])
        if (length(Clusters)<length(colnames(P))) {
-          clcols=rainbow(length(Clusters), s=0.9, v=0.8)
+          clcols=grDevices::rainbow(length(Clusters), s=0.9, v=0.8)
           for (i in 1:length(Clusters)) {
              XY <- t(P[,colnames(P)==Clusters[i]])
              M<-c(mean(XY[,1]),mean(XY[,2]))
-             points(XY, pch=pch, col=clcols[i])
-             if (dim(XY)[1]>1) plot.ellipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=clcols[i], lty=3, lwd=0.1, type="l")
-             text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel, font=2)
+             graphics::points(XY, pch=pch, col=clcols[i])
+             if (dim(XY)[1]>1) plotEllipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=clcols[i], lty=3, lwd=0.1, type="l")
+             graphics::text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel, font=2)
           }
        }
        else {
-		   clcols=rainbow(length(Clusters), s=0.9, v=0.8)
+		   clcols=grDevices::rainbow(length(Clusters), s=0.9, v=0.8)
           cols <- NULL; for (i in 1:length(colnames(P))) cols <- c(cols,  clcols[Clusters == colnames(P)[i]])
-          points(t(P), pch=pch, col="red")
-          text( adj=0, t(P)[,1], t(P)[,2], col=cols, colnames(P), cex=cexlabel )
+          graphics::points(t(P), pch=pch, col="red")
+          graphics::text( adj=0, t(P)[,1], t(P)[,2], col=cols, colnames(P), cex=cexlabel )
        }
    }
    else {
-       text( adj=0, t(V)[,1], t(V)[,2], col="cornflowerblue", colnames(V), cex=cexlabel )
+       graphics::text( adj=0, t(V)[,1], t(V)[,2], col="cornflowerblue", colnames(V), cex=cexlabel )
    }
 }
 
@@ -569,7 +566,7 @@ plot.Loadings <- function (data,pc1,pc2, associations=NULL, main="Loadings",
 ##     http://www.earth-time.org/projects/upb/public_docs/ErrorEllipses.pdf
 ##########################################################################
 
-plot.ellipse <- function ( x, y, center=NULL, level = 0.95, npoint = 100, bary = FALSE, ... )
+plotEllipse <- function ( x, y, center=NULL, level = 0.95, npoint = 100, bary = FALSE, ... )
 {
   .ellipse <- function(x, scale = c(1, 1), centre = c(0, 0), t = 1.5, which = c(1,2), npoints = 100) {
     names <- c("x", "y")
@@ -602,8 +599,8 @@ plot.ellipse <- function ( x, y, center=NULL, level = 0.95, npoint = 100, bary =
      t = sqrt(stats::qchisq(level, 2))
      if (bary) mat.cov = mat.cov/nrow(tab)
      res <- .ellipse(mat.cov, centre = center, t=t, npoints = npoint)
-     lines(res, adj=1, main="", xlab="", ylab="", ... )
+     graphics::lines(res, adj=1, main="", xlab="", ylab="", ... )
   } else {
-     lines(cbind(x, y), adj=1, main="", xlab="", ylab="", ... )
+     graphics::lines(cbind(x, y), adj=1, main="", xlab="", ylab="", ... )
   }
 }

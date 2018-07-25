@@ -27,6 +27,7 @@ install.packages(c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', '
 ```R
 require(devtools)
 install_github("djacob65/Rnmr1D", dependencies = TRUE)
+build_vignettes(pkg = ".", dependencies = "VignetteBuilder")
 ```
 
 ## Example of use
@@ -45,29 +46,29 @@ SAMPLEFILE <- file.path(data_dir, "Samples.txt")
 detectCores()
 
 # Launch the pre-processing then the processing defined in the macro-command file
-out <- Rnmr1D(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
+out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
 
 # Have a look on returned data structure
 ls(out)
 ls(out$specMat)
 
 # Stacked Plot with a perspective effect
-plot.SpecMat(out$specMat, ppm_lim=c(0.5,5))
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5))
 
 # Overlaid Plot
-plot.SpecMat(out$specMat, ppm_lim=c(0.5,5), K=0)
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0)
 
 # Get the data matrix 
-outMat <- get_Buckets_dataset(out, norm_meth='CSN')
+outMat <- getBucketsDataset(out, norm_meth='CSN')
 
 # Get the Signal/Noise Ratio (SNR) matrix 
-outSNR <- get_SNR_dataset(out, c(10.2,10.5), ratio=TRUE)
+outSNR <- getSnrDataset(out, c(10.2,10.5), ratio=TRUE)
 
 # Get the bucket table
-outBucket <- get_Buckets_table(out)
+outBucket <- getBucketsTable(out)
 
 # Get the spectra data
-spectra <- get_Spectra_Data(out)
+spectra <- getSpectraData(out)
 
 ```
 
