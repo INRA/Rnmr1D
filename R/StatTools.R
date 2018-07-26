@@ -272,17 +272,17 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
        }
    }
 
-   M <- NULL
-   M <- cbind(M,colnames(matrix))
-   NVARS <- length(colnames(matrix))
+   cl <- parallel::makeCluster(min(params$NCPU,3))
+   doParallel::registerDoParallel(cl)
 
+   NVARS <- length(colnames(matrix))
    cvalset <- c(params$CVAL-params$dC,params$CVAL,params$CVAL+params$dC)
-   NBCLUST <- vector(mode="integer", length=length(cvalset))
-   for (k in 1:length(cvalset)) {
+   k<-0
+   MT <- foreach::foreach( k=1:length(cvalset), .combine=cbind, .packages = c("igraph", "doParallel")) %dopar% {
       cval <- cvalset[k]
       cor_mat_cval <- cor_mat
       cor_mat_cval[ cor_mat_cval < cval] <- 0
-      M<-cbind(M,c(1:NVARS)*0)
+      M<-cbind(colnames(matrix),c(1:NVARS)*0)
       graph <- graph.adjacency(cor_mat_cval>cval, weighted=TRUE, mode="upper")
       E(graph)$weight<-t(cor_mat_cval)[t(cor_mat_cval)>cval]
       V(graph)$label<- V(graph)$name
@@ -295,12 +295,17 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
              g <- g + 1
              subg <- decompose.graph(graph)[[ind]]
              VARS<-V(subg)$name
-             M[M[,1] %in% VARS,k+1] <- sprintf("C%d",g)
+             M[M[,1] %in% VARS,2] <- sprintf("C%d",g)
           }
       }
-      NBCLUST[k] <- g
+      M[,2]
    }
-
+   
+   parallel::stopCluster(cl)
+   
+   M <- cbind(colnames(matrix),MT)
+   NBCLUST <- apply( apply( gsub('C','', MT), 2 , as.numeric), 2, max )
+   
    MC <- NULL
    for (i in 1:NVARS) {
       if (is.na(sum(as.numeric(M[i,-1])))) MC <- rbind(MC,M[i,])
