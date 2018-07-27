@@ -221,7 +221,7 @@ body { max-width:900px; }
 
 <h3>Test with the extra data provided within the package</h3>
 
-<p>To illustrate the possibilities of Rnmr1D 1.0, we will use the dataset provided within the package. This is a small set of 1H NMR spectra (6 samples) acquired on a Bruker Advanced III 500Mz instrument (ZG sequence, solvent D20, pH 6), derived from sunflower leaves. The experimental design of the study focused on a treatment (stress vs. control) with 3 replicates for each samples.</p>
+<p>To illustrate the possibilities of Rnmr1D 1.0, we will use the dataset provided within the package. This is a very small set of 1H NMR spectra (6 samples) acquired on a Bruker Advanced III 500Mz instrument (ZG sequence, solvent D20, pH 6), derived from sunflower leaves. The experimental design of the study focused on a treatment (stress vs. control) with 3 replicates for each samples.</p>
 
 <pre><code class="r">library(Rnmr1D)
 data_dir &lt;- system.file(&quot;extra&quot;, package = &quot;Rnmr1D&quot;)
@@ -325,10 +325,10 @@ CMDTEXT[grep(&quot;^#$&quot;, CMDTEXT, invert=TRUE)]
 #&gt; Rnmr1D:  Alignment: PPM Range = ( 5.024 , 9.611 )
 #&gt; Rnmr1D:     CluPA - Resolution =0.01 - SNR threshold=5 - Reference=0
 #&gt; Rnmr1D:     --- Peak detection : nDivRange = 64 
-#&gt; Rnmr1D:     --- Peak detection time:  5.09000000000015  sec
+#&gt; Rnmr1D:     --- Peak detection time:  4.81999999999999  sec
 #&gt; Rnmr1D:     --- The reference spectrum is:  3 
 #&gt; Rnmr1D:     --- Spectra alignment to the reference: maxShift = 16 
-#&gt; Rnmr1D:     --- Spectra alignment time:  0.779999999999745  sec
+#&gt; Rnmr1D:     --- Spectra alignment time:  0.78000000000003  sec
 #&gt; Rnmr1D:  Alignment: PPM Range = ( 2.652 , 2.742 )
 #&gt; Rnmr1D:     Rel. Shift Max.=0.05 - Reference=0
 #&gt; Rnmr1D:  Alignment: PPM Range = ( 2.651 , 2.677 )
@@ -336,10 +336,10 @@ CMDTEXT[grep(&quot;^#$&quot;, CMDTEXT, invert=TRUE)]
 #&gt; Rnmr1D:  Alignment: PPM Range = ( 0.642 , 4.699 )
 #&gt; Rnmr1D:     CluPA - Resolution =0.01 - SNR threshold=5 - Reference=0
 #&gt; Rnmr1D:     --- Peak detection : nDivRange = 64 
-#&gt; Rnmr1D:     --- Peak detection time:  3.98999999999978  sec
+#&gt; Rnmr1D:     --- Peak detection time:  4  sec
 #&gt; Rnmr1D:     --- The reference spectrum is:  2 
 #&gt; Rnmr1D:     --- Spectra alignment to the reference: maxShift = 16 
-#&gt; Rnmr1D:     --- Spectra alignment time:  0.950000000000728  sec
+#&gt; Rnmr1D:     --- Spectra alignment time:  0.899999999999977  sec
 #&gt; Rnmr1D:  Bucketing the selected PPM ranges ...
 #&gt; Rnmr1D:     UNIF - Resolution =0.01 - SNR threshold=3 - Append=0
 #&gt; Rnmr1D:     Zone 1 = ( 0.98 , 4.696 ), Nb Buckets = 343 
