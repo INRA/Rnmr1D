@@ -1050,9 +1050,13 @@ plotSpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), K
    }
 }
 
-#----
-# Generates the buckets table
-#----
+#' getBucketsTable
+#'
+#' Generates the buckets table
+#'
+#' @param specObj a complex list return by \code{doProcessing} function. See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
+#' @return
+#'   the buckets table 
 getBucketsTable <- function(specObj)
 {
    outtable <- NULL
@@ -1070,9 +1074,36 @@ getBucketsTable <- function(specObj)
    return(outtable)
 }
 
-#----
-# Generates the buckets data set
-#----
+#' getBucketsDataset
+#'
+#' Generates the buckets data set.
+#'
+#' Before bucket data export, in order to make all spectra comparable 
+#' with each other, the variations of the overall concentrations of samples 
+#' have to be taken into account. We propose three normalization methods. 
+#' In NMR metabolomics, the total intensity normalization (called the Constant 
+#' Sum Normalization) is often used so that all spectra correspond to the same 
+#' overall concentration. It simply consists in normalizing the total intensity 
+#' of each individual spectrum to a same value. Other methods such as Probabilistic 
+#' Quotient Normalization [Dieterle et al. 2006] assume that biologically 
+#' interesting concentration changes inﬂuence only parts of the NMR spectrum, 
+#' while dilution effects will affect all metabolite signals. Probabilistic 
+#' Quotient Normalization (PQN) starts by the calculation of a reference spectrum 
+#' based on the median spectrum. Next, for each variable of interest the quotient 
+#' of a given test spectrum and reference spectrum is calculated and the median of 
+#' all quotients is estimated. Finally, all variables of the test spectrum are 
+#' divided by the median quotient. An internal reference can be used to normalize 
+#' the data. For example, an electronic reference (ERETIC, (see Akoka et al. 1999), 
+#' or ERETIC2 generated with TopSpin software) can be used for this purpose. 
+#' The integral value of each bucket will be divided by the integral value of the 
+#' ppm range given as reference.
+#'
+#' @param specObj a complex list return by \code{doProcessing} function. 
+#' See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
+#' @param norm_meth Normalization method. The possible values are : 'none', 'CSN' or 'PDN'. See above.
+#' @param zoneref Specify the ppm zone of the internal reference (i.e. ERETIC) if applicable. default is NA.
+#' @return
+#'   the data matrix
 getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
 {
    outdata <- NULL
@@ -1116,9 +1147,19 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
    return(outdata)
 }
 
-#----
-# Generates the SNR dataset
-#----
+#' getSnrDataset
+#'
+#' Generates the Signal-Noise-Ratio dataset
+#'
+#' whatever the bucketing approach used, the Signal-to-Noise ratio is a good quality indicator. Thus, it is possible to check buckets based on their Signal-to-Noise ratio.
+#'
+#' @param specObj a complex list return by \code{doProcessing} function. 
+#' See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
+#' @param zoneref Specify a ppm range of noisy zone default is c(10.2,10.5)
+#' @param ratio boolean; TRUE for output Signal-Noise Ratio, or FALSE to output maximum value of each bucket and in addition, the estimate noise as a separate column
+#' @return
+#'   the Signal-Noise-Ratio matrix
+
 getSnrDataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
 {
    outdata <- NULL
@@ -1155,9 +1196,13 @@ getSnrDataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
 }
 
 
-#----
-# Generates the Spectra Data
-#----
+#' getSnrDataset
+#'
+#' Generates the spectral data matrix. The first column indicates the value of ppm, then the following columns correspond to spectral data, one column per spectrum.
+#'
+#' @param specObj a complex list return by \code{doProcessing} function. 
+#' @return
+#'   the spectral data matrix
 getSpectraData <- function(specObj)
 {
    # read samples
