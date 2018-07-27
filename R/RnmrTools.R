@@ -647,9 +647,15 @@ checkMacroCmdFile <- function(commandfile) {
    return(ret)
 }
 
-# ------------------------------------
-# Process the Macro-commands file
-# ------------------------------------
+#' RWrapperCMD1D
+#'
+#' \code{RWrapperCMD1D} belongs to the low-level functions group - it serves as a wrapper to call internale functions for processing.
+#'
+#' @param cmdName the name of internal function 
+#' @param specMat a 'specMat' object
+#' @param ... specific parameters of the requested function 
+#' @return 
+#'  \code{specMat} : a 'specMat' object
 RWrapperCMD1D <- function(cmdName, specMat, ...)
 {
    repeat {
@@ -706,10 +712,44 @@ RWrapperCMD1D <- function(cmdName, specMat, ...)
    return(specMat)
 }
 
-# ------------------------------------
-# Process the Macro-commands file
-# ------------------------------------
-doProcCmd <- function(specObj, CMDTEXT, DEBUG=FALSE)
+#' doProcCmd
+#'
+#' \code{doProcCmd} it process the Macro-commands string array specified at input.
+#'
+#' @param specObj a complex list return by \code{doProcessing} function. See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
+#' @param cmdstr the Macro-commands string array; See the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf}) to have more details about macro-commands.
+#' @param ncpu The number of cores [default: 1]
+#' @param debug a boolean to specify if we want the function to be more verbose.
+#' @return 
+#'  \code{specMat} : a 'specMat' object - See the manual page of the \code{\link{doProcessing}} function for more details on its structure
+#' @examples
+#'  \dontrun{
+#'     data_dir <- system.file("extra", package = "Rnmr1D")
+#'     RAWDIR <- file.path(data_dir, "MMBBI_14P05")
+#'     CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+#'     SAMPLEFILE <- file.path(data_dir, "Samples.txt")
+#'     out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
+#' # Plot the ppm range [0 .. 3]
+#'     plotSpecMat(ou$specMat, ppm_lim=c(0.5,3), K=0)
+#' # clean some ppm zones 
+#'     specMat.new <- Rnmr1D::doProcCmd(out, 
+#'              c("zero", 
+#'                  "2.71 2.65", 
+#'                  "2.149 2.208", 
+#'                  "1.55 1.48", 
+#'                  "1.265 1.19", 
+#'                  "0.86 0.76", 
+#'                  "EOL"
+#'                "bucket aibin 10.2 10.5 0.3 3 0", 
+#'                  "9.309 4.788", 
+#'                  "4.67 0.615", 
+#'                  "EOL"
+#'               ),ncpu=2, debug=TRUE)
+#' # Plot the ppm range [0 .. 3] after the cleanning
+#'     dev.new();
+#'     plotSpecMat(specMat.new, ppm_lim=c(0.5,3), K=0)
+#' }
+doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
 {
  # specMat
    specMat <- specObj$specMat
@@ -721,11 +761,15 @@ doProcCmd <- function(specObj, CMDTEXT, DEBUG=FALSE)
  # Samples
    samples <- specObj$samples
 
-   CMDTEXT <- CMDTEXT[ grep( "^[^ ]", CMDTEXT ) ]
+   CMDTEXT <- cmdstr[ grep( "^[^ ]", cmdstr ) ]
    CMD <- CMDTEXT[ grep( "^[^#]", CMDTEXT ) ]
    CMD <- gsub("^ ", "", gsub(" $", "", gsub(" +", ";", CMD)))
 
    specMat$fWriteSpec <- FALSE
+
+   cl <- parallel::makeCluster(ncpu)
+   doParallel::registerDoParallel(cl)
+   Sys.sleep(1)
 
    while ( length(CMD)>0 && CMD[1] != EOL ) {
    
@@ -894,8 +938,8 @@ doProcCmd <- function(specObj, CMDTEXT, DEBUG=FALSE)
                  idxSref=params[7]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Alignment: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     CluPA - Resolution =",RESOL," - SNR threshold=",SNR, " - Reference=",idxSref,"\n"))
-                 specMat <- RWrapperCMD1D(cmdName,specMat, PPM_NOISE, PPMRANGE, RESOL, SNR, idxSref, Selected=Selected, DEBUG=DEBUG)
-                 Write.LOG(LOGFILE, specMat$LOGMSG )
+                 specMat <- RWrapperCMD1D(cmdName,specMat, PPM_NOISE, PPMRANGE, RESOL, SNR, idxSref, Selected=Selected, DEBUG=debug)
+                 if (debug) Write.LOG(LOGFILE, specMat$LOGMSG )
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -909,8 +953,8 @@ doProcCmd <- function(specObj, CMDTEXT, DEBUG=FALSE)
                   CMD <- CMD[-1]
               }
               Write.LOG(LOGFILE,"Rnmr1D:  Zeroing the selected PPM ranges ...\n")
-              specMat <- RWrapperCMD1D(cmdName,specMat, zones2, DEBUG=DEBUG)
-              Write.LOG(LOGFILE, specMat$LOGMSG )
+              specMat <- RWrapperCMD1D(cmdName,specMat, zones2, DEBUG=debug)
+              if (debug) Write.LOG(LOGFILE, specMat$LOGMSG )
               specMat$fWriteSpec <- TRUE
               CMD <- CMD[-1]
               break
@@ -930,9 +974,9 @@ doProcCmd <- function(specObj, CMDTEXT, DEBUG=FALSE)
               }
               Write.LOG(LOGFILE,"Rnmr1D:  Bucketing the selected PPM ranges ...\n")
               Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2])," - Resolution =",params[3]," - SNR threshold=",params[4], " - Append=",params[5],"\n"))
-              specMat <- RWrapperCMD1D(cmdName,specMat, cmdPars[2], params[3], params[4], zones, PPM_NOISE, params[5], DEBUG=DEBUG)
+              specMat <- RWrapperCMD1D(cmdName,specMat, cmdPars[2], params[3], params[4], zones, PPM_NOISE, params[5], DEBUG=debug)
               specMat$buckets_zones <- specMat$buckets_zones[order(specMat$buckets_zones[,1]), ]
-              Write.LOG(LOGFILE, specMat$LOGMSG )
+              if (debug) Write.LOG(LOGFILE, specMat$LOGMSG )
               specMat$fWriteSpec <- TRUE
               CMD <- CMD[-1]
               break
@@ -942,21 +986,40 @@ doProcCmd <- function(specObj, CMDTEXT, DEBUG=FALSE)
       }
       gc()
    }
+
+   parallel::stopCluster(cl)
+
    return(specMat)
 }
 
-##---  Stacked Plot  ---
-#  specMat$int Spectra matrix (rows = samples, columns = buckets)
-#  ppm_lim     ppm range of the plot
-#  K           Graphical height of the stack (0 .. 1),(default=0.67)
-#  pY          Intensity limit factor (default 1)
-#  dppm_max    Max ppm shift to have a perspective effect
-#  asym        Correction of vertical parallax effect  (-1 .. 1)
-#                 -1 : parallelogram
-#                  0 : trapeze with maximum asymmetric
-#                  1 : symmetric trapeze
-#  beta        Correction of horizontal parallax effect   (0 .. 0.2) (defaut 0)
-#  cols        Vector of colors (same size that the number of spectra, i.e dim(specmat)[1])
+#' plotSpecMat Overlaid/Stacked Plot
+#'
+#' \code{plotSpecMat} Plot spectra set, overlaid or stacked; if stacked, plot with or without a perspective effect.
+#'
+#' @param specMat a 'specMat' object - Spectra matrix in specMat$int (rows = samples, columns = buckets)
+#' @param ppm_lim ppm range of the plot
+#' @param K Graphical height of the stack (0 .. 1),(default=0.67)
+#' @param pY Intensity limit factor (default 1)
+#' @param dppm_max Max ppm shift to have a perspective effect
+#' @param asym Correction of vertical parallax effect  (-1 .. 1)
+#'                 -1 : parallelogram
+#'                  0 : trapeze with maximum asymmetric
+#'                  1 : symmetric trapeze
+#' @param beta Correction of horizontal parallax effect   (0 .. 0.2) (defaut 0)
+#' @param cols Vector of colors (same size that the number of spectra, i.e dim(specmat)[1])
+#'
+#' @examples
+#'  \dontrun{
+#'   # Overlaid plot
+#'   plotSpecMat(out$specMat, ppm_lim=c(0.5,9), K=0, pY=0.1)
+#'   # Stacked plot with perspective effect
+#'   plotSpecMat(out$specMat, ppm_lim=c(-0.1,9),K=0.33)
+#'   # Stacked plot with perspective effect with maximum asymmetric
+#'   plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.33, asym=0)
+#'   cols <- c(rep("red",3), rep("blue",3))
+#'   # Stacked plot with colors accordings to group levels
+#'   plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.67, dppm_max=0, cols=cols)
+#' }
 plotSpecMat <- function(specMat, ppm_lim=c(min(specMat$ppm),max(specMat$ppm)), K=0.67, pY=1, dppm_max=0.2*(max(ppm_lim) - min(ppm_lim)), asym=1, beta=0, cols=NULL)
 {
    specmat <- specMat$int

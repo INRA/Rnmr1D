@@ -440,6 +440,14 @@ plotCriterion <- function(clustObj)
      graphics::plot(Vstats[,1],Vstats[,3], xlim=xlim, ylim=c(0,1.2*max(Vstats[,3])), type="l", col=colors[1],
          xlab="Critere", ylab="Number of variables / Clust Max Size",
          main=sprintf("Critere = %4.3f,  Nb Clust = %d,  Nb Vars = %d,  Clust Max Size = %d",Vcrit, length(lclust), Vstats[n,3], Vstats[n,4]))
+     if( method=='corr' ) {
+         cval_lim <- c(params$CVAL-params$dC,params$CVAL+params$dC)
+         graphics::rect(cval_lim[1], -100, cval_lim[2], 1.5*max(Vstats[,3]), border = NA, col="azure2", alpha=0.5 ) # darkslategray2
+         graphics::par(new=TRUE)
+         graphics::plot(Vstats[,1],Vstats[,3], xlim=xlim, ylim=c(0,1.2*max(Vstats[,3])), type="l", col=colors[1],
+             xlab="Critere", ylab="Number of variables / Clust Max Size",
+             main=sprintf("Critere = %4.3f,  Nb Clust = %d,  Nb Vars = %d,  Clust Max Size = %d",Vcrit, length(lclust), Vstats[n,3], Vstats[n,4]))
+     }
      graphics::lines(Vstats[,1],Vstats[,4], col=colors[3])
      graphics::abline(v=Vcrit, col="red")
      graphics::abline(h=MaxSize, col="green")
@@ -449,7 +457,7 @@ plotCriterion <- function(clustObj)
           slines <- seq(from=params$CVAL_MIN, to=params$CVAL_MAX, by=0.0025)
      }
      graphics::abline(v = slines, col = "lightgray", lty = 3)
-     graphics::legend("topright", legNames, col=colors[c(1:length(legNames))], lwd=2, lty=1, cex=0.6, horiz=FALSE)
+     graphics::legend("top", legNames, col=colors[c(1:length(legNames))], lwd=2, lty=1, cex=0.6, horiz=TRUE)
      graphics::par(new=TRUE)
      graphics::plot(Vstats[,1],Vstats[,2], xlim=xlim, type="l", col=colors[2], xaxt="n", yaxt="n", xlab="",ylab="" )
      graphics::axis(side=4, at = pretty(range(Vstats[,2])))
@@ -515,7 +523,7 @@ plotScores <- function(data, samples, factor=NULL, level=0.95) {
 ##########################################################################
 
 plotLoadings <- function (data,pc1,pc2, associations=NULL, main="Loadings", 
-                    xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1, pch=20)
+                    xlimu=c(min(data[,pc1]),max(data[,pc1])), ylimu=c(min(data[,pc2]),max(data[,pc2])), cexlabel=1, pch=20, ellipse=TRUE, level=0.8)
 {
    V <- t(data[,c(pc1,pc2)])
    colnames(V) <- rownames(data)
@@ -523,7 +531,7 @@ plotLoadings <- function (data,pc1,pc2, associations=NULL, main="Loadings",
             xlab= colnames(data)[pc1], ylab= colnames(data)[pc2], 
             xlim=xlimu, ylim=ylimu, col='red')
    graphics::abline(h=0,v=0)
-   plotEllipse( data[, pc1], data[, pc2], center=c(0,0), level=0.666, col="red", lty=3, lwd=0.1, type="l")
+   #plotEllipse( data[, pc1], data[, pc2], center=c(0,0), level=0.666, col="red", lty=3, lwd=0.1, type="l")
    # Use Associations (assoc1=T)
    if (class(associations)=="matrix" && dim(associations)[1]>1) {
        graphics::points(t(V), pch=pch, col="grey")
@@ -538,7 +546,7 @@ plotLoadings <- function (data,pc1,pc2, associations=NULL, main="Loadings",
              XY <- t(P[,colnames(P)==Clusters[i]])
              M<-c(mean(XY[,1]),mean(XY[,2]))
              graphics::points(XY, pch=pch, col=clcols[i])
-             if (dim(XY)[1]>1) plotEllipse( XY[,1], XY[,2], center=M, level= 0.8646647, col=clcols[i], lty=3, lwd=0.1, type="l")
+             if (dim(XY)[1]>1 && ellipse) plotEllipse( XY[,1], XY[,2], center=M, level= level, col=clcols[i], lty=3, lwd=0.1, type="l")
              graphics::text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel, font=2)
           }
        }

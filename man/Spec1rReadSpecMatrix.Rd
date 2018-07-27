@@ -13,5 +13,5 @@ Spec1rReadSpecMatrix(filepack)
 specMat specMat object - int: the Matrix of Spectrum : 1 row <=> 1 spectrum, 1 column <=> a same value of ppm
 }
 \description{
-\code{Spec1rReadSpecMatrix}  Read a Matrix of Spectrum in a binary mode (PACK format)
+\code{Spec1rReadSpecMatrix} belongs to the low-level functions group - it Read a Matrix of Spectrum in a binary mode (PACK format)
 }

@@ -1,65 +1,65 @@
-#%% Vendor=bruker; Type=fid; LB=0.3; ZF=2; BLPHC=FALSE; PHC1=FALSE; FP=0; TSP=TRUE;
+#%% Vendor=bruker; Type=fid; LB=0.3; GB=0; ZF=2; BLPHC=FALSE; PHC1=FALSE; FP=0; TSP=TRUE
+
+#
+# Baseline Correction: PPM Range = (  4.966  ,  9.348  )
+#
+airpls 4.966 9.348 3 
+
+#
+# Baseline Correction: PPM Range = (  0.396  ,  4.712  )
+#
+airpls 0.396 4.712 4 
+
+#
+# Baseline Correction: PPM Range = (  0.621  ,  1.522  )
+#
+airpls 0.621 1.522 5 
+
+#
+# Baseline Correction: PPM Range = (  1.227  ,  1.353  )
+#
+airpls 1.227 1.353 6
 
 #
 # Normalisation ( CSN ) of the Intensities based on the selected PPM ranges...
 #
 normalisation CSN
-5.204 9.435
-0.607 4.578
+0.98 1.085
+5.024 9.282
+1.451 4.696
 EOL
-
-#
-# Global Baseline Correction: PPM Range = (  -0.499909071543063  ,  10.9999706891186  )
-#
-gbaseline 10.2 10.5 -0.499909071543063 10.9999706891186 50 30 
-
-#
-# Baseline Correction: PPM Range = (  0.644  ,  2.927  )
-#
-airpls 0.644 2.927 4 
 
 #
 # Zeroing the selected zones ...
 #
 zero
-2.736 2.79
-2.235 2.289
-1.547 1.639
-1.264 1.359
-0.856 0.94
+4.683 5.015
 EOL
 
 #
-# Baseline Correction: PPM Range = (  2.924  ,  5.529  )
+# Alignment of the selected zones ( 5.024 , 9.611 )
 #
-airpls 2.924 5.529 2.6 
+clupa 10.2 10.5 5.024 9.611 0.01 5 0
 
 #
-# Zeroing the selected zones ...
+# Alignment of the selected zones ( 2.652 , 2.742 )
 #
-zero
-4.626 4.978
-EOL
+align 2.652 2.742 0.05 0
 
 #
-# Baseline Correction: PPM Range = (  5.795  ,  8.393  )
+# Alignment of the selected zones ( 2.651 , 2.677 )
 #
-airpls 5.795 8.393 2 
+align 2.651 2.677 0.05 0
 
 #
-# Alignment of the selected zones ( 5.776 , 8.389 )
+# Alignment of the selected zones ( 0.642 , 4.699 )
 #
-clupa 10.2 10.5 5.776 8.389 0.03 5 0
+clupa 10.2 10.5 0.642 4.699 0.01 5 0
 
 #
-# Alignment of the selected zones ( 0.554 , 4.731 )
+# Bucketing - UNIFORM
 #
-clupa 10.2 10.5 0.554 4.731 0.03 5 0
-
-#
-# Bucketing - AIBIN
-#
-bucket aibin 10.2 10.5 0.3 3 0
-9.309 4.788
-4.67 0.615
+bucket unif 10.2 10.5 0.01 3 0
+4.696 0.98
+9.389 5.008
 EOL

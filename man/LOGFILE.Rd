@@ -4,7 +4,7 @@
 \name{LOGFILE}
 \alias{LOGFILE}
 \title{LOGFILE}
-\format{An object of class \code{terminal} (inherits from \code{connection}) of length 1.}
+\format{An object of class \code{character} of length 1.}
 \usage{
 LOGFILE
 }

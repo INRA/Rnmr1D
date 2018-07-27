@@ -37,7 +37,7 @@ library(Rnmr1D)
 
 # Test with the provided example data
 data_dir <- system.file("extra", package = "Rnmr1D")
-RAWDIR <- file.path(data_dir, "MMBBI_14P05")
+RAWDIR <- file.path(data_dir, "CD_BBI_16P02")
 CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
 SAMPLEFILE <- file.path(data_dir, "Samples.txt")
 
@@ -51,11 +51,13 @@ out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu
 ls(out)
 ls(out$specMat)
 
-# Stacked Plot with a perspective effect
-plotSpecMat(out$specMat, ppm_lim=c(0.5,5))
+### Stacked Plot with a perspective effect
+dev.new()
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.33)
 
-# Overlaid Plot
-plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0)
+### Overlaid Plot
+dev.new()
+plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0, pY=0.1)
 
 # Get the data matrix 
 outMat <- getBucketsDataset(out, norm_meth='CSN')

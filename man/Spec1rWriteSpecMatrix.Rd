@@ -12,5 +12,5 @@ Spec1rWriteSpecMatrix(specmat, ...)
 \item{...}{undocumented}
 }
 \description{
-\code{Spec1rWriteSpecMatrix}  Write a Matrix of Spectrum in a binary mode (PACK format)
+\code{Spec1rWriteSpecMatrix} belongs to the low-level functions group - it Write a Matrix of Spectrum in a binary mode (PACK format)
 }

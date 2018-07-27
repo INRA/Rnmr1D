@@ -16,9 +16,10 @@ doProcessing(path, cmdfile, samplefile = NULL, bucketfile = NULL,
 
 \item{bucketfile}{The full path name of the file of bucket's zones (tabular format)}
 
-\item{ncpu}{The number of cores [default: maximum of the machine]}
+\item{ncpu}{The number of cores [default: 1]}
 }
 \value{
+\code{specObj} is a complex list structured as follows:
 \itemize{
   \item \code{samples} : the samples matrix with the correspondence of the raw spectra, as well as the levels of the experimental factors if specified in the input.
   \item \code{factors} : the factors matrix with the corresponding factor names. At minimum, the list contains the Samplecode label corresponding to the samples without their group level.

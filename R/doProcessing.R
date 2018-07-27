@@ -2,9 +2,33 @@
 #'
 #' \code{detectCores} is simply a shortcut for parallel::detectCores().
 #'
-#' @param ...  See ?parallel::detectCores
+#' @param ...  See \code{parallel::detectCores}
 detectCores <- function(...) {
    parallel::detectCores(...)
+}
+
+#' setLogFile
+#'
+#' \code{setLogFile} allows to redirect all log messages to a file
+#'
+#' @param con  a connection object which inherits from class "connection" 
+#' @examples
+#'  \dontrun{
+#'   # Redirect all log messages to a temporary file
+#'    outtmp <- tempfile()
+#'    con <- file(outtmp, "wt", encoding = "UTF-8")
+#'    setLogFile(con)
+#'    data_dir <- system.file("extra", package = "Rnmr1D")
+#'    RAWDIR <- file.path(data_dir, "CD_BBI_16P02")
+#'    CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+#'    SAMPLEFILE <- file.path(data_dir, "Samples.txt")
+#'    out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=6)
+#'    close(con)
+#'    readLines(outtmp)
+#'  }
+setLogFile <- function(con=stdout())
+{
+   if ("connection" %in% class(con) ) LOGFILE <<- con
 }
 
 #' doProcessing 
@@ -15,8 +39,9 @@ detectCores <- function(...) {
 #' @param cmdfile The full path name of the Macro-commands file for processing (text format)
 #' @param samplefile The full path name of the Sample file (tabular format)
 #' @param bucketfile The full path name of the file of bucket's zones (tabular format)
-#' @param ncpu The number of cores [default: maximum of the machine]
+#' @param ncpu The number of cores [default: 1]
 #' @return
+#' \code{specObj} is a complex list structured as follows:
 #' \itemize{
 #'   \item \code{samples} : the samples matrix with the correspondence of the raw spectra, as well as the levels of the experimental factors if specified in the input.
 #'   \item \code{factors} : the factors matrix with the corresponding factor names. At minimum, the list contains the Samplecode label corresponding to the samples without their group level.
@@ -105,20 +130,21 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
    }
    gc()
 
-   cl <- parallel::makeCluster(ncpu)
-   doParallel::registerDoParallel(cl)
-   Sys.sleep(1)
-
    LIST <- metadata$rawids
    Write.LOG(LOGFILE, paste0("Rnmr1D:  -- Nb Spectra = ",dim(LIST)[1]," -- Nb Cores = ",ncpu,"\n"))
 
    tryCatch({
+
+       cl <- parallel::makeCluster(ncpu)
+       doParallel::registerDoParallel(cl)
+       Sys.sleep(1)
+
        x <- 0
        specList <- foreach::foreach(x=1:(dim(LIST)[1]), .combine=cbind) %dopar% {
             ACQDIR <- LIST[x,1]
             NAMEDIR <- ifelse( procParams$VENDOR=='bruker', basename(dirname(ACQDIR)), basename(ACQDIR) )
             # Init the log filename
-            procParams$LOGFILE <- stderr()
+            procParams$LOGFILE <- LOGFILE
             procParams$PDATA_DIR <- file.path('pdata',LIST[x,3])
             spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
             if (procParams$INPUT_SIGNAL=='1r') Sys.sleep(0.3)
@@ -131,6 +157,8 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
        }
        Write.LOG(LOGFILE,"\n")
        gc()
+
+       parallel::stopCluster(cl)
 
        if (dim(LIST)[1]>1) {
           # Ensure that the specList array is in the same order than both  samples and IDS arrays
@@ -230,7 +258,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
        Write.LOG(LOGFILE,"Rnmr1D: \n")
 
      # Process the Macro-commands file
-       specMat <- doProcCmd(specObj, CMDTEXT, DEBUG=TRUE)
+       specMat <- doProcCmd(specObj, CMDTEXT, ncpu=ncpu, debug=TRUE)
        if (specMat$fWriteSpec) specObj$specMat <- specMat
        gc()
 
@@ -259,8 +287,6 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
    }, error=function(e) {
        cat(paste0("ERROR: ",e))
    })
-
-   parallel::stopCluster(cl)
 
    return(specObj)
 

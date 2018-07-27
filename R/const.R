@@ -30,4 +30,4 @@ sep <- "\t"
 #' LOGFILE
 #'
 #' Default log file - Default value = stderr()
-LOGFILE <- stderr()
+LOGFILE <- ""

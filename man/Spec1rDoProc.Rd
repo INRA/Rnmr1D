@@ -15,5 +15,5 @@ Spec1rDoProc(Input, param = Spec1rProcpar)
 spec object
 }
 \description{
-\code{Spec1rDoProc}  processes only one raw spectrum at time.
+\code{Spec1rDoProc} belongs to the low-level functions group - it processes only one raw spectrum at time.
 }

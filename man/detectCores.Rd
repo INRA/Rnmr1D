@@ -7,7 +7,7 @@
 detectCores(...)
 }
 \arguments{
-\item{...}{See ?parallel::detectCores}
+\item{...}{See \code{parallel::detectCores}}
 }
 \description{
 \code{detectCores} is simply a shortcut for parallel::detectCores().

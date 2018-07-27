@@ -15,5 +15,5 @@ Spec1rFinalize(spec, ...)
 spec object
 }
 \description{
-\code{Spec1rFinalize}  finalizes the processing.
+\code{Spec1rFinalize} belongs to the low-level functions group - it finalizes the processing.
 }

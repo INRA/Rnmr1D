@@ -16,13 +16,13 @@ Rnmr1D R package is aimed to performs the complete processing of a set of 1D NMR
   
   * The "high level" group consists of the following functions :
 
-       'detectCores', 'doProcessing', 'getBucketsDataset', 'getBucketsTable' 'getClusters' 'getMergedDataset' 'getSnrDataset', 'getSpectraData', 'plotClusters', 'plotCriterion', 'plotLoadings',  'plotScores', 'plotSpecMat'
+       \code{\link{detectCores}}, \code{\link{doProcessing}}, \code{\link{doProcCmd}}, \code{\link{getBucketsDataset}}, \code{\link{getBucketsTable}}, \code{\link{getClusters}}, \code{\link{getMergedDataset}}, \code{\link{getSnrDataset}}, \code{\link{getSpectraData}}, \code{\link{plotClusters}}, \code{\link{plotCriterion}}, \code{\link{plotLoadings}},  \code{\link{plotScores}}, \code{\link{plotSpecMat}}
 
     This set of function, dedicated to 1D NMR spectra  (1H & 13C) for metabolomics  allow user to process  a complet set of 1D NMR spectra from the FID (raw data) and visualize the resulting spectra in the frequency domain. In output, a plenty of data are available : Bucket table, Data matrix, Signal-to-noise ratios matrix,  spectral data, metadata on both samples and factors. It is possible to reduce the variables size by gathering within clusters two or more buckets  likely to be the (partial) spectral signature of a single chemical compound. The example below provides an illustration of a typical use.
 
   * The "low level" group consists of the following functions :
  
-       'Spec1rDoProc', 'Spec1rReadSpecMatrix', 'Spec1rWriteSpecMatrix', 'Spec1rFinalize', 'generateMetadata', 'RWrapperCMD1D', 'doProcCmd'
+       \code{\link{Spec1rDoProc}}, \code{\link{Spec1rReadSpecMatrix}}, \code{\link{Spec1rWriteSpecMatrix}}, \code{\link{Spec1rFinalize}}, \code{\link{generateMetadata}}, \code{\link{RWrapperCMD1D}}
 
     This set of functions allows to process spectra one by one (Spec1rDoProc) and to apply the treatments one by one on the spectra set ('RWrapperCMD1D','doProcCmd'). Being intended to be integrated into a complex workflow such as implemented in the NMRProcFlow application, these functions are accessible only to maintain compatibility between this package and the NMRProcFlow application, and are therefore very little documented.
 }
