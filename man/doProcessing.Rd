@@ -43,10 +43,9 @@ doProcessing(path, cmdfile, samplefile = NULL, bucketfile = NULL,
 \examples{
  \dontrun{
     data_dir <- system.file("extra", package = "Rnmr1D")
-    RAWDIR <- file.path(data_dir, "MMBBI_14P05")
-    CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
-    SAMPLEFILE <- file.path(data_dir, "Samples.txt")
-    out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
+    cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
+    samplefile <- file.path(data_dir, "Samples.txt")
+    out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, samplefile=samplefile, ncpu=detectCores())
 }
 }
 \seealso{

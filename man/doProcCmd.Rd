@@ -24,28 +24,16 @@ doProcCmd(specObj, cmdstr, ncpu = 1, debug = FALSE)
 \examples{
  \dontrun{
     data_dir <- system.file("extra", package = "Rnmr1D")
-    RAWDIR <- file.path(data_dir, "MMBBI_14P05")
     CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
     SAMPLEFILE <- file.path(data_dir, "Samples.txt")
-    out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
-# Plot the ppm range [0 .. 3]
-    plotSpecMat(ou$specMat, ppm_lim=c(0.5,3), K=0)
-# clean some ppm zones 
+    out <- Rnmr1D::doProcessing(data_dir, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
+# Apply an intelligent bucketing (AIBIN)
     specMat.new <- Rnmr1D::doProcCmd(out, 
-             c("zero", 
-                 "2.71 2.65", 
-                 "2.149 2.208", 
-                 "1.55 1.48", 
-                 "1.265 1.19", 
-                 "0.86 0.76", 
-                 "EOL"
-               "bucket aibin 10.2 10.5 0.3 3 0", 
-                 "9.309 4.788", 
-                 "4.67 0.615", 
+             c("bucket aibin 10.2 10.5 0.3 3 0", 
+                 "9.5 4.9", 
+                 "4.8 0.5", 
                  "EOL"
               ),ncpu=2, debug=TRUE)
-# Plot the ppm range [0 .. 3] after the cleanning
-    dev.new();
-    plotSpecMat(specMat.new, ppm_lim=c(0.5,3), K=0)
+    out$specMat <- specMat.new
 }
 }
