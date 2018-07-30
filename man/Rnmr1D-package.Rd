@@ -24,7 +24,7 @@ Rnmr1D R package is aimed to performs the complete processing of a set of 1D NMR
  
        \code{\link{Spec1rDoProc}}, \code{\link{Spec1rReadSpecMatrix}}, \code{\link{Spec1rWriteSpecMatrix}}, \code{\link{Spec1rFinalize}}, \code{\link{generateMetadata}}, \code{\link{RWrapperCMD1D}}
 
-    This set of functions allows to process spectra one by one (Spec1rDoProc) and to apply the treatments one by one on the spectra set ('RWrapperCMD1D','doProcCmd'). Being intended to be integrated into a complex workflow such as implemented in the NMRProcFlow application, these functions are accessible only to maintain compatibility between this package and the NMRProcFlow application, and are therefore very little documented.
+    This set of functions allows to process spectra one by one (Spec1rDoProc) and to apply the treatments one by one on the spectra set ('RWrapperCMD1D'). Being intended to be integrated into a complex workflow such as implemented in the NMRProcFlow application, these functions are accessible only to maintain compatibility between this package and the NMRProcFlow application, and are therefore very little documented.
 }
 
 \author{

@@ -79,7 +79,7 @@ Spec1rProcpar <- list (
 
 ### General Parameters
     DEBUG=TRUE,                # Debug 
-    LOGFILE=stderr(),          # Messages output file
+    LOGFILE="",                # Messages output file
     VENDOR="bruker",           # Instrumental origin of the raw data, (bruker, varian)
     READ_RAW_ONLY=FALSE,       # Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL
     INPUT_SIGNAL="fid",        # What type of input signal: 'fid' or '1r'
@@ -853,6 +853,7 @@ Spec1rProcpar <- list (
        spec$fid <- c( spec$fid, rep(complex(real=0, imaginary=0), (tdp2-td)) )
        td <- length(spec$fid)
     }
+    spec$rawfid <- spec$fid
     spec$fid0 <- .groupDelay_correction(spec, param)
 
     ### Zero filling
@@ -1142,6 +1143,7 @@ Spec1rProcpar <- list (
               spec <- .optimphase1(spec)
               if(param$DEBUG) .v("OK\n",logfile=logfile)
           }
+          spec$fid0 <- NULL
 
           # Get real spectrum
           spec$int <- ajustBL(Re(spec$data),0)

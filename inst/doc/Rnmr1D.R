@@ -79,3 +79,36 @@ pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
 plotLoadings(pca.merged$rotation, 1, 2, associations=outclust$clustertab, 
              cexlabel=0.6, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
 
+## ----proc101, echo=TRUE, eval=TRUE--------------------------------------------------------------------------------------------
+data_dir <- system.file("extra", package = "Rnmr1D")
+RAWDIR <- file.path(data_dir, "CD_BBI_16P02")
+
+## ----proc102, echo=TRUE, eval=TRUE--------------------------------------------------------------------------------------------
+procParams <- Spec1rProcpar
+procParams$LOGFILE <- ""
+procParams$VENDOR <- 'bruker'
+procParams$INPUT_SIGNAL <- 'fid'
+procParams$LB <- 0.3
+procParams$ZEROFILLING <- TRUE
+procParams$ZFFAC <- 4
+procParams$OPTPHC1 <- TRUE
+procParams$TSP <- TRUE
+
+## ----proc103, echo=TRUE, eval=TRUE--------------------------------------------------------------------------------------------
+metadata <- generateMetadata(RAWDIR, procParams)
+metadata
+
+## ----proc104, echo=TRUE, eval=TRUE--------------------------------------------------------------------------------------------
+ID <- 1
+ACQDIR <- metadata$rawids[ID,1]
+spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
+
+## ----proc105, echo=TRUE, eval=TRUE--------------------------------------------------------------------------------------------
+ls(spec)
+
+## ----plot100, echo=TRUE, fig.align='center', fig.width=12, fig.height=8-------------------------------------------------------
+plot( spec$ppm, spec$int, type="l", col="blue", 
+                xlab="ppm", ylab="Intensities", 
+                xlim=c( spec$pmax, spec$pmin ), ylim=c(0, max(spec$int/100)) )
+legend("topleft", legend=metadata$samples[ID,1])
+

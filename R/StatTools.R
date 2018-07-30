@@ -503,8 +503,8 @@ plotCriterion <- function(clustObj)
          xlab="Critere", ylab="Number of variables / Clust Max Size",
          main=sprintf("Critere = %4.3f,  Nb Clust = %d,  Nb Vars = %d,  Clust Max Size = %d",Vcrit, length(lclust), Vstats[n,3], Vstats[n,4]))
      if( method=='corr' ) {
-         cval_lim <- c(params$CVAL-params$dC,params$CVAL+params$dC)
-         graphics::rect(cval_lim[1], -100, cval_lim[2], 1.5*max(Vstats[,3]), border = NA, col="azure2", alpha=0.5 ) # darkslategray2
+         cval_lim <- c( max(params$CVAL-params$dC,0.9), min(params$CVAL+params$dC,1) )
+         graphics::rect(cval_lim[1], -100, cval_lim[2], 1.5*max(Vstats[,3]), border = NA, col="azure2" ) # darkslategray2
          graphics::par(new=TRUE)
          graphics::plot(Vstats[,1],Vstats[,3], xlim=xlim, ylim=c(0,1.2*max(Vstats[,3])), type="l", col=colors[1],
              xlab="Critere", ylab="Number of variables / Clust Max Size",

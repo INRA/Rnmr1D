@@ -121,6 +121,8 @@ outMat[, 1:10]
 ```
 
 <br>
+<hr>
+<br>
 
 ### Bucket Clustering based on a lower threshold  applied on correlations
 
@@ -203,11 +205,72 @@ plotLoadings(pca.merged$rotation, 1, 2, associations=outclust$clustertab,
 
 Quod erat demonstrandum !
 
-<br>
-
 ### References
 
 <a name="ref1"></a>[1] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), 3783–3790.doi: 10.1021/ac7025964
 
 <a name="ref2"></a>[2] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15) 5049–5061 doi: 10.1007/s00216-013-6852-y
 
+
+<br>
+<hr>
+<br>
+
+### Low-level functionnalities
+
+Rnmr1D package also provides a set of low-level functions allowing to process spectra one by one. 
+Here is an example : Preprocessing one of the raw spectrum taken from the provided data example set.
+The term pre-processing designates here the transformation of the NMR spectrum from time domain to frequency domain, 
+including the Fast Fourrier Tranform (FFT) and the phase correction.
+
+```{r proc101, echo=TRUE, eval=TRUE}
+data_dir <- system.file("extra", package = "Rnmr1D")
+RAWDIR <- file.path(data_dir, "CD_BBI_16P02")
+```
+
+We first initialize the list of preprocessing parameters. The raw spectrum is a FID (Free Induction Decay in the time domain) and was acquired on a Bruker instrument.
+The processing consistes by applying a line broadening (LB=0.3), then a zerofilling (ZFFAC=4) before applying the FFT (Fast Fourrier Transform).  Finally, a phasage has to be applied (Order 0, i.e. OPTPHC0 & Order 1 i.e. OPTPHC1 both equal to TRUE) then a calibration of the ppm scale (TSP=TRUE).
+
+```{r proc102, echo=TRUE, eval=TRUE}
+procParams <- Spec1rProcpar
+procParams$LOGFILE <- ""
+procParams$VENDOR <- 'bruker'
+procParams$INPUT_SIGNAL <- 'fid'
+procParams$LB <- 0.3
+procParams$ZEROFILLING <- TRUE
+procParams$ZFFAC <- 4
+procParams$OPTPHC1 <- TRUE
+procParams$TSP <- TRUE
+```
+
+We generate the metadata from the list of raw spectra namely the samples and the list of selected raw spectra
+
+```{r proc103, echo=TRUE, eval=TRUE}
+metadata <- generateMetadata(RAWDIR, procParams)
+metadata
+```
+
+Spec1rDoProc is the function that can preprocess only one raw spectrum at time. We take the first raw spectrum (FID)
+
+```{r proc104, echo=TRUE, eval=TRUE}
+ID <- 1
+ACQDIR <- metadata$rawids[ID,1]
+spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
+```
+
+It returns a list containing the following components:
+
+```{r proc105, echo=TRUE, eval=TRUE}
+ls(spec)
+```
+
+Then, we plot the spectrum in the frequency domain (ppm)
+
+```{r plot100, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
+plot( spec$ppm, spec$int, type="l", col="blue", 
+                xlab="ppm", ylab="Intensities", 
+                xlim=c( spec$pmax, spec$pmin ), ylim=c(0, max(spec$int/100)) )
+legend("topleft", legend=metadata$samples[ID,1])
+```
+
+You can also see the small application online at the URL https://pmb-bordeaux.fr/nmrspec/.

@@ -1,4 +1,4 @@
-#%% Vendor=bruker; Type=fid; LB=0.3; GB=0; ZF=2; BLPHC=FALSE; PHC1=FALSE; FP=0; TSP=TRUE
+#%% Vendor=bruker; Type=fid; LB=0.3; GB=0; ZF=2; BLPHC=FALSE; PHC1=TRUE; FP=0; TSP=TRUE
 
 #
 # Baseline Correction: PPM Range = (  4.966  ,  9.348  )
