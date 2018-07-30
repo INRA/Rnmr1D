@@ -9,7 +9,8 @@ plotSpecMat(specMat, ppm_lim = c(min(specMat$ppm), max(specMat$ppm)),
   asym = 1, beta = 0, cols = NULL)
 }
 \arguments{
-\item{specMat}{a 'specMat' object - Spectra matrix in specMat$int (rows = samples, columns = buckets)}
+\item{specMat}{a 'specMat' object - Spectra matrix in specMat$int (rows = samples, 
+columns = buckets)}
 
 \item{ppm_lim}{ppm range of the plot}
 
@@ -29,7 +30,8 @@ plotSpecMat(specMat, ppm_lim = c(min(specMat$ppm), max(specMat$ppm)),
 \item{cols}{Vector of colors (same size that the number of spectra, i.e dim(specmat)[1])}
 }
 \description{
-\code{plotSpecMat} Plot spectra set, overlaid or stacked; if stacked, plot with or without a perspective effect.
+\code{plotSpecMat} Plot spectra set, overlaid or stacked; if stacked, plot with or 
+without a perspective effect.
 }
 \examples{
  \dontrun{

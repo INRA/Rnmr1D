@@ -67,7 +67,7 @@ plotClusters(outMat,outclust)
 pca <- prcomp(outMat,retx=TRUE,scale=T, rank=2)
 
 ## ----plot7, echo=TRUE, fig.align='center', fig.width=12, fig.height=8---------------------------------------------------------
-plotScores(pca$x, out$samples, 'Treatment', level=0.95)  # Choose 'Treatment' as factor, confidence level = 95%
+plotScores(pca$x, 1, 2, out$samples, factor='Treatment', level=0.95)  # Choose 'Treatment' as factor, confidence level = 95%
 
 ## ----plot8, echo=TRUE, fig.align='center', fig.width=12, fig.height=10--------------------------------------------------------
 plotLoadings(pca$rotation, 1, 2, associations=outclust$clustertab, 
@@ -76,6 +76,6 @@ plotLoadings(pca$rotation, 1, 2, associations=outclust$clustertab,
 ## ----plot9, echo=TRUE, fig.align='center', fig.width=12, fig.height=10--------------------------------------------------------
 outMat.merged <- Rnmr1D::getMergedDataset(outMat, outclust)
 pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
-plotLoadings(pca.merged$rotation, 1,2,  associations=outclust$clustertab, 
+plotLoadings(pca.merged$rotation, 1, 2, associations=outclust$clustertab, 
              cexlabel=0.6, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
 

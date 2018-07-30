@@ -10,9 +10,10 @@ getSnrDataset(specObj, zone_noise = c(10.2, 10.5), ratio = TRUE)
 \item{specObj}{a complex list return by \code{doProcessing} function. 
 See the manual page of the \code{\link{doProcessing}} function for more details on its structure.}
 
-\item{ratio}{boolean; TRUE for output Signal-Noise Ratio, or FALSE to output maximum value of each bucket and in addition, the estimate noise as a separate column}
+\item{zone_noise}{Specify a ppm range of noisy zone default is c(10.2,10.5)}
 
-\item{zoneref}{Specify a ppm range of noisy zone default is c(10.2,10.5)}
+\item{ratio}{boolean; TRUE for output Signal-Noise Ratio, or FALSE to output maximum value of 
+each bucket and in addition, the estimate noise as a separate column}
 }
 \value{
 the Signal-Noise-Ratio matrix
@@ -21,5 +22,6 @@ the Signal-Noise-Ratio matrix
 Generates the Signal-Noise-Ratio dataset
 }
 \details{
-whatever the bucketing approach used, the Signal-to-Noise ratio is a good quality indicator. Thus, it is possible to check buckets based on their Signal-to-Noise ratio.
+whatever the bucketing approach used, the Signal-to-Noise ratio is a good quality indicator. 
+Thus, it is possible to check buckets based on their Signal-to-Noise ratio.
 }

@@ -7,8 +7,7 @@
 getBucketsDataset(specObj, norm_meth = "none", zoneref = NA)
 }
 \arguments{
-\item{specObj}{a complex list return by \code{doProcessing} function. 
-See the manual page of the \code{\link{doProcessing}} function for more details on its structure.}
+\item{specObj}{a complex list return by \code{doProcessing} function. See the manual page of the \code{\link{doProcessing}} function for more details on its structure.}
 
 \item{norm_meth}{Normalization method. The possible values are : 'none', 'CSN' or 'PDN'. See below.}
 
@@ -16,33 +15,27 @@ See the manual page of the \code{\link{doProcessing}} function for more details 
 }
 \value{
 the data matrix
-\references{
-   Akoka S1, Barantin L, Trierweiler M. (1999) Concentration Measurement by Proton NMR Using the ERETIC Method, Anal. Chem 71(13):2554-7. doi: 10.1021/ac981422i.
-   
-   Dieterle F., Ross A., Schlotterbeck G. and Senn H. (2006). Probabilistic Quotient Normalization as Robust Method to Account for Dilution of Complex Biological Mixtures. Application in 1H NMR Metabonomics. Analytical Chemistry, 78:4281-4290.doi: 10.1021/ac051632c
-}
 }
 \description{
-Generates the buckets data set.
+Generates the matrix including the integrations of the areas defined by the buckets (columns) 
+on each spectrum (rows)
 }
 \details{
-Before bucket data export, in order to make all spectra comparable 
-with each other, the variations of the overall concentrations of samples 
-have to be taken into account. We propose three normalization methods. 
-In NMR metabolomics, the total intensity normalization (called the Constant 
-Sum Normalization) is often used so that all spectra correspond to the same 
-overall concentration. It simply consists in normalizing the total intensity 
-of each individual spectrum to a same value. Other methods such as Probabilistic 
-Quotient Normalization [Dieterle et al. 2006] assume that biologically 
-interesting concentration changes inﬂuence only parts of the NMR spectrum, 
-while dilution effects will affect all metabolite signals. Probabilistic 
-Quotient Normalization (PQN) starts by the calculation of a reference spectrum 
-based on the median spectrum. Next, for each variable of interest the quotient 
-of a given test spectrum and reference spectrum is calculated and the median of 
-all quotients is estimated. Finally, all variables of the test spectrum are 
-divided by the median quotient. An internal reference can be used to normalize 
-the data. For example, an electronic reference (ERETIC, (see Akoka et al. 1999), 
-or ERETIC2 generated with TopSpin software) can be used for this purpose. 
-The integral value of each bucket will be divided by the integral value of the 
-ppm range given as reference.
+Before bucket data export in order to make all spectra comparable with each other, the variations of the overall concentrations of samples have to be taken into account. We propose two normalization methods. In NMR metabolomics, the total intensity normalization (called the Constant Sum Normalization) is often used so that all spectra correspond to the same overall concentration. It simply consists in normalizing the total intensity of each individual spectrum to a same value. An other method called Probabilistic Quotient Normalization (Dieterle et al. 2006) assumes that biologically interesting concentration changes influence only parts of the NMR spectrum, while dilution effects will affect all metabolites signals. Probabilistic Quotient Normalization (PQN) starts by the calculation of a reference spectrum based on the median spectrum. Next, for each variable of interest the quotient of a given test spectrum and reference spectrum is calculated and the median of all quotients is estimated. Finally, all variables of the test spectrum are divided by the median quotient.
+An internal reference can be used to normalize the data. For example, an electronic reference (ERETIC, see Akoka et al. 1999, or ERETIC2 generated with TopSpin software) can be used for this purpose. The integral value of each bucket will be divided by the integral value of the ppm range given as reference.
+}
+\examples{
+ \dontrun{
+     outMat <- getBucketsDataset(out, norm_meth='CSN')
+ }
+}
+\references{
+{
+   Akoka S1, Barantin L, Trierweiler M. (1999) Concentration Measurement by Proton NMR 
+Using the ERETIC Method, Anal. Chem 71(13):2554-7. doi: 10.1021/ac981422i.
+
+   Dieterle F., Ross A., Schlotterbeck G. and Senn H. (2006). Probabilistic Quotient 
+Normalization as Robust Method to Account for Dilution of Complex Biological Mixtures. 
+Application in 1H NMR Metabonomics. Analytical Chemistry, 78:4281-4290.doi: 10.1021/ac051632c
+}
 }

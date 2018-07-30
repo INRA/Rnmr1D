@@ -617,17 +617,23 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
 
 #' checkMacroCmdFile
 #'
-#' \code{checkMacroCmdFile} Check if the macro-commands included in the input file (commandfile) are compliant with the allowed commands.
+#' \code{checkMacroCmdFile} Check if the macro-commands included in the input file (commandfile) 
+#' are compliant with the allowed commands.
 #'
-#' @param commandfile  The macro-commands file - the allowed commands are : 'align', 'warp', 'clupa', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 'normalisation', 'denoising', 'bucket', 'zero'.
+#' @param commandfile  The macro-commands file - the allowed commands are : 'align', 'warp', 
+#' 'clupa', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 
+#' 'normalisation', 'denoising', 'bucket', 'zero'.
 #'
 #' @return return 1 if the macro-commands included in the input file are compliant, 0 if not.
 #'
-#' @exemple
-#'   CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
-#'   ret <- checkMacroCmdFile(CMDFILE)
+#' @examples
+#'  \dontrun{
+#'    CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+#'    ret <- checkMacroCmdFile(CMDFILE)
+#'  }
 #'
-#' @seealso the NMRProcFlow online documentation \url{https://nmrprocflow.org/} and especially the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
+#' @seealso the NMRProcFlow online documentation \url{https://nmrprocflow.org/} and especially 
+#' the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
 checkMacroCmdFile <- function(commandfile) {
    ret <- 1
    allowKW <- c( 'align', 'warp', 'clupa', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 'normalisation', 'denoising', 'bucket', 'zero', 'EOL' )
@@ -649,7 +655,8 @@ checkMacroCmdFile <- function(commandfile) {
 
 #' RWrapperCMD1D
 #'
-#' \code{RWrapperCMD1D} belongs to the low-level functions group - it serves as a wrapper to call internale functions for processing.
+#' \code{RWrapperCMD1D} belongs to the low-level functions group - it serves as a wrapper to 
+#' call internale functions for processing.
 #'
 #' @param cmdName the name of internal function 
 #' @param specMat a 'specMat' object
@@ -716,18 +723,23 @@ RWrapperCMD1D <- function(cmdName, specMat, ...)
 #'
 #' \code{doProcCmd} it process the Macro-commands string array specified at input.
 #'
-#' @param specObj a complex list return by \code{doProcessing} function. See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
-#' @param cmdstr the Macro-commands string array; See the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf}) to have more details about macro-commands.
+#' @param specObj a complex list return by \code{doProcessing} function. See the manual 
+#' page of the \code{\link{doProcessing}} function for more details on its structure.
+#' @param cmdstr the Macro-commands string array; See the Macro-command Reference Guide 
+#' (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf}) to have more details about 
+#' macro-commands.
 #' @param ncpu The number of cores [default: 1]
 #' @param debug a boolean to specify if we want the function to be more verbose.
 #' @return 
-#'  \code{specMat} : a 'specMat' object - See the manual page of the \code{\link{doProcessing}} function for more details on its structure
+#'  \code{specMat} : a 'specMat' object - See the manual page of the \code{\link{doProcessing}} 
+#' function for more details on its structure
 #' @examples
 #'  \dontrun{
 #'     data_dir <- system.file("extra", package = "Rnmr1D")
 #'     CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
 #'     SAMPLEFILE <- file.path(data_dir, "Samples.txt")
-#'     out <- Rnmr1D::doProcessing(data_dir, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
+#'     out <- Rnmr1D::doProcessing(data_dir, cmdfile=CMDFILE, 
+#'                                 samplefile=SAMPLEFILE, ncpu=detectCores())
 #' # Apply an intelligent bucketing (AIBIN)
 #'     specMat.new <- Rnmr1D::doProcCmd(out, 
 #'              c("bucket aibin 10.2 10.5 0.3 3 0", 
@@ -982,9 +994,11 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
 
 #' plotSpecMat Overlaid/Stacked Plot
 #'
-#' \code{plotSpecMat} Plot spectra set, overlaid or stacked; if stacked, plot with or without a perspective effect.
+#' \code{plotSpecMat} Plot spectra set, overlaid or stacked; if stacked, plot with or 
+#' without a perspective effect.
 #'
-#' @param specMat a 'specMat' object - Spectra matrix in specMat$int (rows = samples, columns = buckets)
+#' @param specMat a 'specMat' object - Spectra matrix in specMat$int (rows = samples, 
+#' columns = buckets)
 #' @param ppm_lim ppm range of the plot
 #' @param K Graphical height of the stack (0 .. 1),(default=0.67)
 #' @param pY Intensity limit factor (default 1)
@@ -1064,39 +1078,31 @@ getBucketsTable <- function(specObj)
 
 #' getBucketsDataset
 #'
-#' Generates the buckets data set.
+#' Generates the matrix including the integrations of the areas defined by the buckets (columns) 
+#' on each spectrum (rows)
 #'
-#' Before bucket data export, in order to make all spectra comparable 
-#' with each other, the variations of the overall concentrations of samples 
-#' have to be taken into account. We propose three normalization methods. 
-#' In NMR metabolomics, the total intensity normalization (called the Constant 
-#' Sum Normalization) is often used so that all spectra correspond to the same 
-#' overall concentration. It simply consists in normalizing the total intensity 
-#' of each individual spectrum to a same value. Other methods such as Probabilistic 
-#' Quotient Normalization [Dieterle et al. 2006] assume that biologically 
-#' interesting concentration changes inﬂuence only parts of the NMR spectrum, 
-#' while dilution effects will affect all metabolite signals. Probabilistic 
-#' Quotient Normalization (PQN) starts by the calculation of a reference spectrum 
-#' based on the median spectrum. Next, for each variable of interest the quotient 
-#' of a given test spectrum and reference spectrum is calculated and the median of 
-#' all quotients is estimated. Finally, all variables of the test spectrum are 
-#' divided by the median quotient. An internal reference can be used to normalize 
-#' the data. For example, an electronic reference (ERETIC, (see Akoka et al. 1999), 
-#' or ERETIC2 generated with TopSpin software) can be used for this purpose. 
-#' The integral value of each bucket will be divided by the integral value of the 
-#' ppm range given as reference.
+#' Before bucket data export in order to make all spectra comparable with each other, the variations of the overall concentrations of samples have to be taken into account. We propose two normalization methods. In NMR metabolomics, the total intensity normalization (called the Constant Sum Normalization) is often used so that all spectra correspond to the same overall concentration. It simply consists in normalizing the total intensity of each individual spectrum to a same value. An other method called Probabilistic Quotient Normalization (Dieterle et al. 2006) assumes that biologically interesting concentration changes influence only parts of the NMR spectrum, while dilution effects will affect all metabolites signals. Probabilistic Quotient Normalization (PQN) starts by the calculation of a reference spectrum based on the median spectrum. Next, for each variable of interest the quotient of a given test spectrum and reference spectrum is calculated and the median of all quotients is estimated. Finally, all variables of the test spectrum are divided by the median quotient.
+#' An internal reference can be used to normalize the data. For example, an electronic reference (ERETIC, see Akoka et al. 1999, or ERETIC2 generated with TopSpin software) can be used for this purpose. The integral value of each bucket will be divided by the integral value of the ppm range given as reference.
 #'
-#' @param specObj a complex list return by \code{doProcessing} function. 
-#' See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
+#' @param specObj a complex list return by \code{doProcessing} function. See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
 #' @param norm_meth Normalization method. The possible values are : 'none', 'CSN' or 'PDN'. See below.
 #' @param zoneref Specify the ppm zone of the internal reference (i.e. ERETIC) if applicable. default is NA.
-#' @return
-#'   the data matrix
-#' \references{
-#'    Akoka S1, Barantin L, Trierweiler M. (1999) Concentration Measurement by Proton NMR Using the ERETIC Method, Anal. Chem 71(13):2554-7. doi: 10.1021/ac981422i.
-#'    
-#'    Dieterle F., Ross A., Schlotterbeck G. and Senn H. (2006). Probabilistic Quotient Normalization as Robust Method to Account for Dilution of Complex Biological Mixtures. Application in 1H NMR Metabonomics. Analytical Chemistry, 78:4281-4290.doi: 10.1021/ac051632c
+#'
+#' @return the data matrix
+#'
+#' @references{
+#'    Akoka S1, Barantin L, Trierweiler M. (1999) Concentration Measurement by Proton NMR 
+#' Using the ERETIC Method, Anal. Chem 71(13):2554-7. doi: 10.1021/ac981422i.
+#'
+#'    Dieterle F., Ross A., Schlotterbeck G. and Senn H. (2006). Probabilistic Quotient 
+#' Normalization as Robust Method to Account for Dilution of Complex Biological Mixtures. 
+#' Application in 1H NMR Metabonomics. Analytical Chemistry, 78:4281-4290.doi: 10.1021/ac051632c
 #' }
+#'
+#' @examples
+#'  \dontrun{
+#'      outMat <- getBucketsDataset(out, norm_meth='CSN')
+#'  }
 getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
 {
    outdata <- NULL
@@ -1144,12 +1150,14 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
 #'
 #' Generates the Signal-Noise-Ratio dataset
 #'
-#' whatever the bucketing approach used, the Signal-to-Noise ratio is a good quality indicator. Thus, it is possible to check buckets based on their Signal-to-Noise ratio.
+#' whatever the bucketing approach used, the Signal-to-Noise ratio is a good quality indicator. 
+#' Thus, it is possible to check buckets based on their Signal-to-Noise ratio.
 #'
 #' @param specObj a complex list return by \code{doProcessing} function. 
 #' See the manual page of the \code{\link{doProcessing}} function for more details on its structure.
-#' @param zoneref Specify a ppm range of noisy zone default is c(10.2,10.5)
-#' @param ratio boolean; TRUE for output Signal-Noise Ratio, or FALSE to output maximum value of each bucket and in addition, the estimate noise as a separate column
+#' @param zone_noise Specify a ppm range of noisy zone default is c(10.2,10.5)
+#' @param ratio boolean; TRUE for output Signal-Noise Ratio, or FALSE to output maximum value of 
+#' each bucket and in addition, the estimate noise as a separate column
 #' @return
 #'   the Signal-Noise-Ratio matrix
 

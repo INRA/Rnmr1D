@@ -7,6 +7,7 @@
 #' @param samples the samples matrix with the correspondence of the raw spectra
 #'
 #' @return
+#' \code{generateMetadata} returns a list containing the following components:
 #' \itemize{
 #'   \item \code{samples} : the samples matrix with the correspondence of the raw spectra, as well as the levels of the experimental factors if specified in the input.
 #'   \item \code{factors} : the factors matrix with the corresponding factor names. At minimum, the list contains the Samplecode label corresponding to the samples without their group level.

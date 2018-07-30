@@ -52,8 +52,8 @@ Spec1rWriteSpecMatrix <- function(specmat, ...)
 #' @return
 #' \itemize{
 #'   \item \code{DEBUG} : Debug - defaut value = TRUE
-#'   \item \code{LOGFILE} : Messages output file - default value = stderr()
-#'   \item \code{VENDOR} : Instrumental origin of the raw data} (bruker, varian) - default value = 'bruker'
+#'   \item \code{LOGFILE} : Messages output file - default value = ""
+#'   \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian) - default value = 'bruker'
 #'   \item \code{READ_RAW_ONLY} : Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL - default value = FALSE
 #'   \item \code{INPUT_SIGNAL} : What type of input signal: 'fid' or '1r' - default value = 'fid'
 #'   \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
@@ -152,6 +152,7 @@ Spec1rProcpar <- list (
 
 ### Estime Group Delay
 #-- fid : free induction decay - Complex data type
+
 .estime_grpdelay <- function( fid )
 {
    P <- sqrt(  Re(fid)^2 + Im(fid)^2 )

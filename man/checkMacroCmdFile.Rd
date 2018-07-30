@@ -7,14 +7,25 @@
 checkMacroCmdFile(commandfile)
 }
 \arguments{
-\item{commandfile}{The macro-commands file - the allowed commands are : 'align', 'warp', 'clupa', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 'normalisation', 'denoising', 'bucket', 'zero'.}
+\item{commandfile}{The macro-commands file - the allowed commands are : 'align', 'warp', 
+'clupa', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 
+'normalisation', 'denoising', 'bucket', 'zero'.}
 }
 \value{
 return 1 if the macro-commands included in the input file are compliant, 0 if not.
 }
 \description{
-\code{checkMacroCmdFile} Check if the macro-commands included in the input file (commandfile) are compliant with the allowed commands.
+\code{checkMacroCmdFile} Check if the macro-commands included in the input file (commandfile) 
+are compliant with the allowed commands.
+}
+\examples{
+ \dontrun{
+   CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+   ret <- checkMacroCmdFile(CMDFILE)
+ }
+
 }
 \seealso{
-the NMRProcFlow online documentation \url{https://nmrprocflow.org/} and especially the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
+the NMRProcFlow online documentation \url{https://nmrprocflow.org/} and especially 
+the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
 }

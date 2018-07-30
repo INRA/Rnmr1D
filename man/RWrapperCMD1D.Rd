@@ -17,5 +17,6 @@ RWrapperCMD1D(cmdName, specMat, ...)
 \code{specMat} : a 'specMat' object
 }
 \description{
-\code{RWrapperCMD1D} belongs to the low-level functions group - it serves as a wrapper to call internale functions for processing.
+\code{RWrapperCMD1D} belongs to the low-level functions group - it serves as a wrapper to 
+call internale functions for processing.
 }

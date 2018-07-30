@@ -7,16 +7,20 @@
 doProcCmd(specObj, cmdstr, ncpu = 1, debug = FALSE)
 }
 \arguments{
-\item{specObj}{a complex list return by \code{doProcessing} function. See the manual page of the \code{\link{doProcessing}} function for more details on its structure.}
+\item{specObj}{a complex list return by \code{doProcessing} function. See the manual 
+page of the \code{\link{doProcessing}} function for more details on its structure.}
 
-\item{cmdstr}{the Macro-commands string array; See the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf}) to have more details about macro-commands.}
+\item{cmdstr}{the Macro-commands string array; See the Macro-command Reference Guide 
+(\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf}) to have more details about 
+macro-commands.}
 
 \item{ncpu}{The number of cores [default: 1]}
 
 \item{debug}{a boolean to specify if we want the function to be more verbose.}
 }
 \value{
-\code{specMat} : a 'specMat' object - See the manual page of the \code{\link{doProcessing}} function for more details on its structure
+\code{specMat} : a 'specMat' object - See the manual page of the \code{\link{doProcessing}} 
+function for more details on its structure
 }
 \description{
 \code{doProcCmd} it process the Macro-commands string array specified at input.
@@ -26,7 +30,8 @@ doProcCmd(specObj, cmdstr, ncpu = 1, debug = FALSE)
     data_dir <- system.file("extra", package = "Rnmr1D")
     CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
     SAMPLEFILE <- file.path(data_dir, "Samples.txt")
-    out <- Rnmr1D::doProcessing(data_dir, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
+    out <- Rnmr1D::doProcessing(data_dir, cmdfile=CMDFILE, 
+                                samplefile=SAMPLEFILE, ncpu=detectCores())
 # Apply an intelligent bucketing (AIBIN)
     specMat.new <- Rnmr1D::doProcCmd(out, 
              c("bucket aibin 10.2 10.5 0.3 3 0", 

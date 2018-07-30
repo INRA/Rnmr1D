@@ -43,7 +43,7 @@ Maintainer: Daniel Jacob <djacob65@gmail.com>
   \dontrun{
      ## Process the raw data 
      data_dir <- system.file("extra", package = "Rnmr1D")
-     RAWDIR <- file.path(data_dir, "MMBBI_14P05")
+     RAWDIR <- file.path(data_dir, "CD_BBI_16P02")
      CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
      SAMPLEFILE <- file.path(data_dir, "Samples.txt")
      out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=detectCores())
@@ -72,9 +72,7 @@ Maintainer: Daniel Jacob <djacob65@gmail.com>
 
      # plot PCA Scores
      dev.new()
-     plotScores(pca$x, out$samples, 'Genotype', level=0.8)   # Choose 'Genotype' as factor
-     dev.new()
-     plotScores(pca$x, out$samples, 'Treatment', level=0.8)  # Choose 'Treatment' as factor
+     plotScores(pca$x, 1, 2, out$samples, 'Treatment', level=0.95)  # Choose 'Treatment' as factor
 
      # plot PCA Loadings
      dev.new()

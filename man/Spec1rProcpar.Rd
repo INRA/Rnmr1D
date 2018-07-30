@@ -8,6 +8,33 @@
 \usage{
 Spec1rProcpar
 }
+\value{
+\itemize{
+  \item \code{DEBUG} : Debug - defaut value = TRUE
+  \item \code{LOGFILE} : Messages output file - default value = ""
+  \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian) - default value = 'bruker'
+  \item \code{READ_RAW_ONLY} : Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL - default value = FALSE
+  \item \code{INPUT_SIGNAL} : What type of input signal: 'fid' or '1r' - default value = 'fid'
+  \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
+  \item \code{LB} : Exponantial Line Broadening parameter - default value = 0.3
+  \item \code{GB} : Gaussian Line Broadening parameter - default value = 0
+  \item \code{REVTIME} : Reverse time points - default value = FALSE
+  \item \code{BLPHC} : Intensity offset correction - default value = FALSE
+  \item \code{SOLVPPM} : ppm of the solvent (D20 by default) - default value = 4.8
+  \item \code{ZEROFILLING} : Zero Filling - - default value = FALSE
+  \item \code{ZFFAC} : Max factor for Zero Filling - default value = 4
+  \item \code{LINEBROADENING} : Line Broading - default value = TRUE
+  \item \code{TSP} : PPM referencing - default value = FALSE
+  \item \code{RABOT} : Zeroing of Negative Values - default value = FALSE
+  \item \code{OPTPHC0} : Zero order phase optimization - default value = TRUE
+  \item \code{OPTPHC1} : First order phase optimization - default value = FALSE
+  \item \code{ALGO2} : alternative algorithm for phase optimization - default value = FALSE
+  \item \code{FRACPPM} : Origin point for adjustment of the first order phase (defined as a fraction of the ppm scale) - default value = 0
+  \item \code{INCFRACPPM1} : Incrementation value for search of optimal point for adjustment of the first order phase : step 1 - default value = 0.125
+  \item \code{INCFRACPPM2} : Incrementation value for search of optimal point for adjustment of the first order phase : step 2 - default value = 0.0125
+  \item \code{JGD_INNER} : JEOL : internal or external estimation for Group Delay - default value = TRUE
+}
+}
 \description{
 Initialize Parameter Lists by the default ones
 }
