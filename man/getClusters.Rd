@@ -43,9 +43,11 @@ chemical compounds. However, to assign a chemical compound, several resonance pe
 are generally required in 1D 1 H-NMR metabolic profiling. To generate relevant 
 clusters (i.e. clusters possibly matching to chemical compounds), two approaches 
 have been implemented:
-* Bucket Clustering based on a lower threshold  applied on correlations
-* Bucket Clustering based on a hierarchical tree of the variables (buckets) generated 
+\itemize{
+  \item Bucket Clustering based on a lower threshold  applied on correlations
+  \item Bucket Clustering based on a hierarchical tree of the variables (buckets) generated 
 by an Hierarchical Clustering Analysis (HCA)
+}
 }
 \examples{
  \dontrun{

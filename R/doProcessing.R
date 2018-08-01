@@ -31,6 +31,20 @@ setLogFile <- function(con=stdout())
    if ("connection" %in% class(con) ) LOGFILE <<- con
 }
 
+#' setPPMbounds
+#'
+#' Set the PPM bounds for proton (1H) and carbon (13C) to consider in the processing step and then to store in the specMat object
+#'
+#' @param proton Minimal and Maximal ppm value for 1H NMR
+#' @param carbon Minimal and Maximal ppm value for 13C NMR
+setPPMbounds <- function(proton=c(-0.5,11), carbon=c(0,200))
+{
+   PPM_MIN <<- proton[1]
+   PPM_MAX <<- proton[2]
+   PPM_MIN_13C <<- carbon[1]
+   PPM_MAX_13C <<- carbon[2]
+}
+   
 #' doProcessing 
 #'
 #' \code{doProcessing} is the main function of this package. Indeed, this function performs 
@@ -283,7 +297,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
            Write.LOG(LOGFILE, "Rnmr1D: \n")
 
            # The bucket zones file
-           buckets_infile <- utils::read.table(bucketfile, header=T, sep=sep,stringsAsFactors=FALSE)
+           buckets_infile <- utils::read.table(bucketfile, header=T, sep="\t",stringsAsFactors=FALSE)
            if ( sum(c('min','max') %in% colnames(buckets_infile)) == 2 ) {
                 buckets <- cbind( buckets_infile$max, buckets_infile$min )
                 specObj$specMat$buckets_zones <- buckets

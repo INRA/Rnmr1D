@@ -102,9 +102,11 @@ getScaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Vas
 #' are generally required in 1D 1 H-NMR metabolic profiling. To generate relevant 
 #' clusters (i.e. clusters possibly matching to chemical compounds), two approaches 
 #' have been implemented:
-#' * Bucket Clustering based on a lower threshold  applied on correlations
-#' * Bucket Clustering based on a hierarchical tree of the variables (buckets) generated 
+#' \itemize{
+#'   \item Bucket Clustering based on a lower threshold  applied on correlations
+#'   \item Bucket Clustering based on a hierarchical tree of the variables (buckets) generated 
 #' by an Hierarchical Clustering Analysis (HCA)
+#' }
 #'
 #' @param data the matrix including the integrations of the areas defined by the buckets (columns) 
 #' on each spectrum (rows)
@@ -588,7 +590,7 @@ plotScores <- function(data, pc1, pc2, samples, factor=NULL, level=0.95) {
        grcols=grDevices::rainbow(length(G), s=0.9, v=0.8)
        for(i in 1:length(G)) {
            XY <- data[rownames(data) %in% samples$Samplecode[samples[ , factor ]==G[i]], ]
-           plotEllipse( XY[,pc1], XY[,pc2], level=level, col=grcols[i], lty=3, lwd=0.1, type="l")
+           plotEllipse( XY[,pc1], XY[,pc2], level=level, col=grcols[i], lty=1, lwd=0.1, type="l")
        }
 	   graphics::title(factor)
     }
@@ -646,7 +648,7 @@ plotLoadings <- function (data, pc1, pc2, associations=NULL, main="Loadings",
              XY <- t(P[,colnames(P)==Clusters[i]])
              M<-c(mean(XY[,1]),mean(XY[,2]))
              graphics::points(XY, pch=pch, col=clcols[i])
-             if (dim(XY)[1]>1 && ellipse) plotEllipse( XY[,1], XY[,2], center=M, level= level, col=clcols[i], lty=3, lwd=0.1, type="l")
+             if (dim(XY)[1]>1 && ellipse) plotEllipse( XY[,1], XY[,2], center=M, level= level, col=clcols[i], lty=par()$lty, lwd=par()$lwd )
              graphics::text(adj=0, M[1], M[2], Clusters[i], col="black", cex=cexlabel, font=2)
           }
        }

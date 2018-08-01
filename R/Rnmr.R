@@ -15,36 +15,6 @@ Spec1rDoProc <- function(Input, param=Spec1rProcpar)
    .CALL(Input, param)
 }
 
-#' Spec1rFinalize
-#'
-#' \code{Spec1rFinalize} belongs to the low-level functions group - it finalizes the processing.
-#' @param spec object
-#' @param ... undocumented
-#' @return spec object
-Spec1rFinalize <- function(spec, ...)
-{
-   .Finalize(spec,...)
-}
-
-#' Spec1rReadSpecMatrix
-#'
-#' \code{Spec1rReadSpecMatrix} belongs to the low-level functions group - it Read a Matrix of Spectrum in a binary mode (PACK format)
-#' @param filepack the full path of binary file
-#' @return specMat specMat object - int: the Matrix of Spectrum : 1 row <=> 1 spectrum, 1 column <=> a same value of ppm
-Spec1rReadSpecMatrix <- function(filepack)
-{
-   readSpecMatrix(filepack)
-}
-
-#' Spec1rWriteSpecMatrix
-#'
-#' \code{Spec1rWriteSpecMatrix} belongs to the low-level functions group - it Write a Matrix of Spectrum in a binary mode (PACK format)
-#' @param specmat  the Matrix of Spectrum : 1 row <=> 1 spectrum, 1 column <=> a same value of ppm
-#' @param ... undocumented
-Spec1rWriteSpecMatrix <- function(specmat, ...)
-{
-   writeSpecMatrix(specmat, ...)
-}
 
 #' Spec1rProcpar
 #'
