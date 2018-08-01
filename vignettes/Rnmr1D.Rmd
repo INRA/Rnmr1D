@@ -17,6 +17,15 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE, fig.align=TRUE)
 body { max-width:1200px; line-height: 18px; }
 </style>
 
+## Preamble
+
+This document is an [R](https://www.r-project.org/) vignette available under the [CC BY-SA 4.0](http://creativecommons.org/licenses/by-sa/4.0/) license.
+It is part of the R package [`Rnmr1D`](https://github.com/INRA/Rnmr1D), a free software available under the GPL version 3 or later, with copyright from the Institut National de la Recherche Agronomique (INRA).
+
+The `Rnmr1D` package can be downloaded from [GitHub](https://github.com/INRA/Rnmr1D).
+To install it, we can follow the indications in the [`README.md`](https://github.com/INRA/Rnmr1D/blob/master/README.md) file.
+
+
 ## Features illustration of the Rnmr1D package
 
 #### Rnmr1D is the main module in the NMRProcFlow web application (nmrprocflow.org) concerning the NMR spectra processing.
@@ -143,7 +152,7 @@ outclust$clusters$C5      # same as outclust$clusters[['C5']]
 Based on these clusters, it is possible to find candidate by querying online databases - See for example:
 
 * NMR Peak Matching (DBREF6): http://pmb-bordeaux.fr/PM/webapp
-* HMDB: http://www.hmdb.ca/spectra/nmr/one_d/search/new,
+* HMDB: http://www.hmdb.ca/spectra/nmr/one_d/search/new
 * SpinAssign: http://dmar.riken.jp/spinassign/
 * NMRShiftDB: http://nmrshiftdb.nmr.uni-koeln.de/nmrshiftdb/media-type/html/user/anon/page/default.psml/js_pane/P-Search
 
