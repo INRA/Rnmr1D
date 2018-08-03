@@ -1044,11 +1044,10 @@ double fmin(SEXP l, double x, int flg)
    if (flg==0) phc0=x;
    if (flg==1) phc1=x;
 
-   double Y[n]; //, V[n];
    double quant, SSpos, SStot, ysign, ytrim;
    double phi, dn;
 
-   NumericVector X(n), lb(n), V(n), P(1);
+   NumericVector X(n), Yf(n), lb(n), V(n), P(1);
    dn=n*alpha;
    for (i=0; i<n; i++) {
        phi = phc0 + phc1*(i-dn)/n;
@@ -1061,11 +1060,11 @@ double fmin(SEXP l, double x, int flg)
    for (i=0; i<n; ++i) {
      if (i>n2 || i<(n-n2))
          if (blphc==1) {
-             Y[i] = X[i]-lb[i];
-         } else Y[i] = X[i];
+             Yf[i] = X[i]-lb[i];
+         } else Yf[i] = X[i];
      else
-         Y[i] = 0;
-     V[i]= (Y[i] > 0 ? Y[i]:-Y[i]);
+         Yf[i] = 0;
+     V[i]= (Yf[i] > 0 ? Yf[i]:-Yf[i]);
    }
 
   Rcpp::Environment base("package:stats"); 
@@ -1076,10 +1075,10 @@ double fmin(SEXP l, double x, int flg)
 
    SSpos=SStot=0;
    for (i=0; i<n; ++i) {
-      ysign = Y[i] > 0 ? 1:-1;
-      ytrim = Y[i]*ysign > quant ? quant*ysign:Y[i];
+      ysign = Yf[i] > 0 ? 1:-1;
+      ytrim = Yf[i]*ysign > quant ? quant*ysign:Yf[i];
       SStot += ytrim*ytrim;
-      if (Y[i] > 0) SSpos += ytrim*ytrim;
+      if (Yf[i] > 0) SSpos += ytrim*ytrim;
    }
 
    return(1 - SSpos/SStot);

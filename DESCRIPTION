@@ -1,11 +1,11 @@
 Package: Rnmr1D
 Type: Package
-Title: Rnmr1D is the main module in the NMRProcFlow web application (nmrprocflow.org) concerning the NMR spectra processing
+Title: Perform the Complete Processing of a Set of Proton Nuclear Magnetic Resonance Spectra
 Version: 1.2.0
 Date: 2018-05-03
 Author: Daniel Jacob
 Maintainer: Daniel Jacob <djacob65@gmail.com>
-Description: Rnmr1D allows users to replay the macro-command sequence generated within NMRProcFlow. Moreover, without using NMRProcFlow, this package can also be used to replace any 'home-made script' by a macro-command sequence.
+Description: This package is aimed to performs the complete processing of a set of proton nuclear magnetic resonance spectra from the free induction decay (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong. 
 Depends: R (>= 2.10)
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.7), base64enc (>= 0.1), MASS(>= 7.3), Matrix, methods, 

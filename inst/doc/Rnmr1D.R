@@ -92,7 +92,7 @@ plotLoadings(pca$rotation, 1, 2, associations=clusthca$clustertab,
 ## ----plot6c, echo=TRUE, fig.align='center', fig.width=12, fig.height=10----
 outMat.merged <- Rnmr1D::getMergedDataset(outMat, clusthca, onlycluster=TRUE)
 pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
-plotLoadings(pca.merged$rotation, 1, 2, associations=NULL, cexlabel=0.6 )
+plotLoadings(pca.merged$rotation, 1, 2, associations=NULL, cexlabel=1 )
 
 ## ----proc101, echo=TRUE, eval=TRUE---------------------------------------
 data_dir <- system.file("extra", package = "Rnmr1D")
