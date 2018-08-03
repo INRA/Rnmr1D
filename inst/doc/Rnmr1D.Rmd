@@ -2,12 +2,21 @@
 title: "Rnmr1D package"
 author: "Daniel Jacob"
 date: "`r Sys.Date()`"
-output: 
-  rmarkdown::html_vignette
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: FALSE
+  pdf_document:
+    toc: true
+    toc_depth: 4
+    number_sections: TRUE
+colorlinks: true
+urlcolor: blue
 vignette: >
-  %\VignetteIndexEntry{"Features illustration of the Rnmr1D package"}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Features illustration of the Rnmr1D package}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 ---
 
 ```{r setup, include=FALSE}
@@ -17,16 +26,32 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE, fig.align=TRUE)
 body { max-width:1200px; line-height: 18px; }
 </style>
 
+<br>
+
+## Preamble
+
+This document is an [R](https://www.r-project.org/) vignette available under the [CC BY-SA 4.0](http://creativecommons.org/licenses/by-sa/4.0/) license.
+It is part of the R package [`Rnmr1D`](https://github.com/INRA/Rnmr1D), a free software available under the GPL version 3 or later, with copyright from the Institut National de la Recherche Agronomique (INRA).
+
+A development version of the `Rnmr1D` package can be downloaded from [GitHub](https://github.com/INRA/Rnmr1D).
+To install it, we can follow the indications in the  [`README.md`](https://github.com/INRA/Rnmr1D/blob/master/README.md) file.
+
+<br>
+<br>
+
 ## Features illustration of the Rnmr1D package
 
-#### Rnmr1D is the main module in the NMRProcFlow web application (nmrprocflow.org) concerning the NMR spectra processing.
+Rnmr1D is the main module in the NMRProcFlow web application ([nmrprocflow.org](https://nmrprocflow.org/))[[1](#ref1)] concerning the NMR spectra processing.
+
+<br>
 
 ### Description
-* Rnmr1D R package is aimed to performs the complete processing of a set of 1D NMR spectra from the FID (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong.
 
-* NMRProcFlow allows experts to build their own spectra processing workflow, in order to become re-applicable to similar NMR spectra sets, i.e. stated as use-cases. By extension, the implementation of NMR spectra processing workflows executed in batch mode can be considered as relevant provided that we want to process in this way very well-mastered and very reproducible use cases, i.e. by applying the same Standard Operating Procedures (SOP). A subset of NMR spectra is firstly processed in interactive mode in order to build a well-suited workflow. This mode can be considered as the 'expert mode'. Then, other subsets that are regarded as either similar or being included in the same case study, can be processed in batch mode, operating directly within a R session.
+Rnmr1D R package is aimed to performs the complete processing of a set of 1D NMR spectra from the FID (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong.
 
-* See the NMRProcFlow online documentation https://nmrprocflow.org/ for further information.
+NMRProcFlow allows experts to build their own spectra processing workflow, in order to become re-applicable to similar NMR spectra sets, i.e. stated as use-cases. By extension, the implementation of NMR spectra processing workflows executed in batch mode can be considered as relevant provided that we want to process in this way very well-mastered and very reproducible use cases, i.e. by applying the same Standard Operating Procedures (SOP). A subset of NMR spectra is firstly processed in interactive mode in order to build a well-suited workflow. This mode can be considered as the 'expert mode'. Then, other subsets that are regarded as either similar or being included in the same case study, can be processed in batch mode, operating directly within a R session.
+
+See the NMRProcFlow online documentation https://nmrprocflow.org/ for further information.
 
 <br>
 
@@ -75,17 +100,20 @@ out$infos
 
 <br>
 
-### Stacked Plot with a perspective effect
+### Spectra plots
+<br>
+
+#### Stacked Plot with a perspective effect
 ```{r plot1, echo=TRUE, fig.align='center', fig.width=12, fig.height=6 }
 plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.33)
 ```
 
-### Overlaid Plot
+#### Overlaid Plot
 ```{r plot2, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0, pY=0.1)
 ```
 
-### Some other plots to illustrate the possibilities
+#### Some other plots to illustrate the possibilities
 ```{r plot3, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.33, asym=0)
 cols<- c( rep("blue",length(out$samples$Treatment)));
@@ -117,98 +145,136 @@ outMat[, 1:10]
 ```
 
 <br>
-<hr>
 <br>
 
-### Bucket Clustering based on a lower threshold  applied on correlations
+### Bucket Clustering
 
-At the bucketing step (see above),  we have chosen the intelligent bucketing [[1](#ref1)], it means that each bucket exact matches with one resonance peak. Thanks to this, the buckets now have a strong chemical meaning, since the resonance peaks are the fingerprints of chemical compounds. However, to assign a chemical compound, several resonance peaks are generally required in 1D 1 H-NMR metabolic profiling. **To generate relevant clusters** (i.e. clusters possibly matching to chemical compounds), **an appropriate correlation threshold is applied on the correlation matrix before its cluster decomposition** [[2](#ref2)].
+At the bucketing step (see above), we have chosen the intelligent bucketing [[2](#ref2)], it means that each bucket exact matches with one resonance peak. Thanks to this, the buckets now have a strong chemical meaning, since the resonance peaks are the fingerprints of chemical compounds. However, to assign a chemical compound, several resonance peaks are generally required in 1D 1 H-NMR metabolic profiling. To generate relevant clusters (i.e. clusters possibly matching to chemical compounds), we take advantage of the concentration variability of each compound in a series of samples and based on significant correlations that link these buckets together into clusters. Two approaches have been implemented:
 
-Moreover, an improvement can be done by **searching for a trade-off on a tolerance interval of the correlation threshold** : from a fixed threshold of the correlation  (cval), the clustering is calculated for the three values (cval-dC, cval,  cval+dC),  where dC is the tolerance interval of the correlation threshold.
-From these three sets of clusters, we establish a merger according to the following rules: 1) if a large cluster is broken, we keep the two resulting clusters. 2) If a small cluster disappears, the initial cluster is conserved. Generally, an interval of the correlation threshold included between 0.002 and 0.01 gives good trade-off.
+<br>
 
-#### cval=0 => threshold automatically estimated
+#### Bucket Clustering based on a lower threshold  applied on correlations
 
-```{r proc5, echo=TRUE, eval=TRUE}
+In this approach an appropriate correlation threshold is applied on the correlation matrix before its cluster decomposition [[3](#ref3)]. Moreover, an improvement can be done by searching for a trade-off on a tolerance interval of the correlation threshold : from a fixed threshold of the correlation (cval), the clustering is calculated for the three values (cval-dC, cval, cval+dC), where dC is the tolerance interval of the correlation threshold. From these three sets of clusters, we establish a merger according to the following rules: 1) if a large cluster is broken, we keep the two resulting clusters. 2) If a small cluster disappears, the initial cluster is conserved. Generally, an interval of the correlation threshold included between 0.002 and 0.01 gives good trade-off.
+
+**cval=0 => threshold automatically estimated**
+
+```{r proc5a, echo=TRUE, eval=TRUE}
 options(warn=-1)
-outclust <- Rnmr1D::getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
+clustcor <- Rnmr1D::getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
 ```
 
+<br>
 
-```{r proc6, echo=TRUE, eval=TRUE}
-outclust$clustertab[1:20, ]
-outclust$clusters$C5      # same as outclust$clusters[['C5']]
+#### Bucket Clustering based on a hierarchical tree of the variables (buckets) generated by an Hierarchical Clustering Analysis (HCA)
+
+In this approach a Hierachical Classification Analysis (HCA, hclust) is applied on the data after calculating a matrix distance ("euclidian" by default). Then, a cut is applied on the tree (cutree) resulting from hclust, into several groups by specifying the cut height(s). For finding best cut value, the cut height is chosen i) by testing several values equally spaced in a given range of the cut height, then, 2) by keeping the one that gives the more cluster and by including most bucket variables. Otherwise, a cut value has to be specified by the user (vcutusr)
+
+**vcutusr=0 => cut value automatically estimated**
+
+```{r proc5b, echo=TRUE, eval=TRUE}
+options(warn=-1)
+clusthca <- Rnmr1D::getClusters(outMat, method='hca', vcutusr=0)
+```
+<br>
+<br>
+
+#### Clustering results
+
+The getClusters function returns a list containing the several components, in particular:
+
+* **clusters** List of the ppm value corresponding to each cluster. the length of the list equal to number of clusters
+* **clustertab** the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1)
+
+```{r proc5c, echo=TRUE, eval=TRUE}
+clusthca$clustertab[1:20, ]
+clusthca$clusters$C5      # same as outclust$clusters[['C5']]
 ```
 
 Based on these clusters, it is possible to find candidate by querying online databases - See for example:
 
 * NMR Peak Matching (DBREF6): http://pmb-bordeaux.fr/PM/webapp
-* HMDB: http://www.hmdb.ca/spectra/nmr/one_d/search/new,
+* HMDB: http://www.hmdb.ca/spectra/nmr/one_d/search/new
 * SpinAssign: http://dmar.riken.jp/spinassign/
 * NMRShiftDB: http://nmrshiftdb.nmr.uni-koeln.de/nmrshiftdb/media-type/html/user/anon/page/default.psml/js_pane/P-Search
 
-<br>
 
-### Plot the criterion curves
-```{r plot5, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
-plotCriterion(outclust)
-```
-
-### Boxplots of clusters
-
-This plot allows us to have an insight on the clusters distribution - We see that they cover three orders (log scaled)
-
-```{r plot6, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
-plotClusters(outMat,outclust)
-```
+### Clustering Comparison resulting of the both 'hca' & 'corr' methods
 
 <br>
+
+#### Criterion curves
+
+```{r plot5a, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
+layout(matrix(1:2, 2, 1,byrow = TRUE))
+plotCriterion(clustcor, reverse=TRUE)
+plotCriterion(clusthca)
+```
+
+#### Clusters distribution
+
+These plots allow us to have an insight on the clusters distribution
+
+```{r plot5b, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
+layout(matrix(1:2, 1, 2,byrow = TRUE))
+
+hist(simplify2array(lapply(clustcor$clusters, length)), 
+     breaks=20, main="CORR", xlab="size", col="darkcyan")
+mtext("clusters size distribution", side = 3)
+
+hist(simplify2array(lapply(clusthca$clusters, length)), 
+     breaks=20, main="HCA", xlab="size", col="darkcyan")
+mtext("clusters size distribution", side = 3)
+```
+
+We see that they cover three orders (log scaled)
+
+```{r plot5c, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
+layout(matrix(1:2, 2, 1,byrow = TRUE))
+plotClusters(outMat,clustcor, horiz=FALSE, main="Boxplot of the clusters (CORR)")
+plotClusters(outMat,clusthca, horiz=FALSE, main="Boxplot of the clusters (HCA)")
+```
+
+<br>
+
 
 ### PCA
 
 PCA is a multivariate analysis without prior knowledge on the experiment design. In this way, it allows us to see the dataset as it is, projected in the two main components where data variance is maximal.
 
-```{r proc7, echo=TRUE, eval=TRUE}
+```{r proc6, echo=TRUE, eval=TRUE}
 pca <- prcomp(outMat,retx=TRUE,scale=T, rank=2)
 ```
 
 <br>
 
-### Plot PCA Scores
+#### Plot PCA Scores
 
 Ellipses corresponding to the factors levels are simply added on graph. It is possible to specify their confidence level (95% by default).
 
-```{r plot7, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
+```{r plot6a, echo=TRUE, fig.align='center', fig.width=12, fig.height=8}
 # Choose 'Treatment' as factor, confidence level = 95%
 plotScores(pca$x, 1, 2, out$samples, factor='Treatment', level=0.95)
 ```
 
-### Plot PCA Loadings
+#### Plot PCA Loadings
 
-Having calculated the clustering in the previous step (see above), it can be superimposed on the loadings plot in order to view its distribution and thus its efficiency. We can see that where the clusters are located, this corresponds to the maximum variance of the buckets, i.e. mainly at the ends of the first principal component (PC1).
+Having calculated the clustering in the previous step (see above), it can be superimposed on the loadings plot in order to view its distribution and thus its efficiency. Here we choose those based on the HCA method. We can see that where the clusters are located, this corresponds to the maximum variance of the buckets, i.e. mainly at the ends of the first principal component (PC1).
 
-```{r plot8, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
-plotLoadings(pca$rotation, 1, 2, associations=outclust$clustertab, 
-             cexlabel=0.6, level=0.8, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
+```{r plot6b, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
+plotLoadings(pca$rotation, 1, 2, associations=clusthca$clustertab, 
+             cexlabel=0.6, level=0.8, main=sprintf("Loadings - Crit=%s",clusthca$vcrit) )
 ```
 
-Plot loadings with the merged variables for each cluster (based on their average)
+Plot loadings with the only merged variables for each cluster (based on their average)
 
-```{r plot9, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
-outMat.merged <- Rnmr1D::getMergedDataset(outMat, outclust)
+```{r plot6c, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
+outMat.merged <- Rnmr1D::getMergedDataset(outMat, clusthca, onlycluster=TRUE)
 pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
-plotLoadings(pca.merged$rotation, 1, 2, associations=outclust$clustertab, 
-             cexlabel=0.6, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
+plotLoadings(pca.merged$rotation, 1, 2, associations=NULL, cexlabel=0.6 )
 ```
 
 Quod erat demonstrandum !
-
-### References
-
-<a name="ref1"></a>[1] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), doi: 10.1021/ac7025964
-
-<a name="ref2"></a>[2] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), doi: 10.1007/s00216-013-6852-y
-
 
 <br>
 <hr>
@@ -216,7 +282,7 @@ Quod erat demonstrandum !
 
 ### Low-level functionnalities
 
-Rnmr1D package also provides a set of low-level functions allowing to process spectra one by one. 
+Rnmr1D package also provides a set of low-level functions allowing to process spectra one by one. It accepts raw data come from three major vendors namely Bruker GmbH, Agilent Technologies (Varian) and Jeol Ltd. Moreover, we also support the nmrML format [[4](#ref4)] (See [nmrml.org](http://nmrml.org/) for further information on this format)
 Here is an example : Preprocessing one of the raw spectrum taken from the provided data example set.
 The term pre-processing designates here the transformation of the NMR spectrum from time domain to frequency domain, 
 including the Fast Fourrier Tranform (FFT) and the phase correction.
@@ -272,3 +338,18 @@ legend("topleft", legend=metadata$samples[ID,1])
 ```
 
 You can also see the small application online at the URL https://pmb-bordeaux.fr/nmrspec/.
+
+<br>
+<br>
+
+### References
+
+<a name="ref1"></a>[1] Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. doi:10.1007/s11306-017-1178-y
+
+<a name="ref2"></a>[2] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), doi: 10.1021/ac7025964
+
+<a name="ref3"></a>[3] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), doi: 10.1007/s00216-013-6852-y
+
+<a name="ref4"></a>[4] Schober D, Jacob D, Wilson M, Cruz JA, Marcu A, Grant JR, Moing A, Deborde C, de Figueiredo LF, Haug K, Rocca-Serra P, Easton J, Ebbels TMD, Hao J, Ludwig C, Günther UL, Rosato A, Klein MS, Lewis IA, Luchinat C, Jones AR, Grauslys A, Larralde M, Yokochi M, Kobayashi N, Porzel A, Griffin JL, Viant MR, Wishart DS, Steinbeck C, Salek RM, Neumann S. (2018) Anal Chem doi: 10.1021/acs.analchem.7b02795
+
+

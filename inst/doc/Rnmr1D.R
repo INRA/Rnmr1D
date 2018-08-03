@@ -45,36 +45,54 @@ out$specMat <- specMat.new
 outMat <- Rnmr1D::getBucketsDataset(out, norm_meth='CSN')
 outMat[, 1:10]
 
-## ----proc5, echo=TRUE, eval=TRUE-----------------------------------------
+## ----proc5a, echo=TRUE, eval=TRUE----------------------------------------
 options(warn=-1)
-outclust <- Rnmr1D::getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
+clustcor <- Rnmr1D::getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
+
+## ----proc5b, echo=TRUE, eval=TRUE----------------------------------------
+options(warn=-1)
+clusthca <- Rnmr1D::getClusters(outMat, method='hca', vcutusr=0)
+
+## ----proc5c, echo=TRUE, eval=TRUE----------------------------------------
+clusthca$clustertab[1:20, ]
+clusthca$clusters$C5      # same as outclust$clusters[['C5']]
+
+## ----plot5a, echo=TRUE, fig.align='center', fig.width=12, fig.height=10----
+layout(matrix(1:2, 2, 1,byrow = TRUE))
+plotCriterion(clustcor, reverse=TRUE)
+plotCriterion(clusthca)
+
+## ----plot5b, echo=TRUE, fig.align='center', fig.width=12, fig.height=6----
+layout(matrix(1:2, 1, 2,byrow = TRUE))
+
+hist(simplify2array(lapply(clustcor$clusters, length)), 
+     breaks=20, main="CORR", xlab="size", col="darkcyan")
+mtext("clusters size distribution", side = 3)
+
+hist(simplify2array(lapply(clusthca$clusters, length)), 
+     breaks=20, main="HCA", xlab="size", col="darkcyan")
+mtext("clusters size distribution", side = 3)
+
+## ----plot5c, echo=TRUE, fig.align='center', fig.width=12, fig.height=8----
+layout(matrix(1:2, 2, 1,byrow = TRUE))
+plotClusters(outMat,clustcor, horiz=FALSE, main="Boxplot of the clusters (CORR)")
+plotClusters(outMat,clusthca, horiz=FALSE, main="Boxplot of the clusters (HCA)")
 
 ## ----proc6, echo=TRUE, eval=TRUE-----------------------------------------
-outclust$clustertab[1:20, ]
-outclust$clusters$C5      # same as outclust$clusters[['C5']]
-
-## ----plot5, echo=TRUE, fig.align='center', fig.width=12, fig.height=8----
-plotCriterion(outclust)
-
-## ----plot6, echo=TRUE, fig.align='center', fig.width=12, fig.height=8----
-plotClusters(outMat,outclust)
-
-## ----proc7, echo=TRUE, eval=TRUE-----------------------------------------
 pca <- prcomp(outMat,retx=TRUE,scale=T, rank=2)
 
-## ----plot7, echo=TRUE, fig.align='center', fig.width=12, fig.height=8----
+## ----plot6a, echo=TRUE, fig.align='center', fig.width=12, fig.height=8----
 # Choose 'Treatment' as factor, confidence level = 95%
 plotScores(pca$x, 1, 2, out$samples, factor='Treatment', level=0.95)
 
-## ----plot8, echo=TRUE, fig.align='center', fig.width=12, fig.height=10----
-plotLoadings(pca$rotation, 1, 2, associations=outclust$clustertab, 
-             cexlabel=0.6, level=0.8, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
+## ----plot6b, echo=TRUE, fig.align='center', fig.width=12, fig.height=10----
+plotLoadings(pca$rotation, 1, 2, associations=clusthca$clustertab, 
+             cexlabel=0.6, level=0.8, main=sprintf("Loadings - Crit=%s",clusthca$vcrit) )
 
-## ----plot9, echo=TRUE, fig.align='center', fig.width=12, fig.height=10----
-outMat.merged <- Rnmr1D::getMergedDataset(outMat, outclust)
+## ----plot6c, echo=TRUE, fig.align='center', fig.width=12, fig.height=10----
+outMat.merged <- Rnmr1D::getMergedDataset(outMat, clusthca, onlycluster=TRUE)
 pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
-plotLoadings(pca.merged$rotation, 1, 2, associations=outclust$clustertab, 
-             cexlabel=0.6, main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
+plotLoadings(pca.merged$rotation, 1, 2, associations=NULL, cexlabel=0.6 )
 
 ## ----proc101, echo=TRUE, eval=TRUE---------------------------------------
 data_dir <- system.file("extra", package = "Rnmr1D")
