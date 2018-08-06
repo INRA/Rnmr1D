@@ -203,6 +203,10 @@ Based on these clusters, it is possible to find candidate by querying online dat
 
 <br>
 
+The'Corr' approach produces fewer clusters but correlations between all buckets are guaranteed to be greater than or equal to the set threshold; unlike the'hca' approach which produces many more clusters and especially small sizes (2 or 3) but which may result from aggregates having a wider range around the threshold of values of correlations between buckets.
+
+<br>
+
 #### Criterion curves
 
 ```{r plot5a, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
@@ -344,12 +348,12 @@ You can also see the small application online at the URL https://pmb-bordeaux.fr
 
 ### References
 
-<a name="ref1"></a>[1] Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. http://dx.doi.org/10.1007/s11306-017-1178-y
+<a name="ref1"></a>[1] Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. https://www.ncbi.nlm.nih.gov/pubmed/28261014
 
-<a name="ref2"></a>[2] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), http://dx.doi.org/10.1021/ac7025964
+<a name="ref2"></a>[2] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), https://www.ncbi.nlm.nih.gov/pubmed/18419139
 
-<a name="ref3"></a>[3] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), http://dx.doi.org/10.1007/s00216-013-6852-y
+<a name="ref3"></a>[3] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), https://www.ncbi.nlm.nih.gov/pubmed/23525538
 
-<a name="ref4"></a>[4] Schober D, Jacob D, Wilson M, Cruz JA, Marcu A, Grant JR, Moing A, Deborde C, de Figueiredo LF, Haug K, Rocca-Serra P, Easton J, Ebbels TMD, Hao J, Ludwig C, Günther UL, Rosato A, Klein MS, Lewis IA, Luchinat C, Jones AR, Grauslys A, Larralde M, Yokochi M, Kobayashi N, Porzel A, Griffin JL, Viant MR, Wishart DS, Steinbeck C, Salek RM, Neumann S. (2018) Anal Chem http://dx.doi.org/10.1021/acs.analchem.7b02795
+<a name="ref4"></a>[4] Schober D, Jacob D, Wilson M, Cruz JA, Marcu A, Grant JR, Moing A, Deborde C, de Figueiredo LF, Haug K, Rocca-Serra P, Easton J, Ebbels TMD, Hao J, Ludwig C, Günther UL, Rosato A, Klein MS, Lewis IA, Luchinat C, Jones AR, Grauslys A, Larralde M, Yokochi M, Kobayashi N, Porzel A, Griffin JL, Viant MR, Wishart DS, Steinbeck C, Salek RM, Neumann S. (2018) Anal Chem https://www.ncbi.nlm.nih.gov/pubmed/29035042
 
 

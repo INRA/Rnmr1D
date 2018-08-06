@@ -343,10 +343,10 @@ CMDTEXT[grep(&quot;^#$&quot;, CMDTEXT, invert=TRUE)]</code></pre>
 ## Rnmr1D:  Alignment: PPM Range = ( 5.024 , 9.611 )
 ## Rnmr1D:     CluPA - Resolution =0.01 - SNR threshold=5 - Reference=0
 ## Rnmr1D:     --- Peak detection : nDivRange = 64 
-## Rnmr1D:     --- Peak detection time:  5.57999999999993  sec
+## Rnmr1D:     --- Peak detection time:  5.41000000000031  sec
 ## Rnmr1D:     --- The reference spectrum is:  3 
 ## Rnmr1D:     --- Spectra alignment to the reference: maxShift = 16 
-## Rnmr1D:     --- Spectra alignment time:  0.890000000000327  sec
+## Rnmr1D:     --- Spectra alignment time:  0.880000000000109  sec
 ## Rnmr1D:  Alignment: PPM Range = ( 2.652 , 2.742 )
 ## Rnmr1D:     Rel. Shift Max.=0.05 - Reference=0
 ## Rnmr1D:  Alignment: PPM Range = ( 2.651 , 2.677 )
@@ -354,10 +354,10 @@ CMDTEXT[grep(&quot;^#$&quot;, CMDTEXT, invert=TRUE)]</code></pre>
 ## Rnmr1D:  Alignment: PPM Range = ( 0.642 , 4.699 )
 ## Rnmr1D:     CluPA - Resolution =0.01 - SNR threshold=5 - Reference=0
 ## Rnmr1D:     --- Peak detection : nDivRange = 64 
-## Rnmr1D:     --- Peak detection time:  4.25  sec
+## Rnmr1D:     --- Peak detection time:  4.26000000000022  sec
 ## Rnmr1D:     --- The reference spectrum is:  2 
 ## Rnmr1D:     --- Spectra alignment to the reference: maxShift = 16 
-## Rnmr1D:     --- Spectra alignment time:  1.03999999999996  sec
+## Rnmr1D:     --- Spectra alignment time:  0.970000000000255  sec
 ## Rnmr1D:  Bucketing the selected PPM ranges ...
 ## Rnmr1D:     UNIF - Resolution =0.01 - SNR threshold=3 - Append=0
 ## Rnmr1D:     Zone 1 = ( 0.98 , 4.696 ), Nb Buckets = 343 
@@ -514,6 +514,7 @@ clusthca &lt;- Rnmr1D::getClusters(outMat, method='hca', vcutusr=0)</code></pre>
 <pre><code>##  [1] 0.9550 0.9616 0.9731 0.9810 1.0116 1.0279 1.3319 2.1403 2.1550 2.2643
 ## [11] 2.4449 2.4513 2.4599 2.4685 2.4734 2.4850 2.5150 2.5333 3.0781 4.1719
 ## [21] 4.1796 4.1913 4.1977 7.2172 7.5567</code></pre>
+<p><br></p>
 <p>Based on these clusters, it is possible to find candidate by querying online databases - See for example:</p>
 <ul>
 <li>NMR Peak Matching (DBREF6): <a href="http://pmb-bordeaux.fr/PM/webapp" class="uri">http://pmb-bordeaux.fr/PM/webapp</a></li>
@@ -659,10 +660,10 @@ legend(&quot;topleft&quot;, legend=metadata$samples[ID,1])</code></pre>
 </div>
 <div id="references" class="section level3">
 <h3>References</h3>
-<p><a name="ref1"></a>[1] Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. <a href="http://dx.doi.org/10.1007/s11306-017-1178-y" class="uri">http://dx.doi.org/10.1007/s11306-017-1178-y</a></p>
-<p><a name="ref2"></a>[2] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), <a href="http://dx.doi.org/10.1021/ac7025964" class="uri">http://dx.doi.org/10.1021/ac7025964</a></p>
-<p><a name="ref3"></a>[3] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), <a href="http://dx.doi.org/10.1007/s00216-013-6852-y" class="uri">http://dx.doi.org/10.1007/s00216-013-6852-y</a></p>
-<p><a name="ref4"></a>[4] Schober D, Jacob D, Wilson M, Cruz JA, Marcu A, Grant JR, Moing A, Deborde C, de Figueiredo LF, Haug K, Rocca-Serra P, Easton J, Ebbels TMD, Hao J, Ludwig C, Günther UL, Rosato A, Klein MS, Lewis IA, Luchinat C, Jones AR, Grauslys A, Larralde M, Yokochi M, Kobayashi N, Porzel A, Griffin JL, Viant MR, Wishart DS, Steinbeck C, Salek RM, Neumann S. (2018) Anal Chem <a href="http://dx.doi.org/10.1021/acs.analchem.7b02795" class="uri">http://dx.doi.org/10.1021/acs.analchem.7b02795</a></p>
+<p><a name="ref1"></a>[1] Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. <a href="https://www.ncbi.nlm.nih.gov/pubmed/28261014" class="uri">https://www.ncbi.nlm.nih.gov/pubmed/28261014</a></p>
+<p><a name="ref2"></a>[2] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), <a href="https://www.ncbi.nlm.nih.gov/pubmed/18419139" class="uri">https://www.ncbi.nlm.nih.gov/pubmed/18419139</a></p>
+<p><a name="ref3"></a>[3] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), <a href="https://www.ncbi.nlm.nih.gov/pubmed/23525538" class="uri">https://www.ncbi.nlm.nih.gov/pubmed/23525538</a></p>
+<p><a name="ref4"></a>[4] Schober D, Jacob D, Wilson M, Cruz JA, Marcu A, Grant JR, Moing A, Deborde C, de Figueiredo LF, Haug K, Rocca-Serra P, Easton J, Ebbels TMD, Hao J, Ludwig C, Günther UL, Rosato A, Klein MS, Lewis IA, Luchinat C, Jones AR, Grauslys A, Larralde M, Yokochi M, Kobayashi N, Porzel A, Griffin JL, Viant MR, Wishart DS, Steinbeck C, Salek RM, Neumann S. (2018) Anal Chem <a href="https://www.ncbi.nlm.nih.gov/pubmed/29035042" class="uri">https://www.ncbi.nlm.nih.gov/pubmed/29035042</a></p>
 </div>
 </div>
 

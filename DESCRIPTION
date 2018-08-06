@@ -2,10 +2,10 @@ Package: Rnmr1D
 Type: Package
 Title: Perform the Complete Processing of a Set of Proton Nuclear Magnetic Resonance Spectra
 Version: 1.2.0
-Date: 2018-05-03
+Date: 2018-08-06
 Author: Daniel Jacob
 Maintainer: Daniel Jacob <djacob65@gmail.com>
-Description: This package is aimed to performs the complete processing of a set of proton nuclear magnetic resonance spectra from the free induction decay (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong. 
+Description: Perform the complete processing of a set of proton nuclear magnetic resonance spectra from the free induction decay (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong. 
 Depends: R (>= 2.10)
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.7), base64enc (>= 0.1), MASS(>= 7.3), Matrix, methods, 
