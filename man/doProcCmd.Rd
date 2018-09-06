@@ -26,7 +26,7 @@ function for more details on its structure
 \code{doProcCmd} it process the Macro-commands string array specified at input.
 }
 \examples{
- \dontrun{
+ \donttest{
     data_dir <- system.file("extra", package = "Rnmr1D")
     CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
     SAMPLEFILE <- file.path(data_dir, "Samples.txt")

@@ -34,7 +34,12 @@ columns = buckets)}
 without a perspective effect.
 }
 \examples{
- \dontrun{
+ \donttest{
+  data_dir <- system.file("extra", package = "Rnmr1D")
+  cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
+  samplefile <- file.path(data_dir, "Samples.txt")
+  out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
+                                samplefile=samplefile, ncpu=detectCores())
   # Overlaid plot
   plotSpecMat(out$specMat, ppm_lim=c(0.5,9), K=0, pY=0.1)
   # Stacked plot with perspective effect

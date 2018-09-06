@@ -13,7 +13,7 @@ detectCores <- function(...) {
 #'
 #' @param con  a connection object which inherits from class "connection" 
 #' @examples
-#'  \dontrun{
+#'  \donttest{
 #'   # Redirect all log messages to a temporary file
 #'    outtmp <- tempfile()
 #'    con <- file(outtmp, "wt", encoding = "UTF-8")
@@ -85,7 +85,7 @@ setPPMbounds <- function(proton=c(-0.5,11), carbon=c(0,200))
 #'         }
 #' }
 #' @examples
-#'  \dontrun{
+#'  \donttest{
 #'     data_dir <- system.file("extra", package = "Rnmr1D")
 #'     cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
 #'     samplefile <- file.path(data_dir, "Samples.txt")

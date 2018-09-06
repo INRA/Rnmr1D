@@ -158,9 +158,15 @@ getScaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Vas
 #'  }
 #'
 #' @examples
-#'  \dontrun{
-#'      clustcorr <- getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
-#'      clusthca <- getClusters(outMat, method='hca', vcutusr=0)
+#'  \donttest{
+#'   data_dir <- system.file("extra", package = "Rnmr1D")
+#'   cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
+#'   samplefile <- file.path(data_dir, "Samples.txt")
+#'   out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
+#'                                 samplefile=samplefile, ncpu=detectCores())
+#'   outMat <- getBucketsDataset(out, norm_meth='CSN')
+#'   clustcorr <- getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
+#'   clusthca <- getClusters(outMat, method='hca', vcutusr=0)
 #'  }
 getClusters <- function(data, method='hca', ... )
 {
@@ -614,13 +620,23 @@ plotClusters <- function(data, clustObj, horiz=TRUE, main="Boxplot by clusters (
 #' See \code{doProcessing} or \code{generateMetadata}
 #' @param samples the samples matrix with the correspondence of the raw spectra, 
 #' @param factor if not null, the name of one of the columns defining the factorial groups in the samples matrix at input
+#' @param cexlabel number indicating the amount by which plotting text and symbols should be scaled relative to the default. 
 #' @param level confidence level for plotting the corresponding ellipse
-plotScores <- function(data, pc1, pc2, samples, factor=NULL, level=0.95) {
-    graphics::plot(data ,pch=20, adj=0, lwd=2, main="", xlim=1.5*c(min(data[,1]),max(data[,1])), ylim=1.5*c(min(data[,2]),max(data[,2])) )
-    graphics::text( adj=0, data[,pc1], data[,pc2], rownames(data), pos=4, cex=1.2 )
+#' @param xlim gives the limit to be plotted of the first component
+#' @param ylim gives the limit to be plotted of the second component
+#' @param col colors vector for ellipses - automatically defined by default
+plotScores <- function(data, pc1, pc2, samples, factor=NULL, cexlabel=1.2, level=0.95, xlim=NULL, ylim=NULL, col=NULL) {
+    if (is.null(xlim)) xlim=1.5*c(min(data[,pc1]),max(data[,pc1]))
+	if (is.null(ylim)) ylim=1.5*c(min(data[,pc2]),max(data[,pc2]))
+    graphics::plot(data ,pch=20, adj=0, lwd=2, main="", xlim=xlim, ylim=ylim )
+    graphics::text( adj=0, data[,pc1], data[,pc2], rownames(data), pos=4, cex=cexlabel )
     if (! is.null(factor)) {
        G <- unique(samples[ , factor ])
-       grcols=grDevices::rainbow(length(G), s=0.9, v=0.8)
+       if (is.null(col)) {
+           grcols=grDevices::rainbow(length(G), s=0.9, v=0.8)
+       } else {
+           grcols=col
+       }
        for(i in 1:length(G)) {
            XY <- data[rownames(data) %in% samples$Samplecode[samples[ , factor ]==G[i]], ]
            plotEllipse( XY[,pc1], XY[,pc2], level=level, col=grcols[i], lty=graphics::par()$lty, lwd=graphics::par()$lwd )

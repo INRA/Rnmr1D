@@ -11,7 +11,7 @@
 
 <meta name="author" content="Daniel Jacob" />
 
-<meta name="date" content="2018-08-03" />
+<meta name="date" content="2018-08-09" />
 
 <title>Rnmr1D package</title>
 
@@ -222,7 +222,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Rnmr1D package</h1>
 <h4 class="author"><em>Daniel Jacob</em></h4>
-<h4 class="date"><em>2018-08-03</em></h4>
+<h4 class="date"><em>2018-08-09</em></h4>
 
 </div>
 
@@ -343,10 +343,10 @@ CMDTEXT[grep(&quot;^#$&quot;, CMDTEXT, invert=TRUE)]</code></pre>
 ## Rnmr1D:  Alignment: PPM Range = ( 5.024 , 9.611 )
 ## Rnmr1D:     CluPA - Resolution =0.01 - SNR threshold=5 - Reference=0
 ## Rnmr1D:     --- Peak detection : nDivRange = 64 
-## Rnmr1D:     --- Peak detection time:  5.41000000000031  sec
+## Rnmr1D:     --- Peak detection time:  5.36000000000013  sec
 ## Rnmr1D:     --- The reference spectrum is:  3 
 ## Rnmr1D:     --- Spectra alignment to the reference: maxShift = 16 
-## Rnmr1D:     --- Spectra alignment time:  0.880000000000109  sec
+## Rnmr1D:     --- Spectra alignment time:  0.839999999999918  sec
 ## Rnmr1D:  Alignment: PPM Range = ( 2.652 , 2.742 )
 ## Rnmr1D:     Rel. Shift Max.=0.05 - Reference=0
 ## Rnmr1D:  Alignment: PPM Range = ( 2.651 , 2.677 )
@@ -354,10 +354,10 @@ CMDTEXT[grep(&quot;^#$&quot;, CMDTEXT, invert=TRUE)]</code></pre>
 ## Rnmr1D:  Alignment: PPM Range = ( 0.642 , 4.699 )
 ## Rnmr1D:     CluPA - Resolution =0.01 - SNR threshold=5 - Reference=0
 ## Rnmr1D:     --- Peak detection : nDivRange = 64 
-## Rnmr1D:     --- Peak detection time:  4.26000000000022  sec
+## Rnmr1D:     --- Peak detection time:  4.20000000000005  sec
 ## Rnmr1D:     --- The reference spectrum is:  2 
 ## Rnmr1D:     --- Spectra alignment to the reference: maxShift = 16 
-## Rnmr1D:     --- Spectra alignment time:  0.970000000000255  sec
+## Rnmr1D:     --- Spectra alignment time:  1.05999999999995  sec
 ## Rnmr1D:  Bucketing the selected PPM ranges ...
 ## Rnmr1D:     UNIF - Resolution =0.01 - SNR threshold=3 - Append=0
 ## Rnmr1D:     Zone 1 = ( 0.98 , 4.696 ), Nb Buckets = 343 
@@ -451,6 +451,7 @@ outMat[, 1:10]</code></pre>
 </div>
 <div id="bucket-clustering" class="section level3">
 <h3>Bucket Clustering</h3>
+<p>Note: The following features are integrated into the <a href="http://biostatflow.org">BioStatFlow</a> web application the biostatistical analysis companion of NMRProcFlow (the ‘Clustering of Variables’ analysis in the default workflow).</p>
 <p>At the bucketing step (see above), we have chosen the intelligent bucketing [<a href="#ref2">2</a>], it means that each bucket exact matches with one resonance peak. Thanks to this, the buckets now have a strong chemical meaning, since the resonance peaks are the fingerprints of chemical compounds. However, to assign a chemical compound, several resonance peaks are generally required in 1D 1 H-NMR metabolic profiling. To generate relevant clusters (i.e. clusters possibly matching to chemical compounds), we take advantage of the concentration variability of each compound in a series of samples and based on significant correlations that link these buckets together into clusters. Two approaches have been implemented:</p>
 <p><br></p>
 <div id="bucket-clustering-based-on-a-lower-threshold-applied-on-correlations" class="section level4">
@@ -524,6 +525,8 @@ clusthca &lt;- Rnmr1D::getClusters(outMat, method='hca', vcutusr=0)</code></pre>
 </div>
 <div id="clustering-comparison-resulting-of-the-both-hca-corr-methods" class="section level3">
 <h3>Clustering Comparison resulting of the both ‘hca’ &amp; ‘corr’ methods</h3>
+<p><br></p>
+<p>The’Corr’ approach produces fewer clusters but correlations between all buckets are guaranteed to be greater than or equal to the set threshold; unlike the’hca’ approach which produces many more clusters and especially small sizes (2 or 3) but which may result from aggregates having a wider range around the threshold of values of correlations between buckets.</p>
 <p><br></p>
 <div id="criterion-curves" class="section level4">
 <h4>Criterion curves</h4>

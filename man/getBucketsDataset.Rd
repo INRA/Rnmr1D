@@ -25,8 +25,13 @@ Before bucket data export in order to make all spectra comparable with each othe
 An internal reference can be used to normalize the data. For example, an electronic reference (ERETIC, see Akoka et al. 1999, or ERETIC2 generated with TopSpin software) can be used for this purpose. The integral value of each bucket will be divided by the integral value of the ppm range given as reference.
 }
 \examples{
- \dontrun{
-     outMat <- getBucketsDataset(out, norm_meth='CSN')
+ \donttest{
+  data_dir <- system.file("extra", package = "Rnmr1D")
+  cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
+  samplefile <- file.path(data_dir, "Samples.txt")
+  out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
+                                samplefile=samplefile, ncpu=detectCores())
+  outMat <- getBucketsDataset(out, norm_meth='CSN')
  }
 }
 \references{

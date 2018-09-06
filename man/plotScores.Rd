@@ -4,7 +4,8 @@
 \alias{plotScores}
 \title{plotScores}
 \usage{
-plotScores(data, pc1, pc2, samples, factor = NULL, level = 0.95)
+plotScores(data, pc1, pc2, samples, factor = NULL, cexlabel = 1.2,
+  level = 0.95)
 }
 \arguments{
 \item{data}{the matrix of scores coming from a multivariable analysis, typically a Principal Component Analysis (PCA)}
@@ -18,6 +19,8 @@ See \code{doProcessing} or \code{generateMetadata}}
 \item{samples}{the samples matrix with the correspondence of the raw spectra,}
 
 \item{factor}{if not null, the name of one of the columns defining the factorial groups in the samples matrix at input}
+
+\item{cexlabel}{number indicating the amount by which plotting text and symbols should be scaled relative to the default.}
 
 \item{level}{confidence level for plotting the corresponding ellipse}
 }

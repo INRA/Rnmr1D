@@ -13,7 +13,7 @@ setLogFile(con = stdout())
 \code{setLogFile} allows to redirect all log messages to a file
 }
 \examples{
- \dontrun{
+ \donttest{
   # Redirect all log messages to a temporary file
    outtmp <- tempfile()
    con <- file(outtmp, "wt", encoding = "UTF-8")

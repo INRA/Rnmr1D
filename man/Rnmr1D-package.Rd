@@ -36,7 +36,6 @@ Maintainer: Daniel Jacob <djacob65@gmail.com>
    Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. \doi{10.1007/s11306-017-1178-y}}
 \keyword{ package }
 \seealso{
-  
   the NMRProcFlow online documentation \url{https://nmrprocflow.org/}
 }
 \examples{
@@ -52,13 +51,13 @@ Maintainer: Daniel Jacob <djacob65@gmail.com>
      plotSpecMat(out$specMat, ppm_lim=c(0.5,9), K=0)
 
      ## Generate the output data matrix based on the computed buckets 
-	 ## stored in  out$specMat$bucket_zones.
+     ## stored in  out$specMat$bucket_zones.
      outMat <- Rnmr1D::getBucketsDataset(out, norm_meth='CSN')
 
      ## Compute the bucket clustering based on a cut threshold  applied on the buckets tree 
-	 ## resulting of a hierarchical classification analysis. If \code{vcutusr} is equal to 
-	 ## zero then cut threshold automatically estimated; otherwise the specified value 
-	 ## is applied.
+     ## resulting of a hierarchical classification analysis. If \code{vcutusr} is equal to 
+     ## zero then cut threshold automatically estimated; otherwise the specified value 
+     ## is applied.
      outclust <- Rnmr1D::getClusters(outMat, method='hca', vcutusr=0.15 )
 
      ## Plot the criterion curves and the cluster boxplot
@@ -77,7 +76,7 @@ Maintainer: Daniel Jacob <djacob65@gmail.com>
      # plot PCA Loadings
      dev.new()
      plotLoadings(pca$rotation, 1, 2, associations=outclust$clustertab, cexlabel=0.6, 
-	              main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
+                  main=sprintf("Loadings - Crit=%s",outclust$vcrit) )
 
   }
 }

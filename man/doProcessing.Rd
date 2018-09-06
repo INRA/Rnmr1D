@@ -53,7 +53,7 @@ factors to which they belong. In this way it is possible to select only a subset
 instead of the whole set.
 }
 \examples{
- \dontrun{
+ \donttest{
     data_dir <- system.file("extra", package = "Rnmr1D")
     cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
     samplefile <- file.path(data_dir, "Samples.txt")

@@ -73,9 +73,15 @@ Otherwise, a cut value has to be specified by the user (vcutusr)
 }
 }
 \examples{
- \dontrun{
-     clustcorr <- getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
-     clusthca <- getClusters(outMat, method='hca', vcutusr=0)
+ \donttest{
+  data_dir <- system.file("extra", package = "Rnmr1D")
+  cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
+  samplefile <- file.path(data_dir, "Samples.txt")
+  out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
+                                samplefile=samplefile, ncpu=detectCores())
+  outMat <- getBucketsDataset(out, norm_meth='CSN')
+  clustcorr <- getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
+  clusthca <- getClusters(outMat, method='hca', vcutusr=0)
  }
 }
 \references{

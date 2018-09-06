@@ -1225,11 +1225,11 @@ plotSpectrum = function(obj, ppm = c(obj$ppm[1], obj$ppm[obj$acq$TD]), ratio=1, 
 
 }
 
-writeSpec = function(spec, outdir="", mode="bin", name="1r")
+writeSpec = function(spec, outdir, mode="bin", name="1r")
 {
    ENDIAN <- "little"
    SIZE <- 4
-   if (nchar(outdir)==0) outdir="."
+   if (nchar(outdir)==0) stop("Error: outdir missing. You need to specify the output directory\n")
    binfile <- paste(outdir,name,sep='/')
 
    if (spec$proc$TSP) spec <- .ppm_calibration(spec)

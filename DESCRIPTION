@@ -2,10 +2,15 @@ Package: Rnmr1D
 Type: Package
 Title: Perform the Complete Processing of a Set of Proton Nuclear Magnetic Resonance Spectra
 Version: 1.2.0
-Date: 2018-08-06
-Author: Daniel Jacob
-Maintainer: Daniel Jacob <djacob65@gmail.com>
-Description: Perform the complete processing of a set of proton nuclear magnetic resonance spectra from the free induction decay (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong. 
+Date: 2018-08-13
+Authors@R: c(
+    person("Daniel", "Jacob", email="daniel.jacob@inra.fr", role=c("cre", "aut"), comment=c(ORCID="0000-0002-6687-7169")),
+    person("Catherine", "Deborde", email="catherine.deborde@inra.fr", role=c("ctb")),
+    person("Marie", "Lefebvre", email="marie.lefebvre@inra.fr", role=c("ctb")))
+Copyright: Institut National de la Recherche Agronomique (INRA)
+URL: https://github.com/INRA/Rnmr1D
+Maintainer: Daniel Jacob <daniel.jacob@inra.fr>
+Description: Perform the complete processing of a set of proton nuclear magnetic resonance spectra from the free induction decay (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong. More detail can be found in Jacob et al. (2017) <doi:10.1007/s11306-017-1178-y>.
 Depends: R (>= 2.10)
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.7), base64enc (>= 0.1), MASS(>= 7.3), Matrix, methods, 

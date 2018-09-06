@@ -19,10 +19,9 @@ return 1 if the macro-commands included in the input file are compliant, 0 if no
 are compliant with the allowed commands.
 }
 \examples{
- \dontrun{
-   CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
-   ret <- checkMacroCmdFile(CMDFILE)
- }
+data_dir <- system.file("extra", package = "Rnmr1D")
+CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+ret <- checkMacroCmdFile(CMDFILE)
 
 }
 \seealso{

@@ -627,10 +627,9 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
 #' @return return 1 if the macro-commands included in the input file are compliant, 0 if not.
 #'
 #' @examples
-#'  \dontrun{
-#'    CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
-#'    ret <- checkMacroCmdFile(CMDFILE)
-#'  }
+#' data_dir <- system.file("extra", package = "Rnmr1D")
+#' CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
+#' ret <- checkMacroCmdFile(CMDFILE)
 #'
 #' @seealso the NMRProcFlow online documentation \url{https://nmrprocflow.org/} and especially 
 #' the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
@@ -734,7 +733,7 @@ RWrapperCMD1D <- function(cmdName, specMat, ...)
 #'  \code{specMat} : a 'specMat' object - See the manual page of the \code{\link{doProcessing}} 
 #' function for more details on its structure
 #' @examples
-#'  \dontrun{
+#'  \donttest{
 #'     data_dir <- system.file("extra", package = "Rnmr1D")
 #'     CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
 #'     SAMPLEFILE <- file.path(data_dir, "Samples.txt")
@@ -1011,7 +1010,12 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
 #' @param cols Vector of colors (same size that the number of spectra, i.e dim(specmat)[1])
 #'
 #' @examples
-#'  \dontrun{
+#'  \donttest{
+#'   data_dir <- system.file("extra", package = "Rnmr1D")
+#'   cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
+#'   samplefile <- file.path(data_dir, "Samples.txt")
+#'   out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
+#'                                 samplefile=samplefile, ncpu=detectCores())
 #'   # Overlaid plot
 #'   plotSpecMat(out$specMat, ppm_lim=c(0.5,9), K=0, pY=0.1)
 #'   # Stacked plot with perspective effect
@@ -1100,8 +1104,13 @@ getBucketsTable <- function(specObj)
 #' }
 #'
 #' @examples
-#'  \dontrun{
-#'      outMat <- getBucketsDataset(out, norm_meth='CSN')
+#'  \donttest{
+#'   data_dir <- system.file("extra", package = "Rnmr1D")
+#'   cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
+#'   samplefile <- file.path(data_dir, "Samples.txt")
+#'   out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
+#'                                 samplefile=samplefile, ncpu=detectCores())
+#'   outMat <- getBucketsDataset(out, norm_meth='CSN')
 #'  }
 getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
 {

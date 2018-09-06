@@ -7,10 +7,6 @@ output:
     toc: true
     toc_float: true
     number_sections: FALSE
-  pdf_document:
-    toc: true
-    toc_depth: 4
-    number_sections: TRUE
 colorlinks: true
 urlcolor: blue
 vignette: >
@@ -148,6 +144,8 @@ outMat[, 1:10]
 <br>
 
 ### Bucket Clustering
+
+Note: The following features are integrated into the [BioStatFlow](http://biostatflow.org) web application the biostatistical analysis companion of NMRProcFlow (the ' Clustering of Variables' analysis in the default workflow).
 
 At the bucketing step (see above), we have chosen the intelligent bucketing [[2](#ref2)], it means that each bucket exact matches with one resonance peak. Thanks to this, the buckets now have a strong chemical meaning, since the resonance peaks are the fingerprints of chemical compounds. However, to assign a chemical compound, several resonance peaks are generally required in 1D 1 H-NMR metabolic profiling. To generate relevant clusters (i.e. clusters possibly matching to chemical compounds), we take advantage of the concentration variability of each compound in a series of samples and based on significant correlations that link these buckets together into clusters. Two approaches have been implemented:
 
