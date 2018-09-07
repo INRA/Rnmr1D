@@ -101,6 +101,10 @@ C_maxval_buckets <- function(x, b) {
     .Call('_Rnmr1D_C_maxval_buckets', PACKAGE = 'Rnmr1D', x, b)
 }
 
+C_ppmIntMax_buckets <- function(x, b) {
+    .Call('_Rnmr1D_C_ppmIntMax_buckets', PACKAGE = 'Rnmr1D', x, b)
+}
+
 C_buckets_CSN_normalize <- function(b) {
     .Call('_Rnmr1D_C_buckets_CSN_normalize', PACKAGE = 'Rnmr1D', b)
 }

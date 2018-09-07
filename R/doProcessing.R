@@ -82,6 +82,9 @@ setPPMbounds <- function(proton=c(-0.5,11), carbon=c(0,200))
 #'             \item \code{dppm} : the ppm increment between each point
 #'             \item \code{buckets_zones} : the matrix of the buckets zones including two columns 
 #' (min and max) 
+#'             \item \code{namesASintMax} : boolean - If TRUE, generate all output matrix with bucket
+#' names based on ppm values (for each bucket) of the maximum of the average intensity of all spectra.
+#' If FALSE (default), then bucket names will be based on the ppm range center of each bucket.
 #'         }
 #' }
 #' @examples
@@ -136,6 +139,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
         if (! is.null(procpar$PHC1)) procParams$OPTPHC1 <- ifelse( procpar$PHC1=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$ZNEG)) procParams$RABOT <- ifelse( procpar$ZNEG=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$TSP)) procParams$TSP <- ifelse( procpar$TSP=="TRUE", TRUE, FALSE)
+        if (! is.null(procpar$O1RATIO)) procParams$O1RATIO <- as.numeric(procpar$O1RATIO)
         if (! is.null(procpar$TSPSNR)) procParams$TSPSNR <- as.numeric(procpar$TSPSNR)
         if (! is.null(procpar$FP)) procParams$FRACPPM <- as.numeric(procpar$FP)
    }
@@ -233,6 +237,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
        specMat$dppm <- (specMat$ppm_max - specMat$ppm_min)/(specMat$size - 1)
        specMat$ppm <- rev(seq(from=specMat$ppm_min, to=specMat$ppm_max, by=specMat$dppm))
        specMat$buckets_zones <- NULL
+       specMat$namesASintMax <- FALSE  # FALSE -> center, TRUE -> intMax
        specMat$fWriteSpec <- FALSE
 
        specObj <- metadata

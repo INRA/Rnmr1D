@@ -1070,12 +1070,20 @@ getBucketsTable <- function(specObj)
    buckets <- specMat$buckets_zones
    if ( ! is.null(buckets) ) {
       colnames(buckets) <- c("max","min")
+      buckets_m <- t(simplify2array(lapply( c( 1:(dim(buckets)[1]) ), 
+                     function(x) { c( length(which(specMat$ppm>buckets[x,1])), length(which(specMat$ppm>buckets[x,2])) ) }
+                    )))
       buckets <- as.data.frame(buckets, stringsAsFactors=FALSE)
-
       buckets$center <- 0.5*(buckets[,1]+buckets[,2])
       buckets$width <-  0.5*abs(buckets[,1]-buckets[,2])
-      buckets$name <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets$center))) )
-      outtable <- buckets[, c("name", "center", "min", "max", "width") ]
+      buckets$intMax <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
+      if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
+          buccenter <- buckets$center
+      } else {
+          buccenter <- buckets$intMax
+      }
+      buckets$name <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buccenter))) )
+      outtable <- buckets[, c("name", "center", "min", "max", "width", "intMax") ]
    }
    return(outtable)
 }
@@ -1147,7 +1155,12 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
       # read samples
       samples <- specObj$samples
       # write the data table
-      bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets[,1]))) )
+      if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
+          buccenter <- 0.5*(buckets[,1]+buckets[,2])
+      } else {
+          buccenter <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
+      }
+      bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buccenter))) )
       outdata <- buckets_IntVal
       colnames(outdata) <- bucnames
       rownames(outdata) <- samples[,2]
@@ -1192,7 +1205,12 @@ getSnrDataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
       # read samples
       samples <- specObj$samples
       # write the data table
-      bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets[,1]))) )
+      if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
+          buccenter <- 0.5*(buckets[,1]+buckets[,2])
+      } else {
+          buccenter <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
+      }
+      bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buccenter))) )
       if (ratio) {
          outdata <- cbind( MaxVals/(2*Vnoise))
          colnames(outdata) <- bucnames

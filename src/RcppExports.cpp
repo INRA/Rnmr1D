@@ -333,6 +333,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// C_ppmIntMax_buckets
+SEXP C_ppmIntMax_buckets(SEXP x, SEXP b);
+RcppExport SEXP _Rnmr1D_C_ppmIntMax_buckets(SEXP xSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_ppmIntMax_buckets(x, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 // C_buckets_CSN_normalize
 SEXP C_buckets_CSN_normalize(SEXP b);
 RcppExport SEXP _Rnmr1D_C_buckets_CSN_normalize(SEXP bSEXP) {
@@ -421,6 +433,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rnmr1D_C_buckets_integrate", (DL_FUNC) &_Rnmr1D_C_buckets_integrate, 3},
     {"_Rnmr1D_C_all_buckets_integrate", (DL_FUNC) &_Rnmr1D_C_all_buckets_integrate, 3},
     {"_Rnmr1D_C_maxval_buckets", (DL_FUNC) &_Rnmr1D_C_maxval_buckets, 2},
+    {"_Rnmr1D_C_ppmIntMax_buckets", (DL_FUNC) &_Rnmr1D_C_ppmIntMax_buckets, 2},
     {"_Rnmr1D_C_buckets_CSN_normalize", (DL_FUNC) &_Rnmr1D_C_buckets_CSN_normalize, 1},
     {"_Rnmr1D_C_estime_sd", (DL_FUNC) &_Rnmr1D_C_estime_sd, 2},
     {"_Rnmr1D_ajustBL", (DL_FUNC) &_Rnmr1D_ajustBL, 2},

@@ -4,7 +4,7 @@
 \name{Spec1rProcpar}
 \alias{Spec1rProcpar}
 \title{Spec1rProcpar}
-\format{An object of class \code{list} of length 25.}
+\format{An object of class \code{list} of length 26.}
 \usage{
 Spec1rProcpar
 }

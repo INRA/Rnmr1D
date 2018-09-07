@@ -873,6 +873,33 @@ SEXP C_maxval_buckets (SEXP x, SEXP b)
 }
 
 // [[Rcpp::export]]
+SEXP C_ppmIntMax_buckets (SEXP x, SEXP b)
+{
+   NumericMatrix VV(x);
+   NumericMatrix Buc(b);
+   int n_specs = VV.nrow();
+   int n_bucs = Buc.nrow();
+   int k,m,i;
+   double Y, sumS;
+
+   //ppm values for each bucket of the maximum of the average intensity of all spectra 
+   NumericVector P(n_bucs);
+
+   // for each bucket
+   for (m=0; m<n_bucs; m++) {
+      Y=0;
+   // for each point in the bucket range
+      for (i=Buc(m,0); i<Buc(m,1); i++) {
+          // for each spectrum
+          sumS=0; for (k=0; k<n_specs; k++) sumS += VV(k,i);
+          // Keep the ppm value if it the current intensity is over than previous.
+          if (sumS>Y) { Y=sumS; P[m]=i; }
+      }       
+   }
+   return(P);
+}
+
+// [[Rcpp::export]]
 SEXP C_buckets_CSN_normalize (SEXP b)
 {
    NumericMatrix buckets(b);
