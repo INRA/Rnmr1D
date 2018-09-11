@@ -5,8 +5,8 @@
 \title{plotLoadings}
 \usage{
 plotLoadings(data, pc1, pc2, associations = NULL, main = "Loadings",
-  xlimu = c(min(data[, pc1]), max(data[, pc1])), ylimu = c(min(data[, pc2]),
-  max(data[, pc2])), cexlabel = 1, pch = 20, ellipse = TRUE,
+  xlimu = c(min(data[, pc1]), max(data[, pc1])), ylimu = c(min(data[,
+  pc2]), max(data[, pc2])), cexlabel = 1, pch = 20, ellipse = TRUE,
   level = 0.8)
 }
 \arguments{

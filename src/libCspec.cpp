@@ -218,8 +218,9 @@ SEXP C_GlobSeg (SEXP v, int dN, double sig)
 SEXP lowpass1 (SEXP x, double alpha)
 {
    NumericVector y1(x);
-   NumericVector y2(clone(x));
    int n=y1.size();
+   NumericVector y2(n);
+   y2[0]=y1[0];
    int k;
    for (k=1; k<n; k++) y2[k] = y2[k-1] + alpha * (y1[k] - y2[k-1]);
    return(y2);

@@ -41,9 +41,10 @@ spectra
             \item \code{dppm} : the ppm increment between each point
             \item \code{buckets_zones} : the matrix of the buckets zones including two columns 
 (min and max) 
-            \item \code{namesASintMax} : boolean - If TRUE, generate all output matrix with bucket
-names based on ppm values (for each bucket) of the maximum of the average intensity of all spectra.
-If FALSE (default), then bucket names will be based on the ppm range center of each bucket.
+            \item \code{namesASintMax} : boolean - If TRUE, generate all output matrix with 
+bucket names based on ppm values of the maximum of the average intensity of all spectra within
+the ppm range of each bucket. If FALSE (default), then bucket names will be based on the ppm 
+range center of each bucket.
         }
 }
 }
