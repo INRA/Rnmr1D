@@ -217,13 +217,13 @@ SEXP C_GlobSeg (SEXP v, int dN, double sig)
 // [[Rcpp::export]]
 SEXP lowpass1 (SEXP x, double alpha)
 {
-   NumericVector y1(x);
-   int n=y1.size();
-   NumericVector y2(n);
-   y2[0]=y1[0];
-   int k;
-   for (k=1; k<n; k++) y2[k] = y2[k-1] + alpha * (y1[k] - y2[k-1]);
-   return(y2);
+   int k,N;
+   NumericVector VecIn(x);
+   N = VecIn.size();
+   NumericVector VecOut(N);
+   VecOut[0]=VecIn[0];
+   for (k=1; k<N; k++) VecOut[k] = VecOut[k-1] + alpha * (VecIn[k] - VecOut[k-1]);
+   return(VecOut);
 }
 
 // [[Rcpp::export]]
@@ -241,8 +241,8 @@ double WinMoy (SEXP v, int n1, int n2)
 SEXP Smooth (SEXP v, int n)
 {
     NumericVector specR(v);
-    int n1,n2;
-    int N = specR.size();
+    int n1,n2,N;
+    N = specR.size();
     NumericVector S(N);
     for (int count=0; count<N; count++) {
         n1 = count >= n ? count - n : 0;

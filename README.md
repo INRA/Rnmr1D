@@ -15,9 +15,16 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 * Some R packages:
 
 ```R
-source('http://bioconductor.org/biocLite.R');
-biocLite(c('MassSpecWavelet','impute'));
-install.packages(c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph'), repos='http://cran.rstudio.com')
+packages <- c("impute", "MassSpecWavelet")
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+   source('http://bioconductor.org/biocLite.R');
+   biocLite(setdiff(packages, rownames(installed.packages())));
+}
+
+packages <- c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph')
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(packages, rownames(installed.packages())), , repos='http://cran.rstudio.com')
+}
 ```
 
 ## Installation of the R package 
