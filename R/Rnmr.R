@@ -1,7 +1,7 @@
 #------------------------------------------------
-# Rnmr1D package: Build 1r spectrum from FID file (Bruker/Varian/nmrML)
-# Project: NMRProcFlow - MetaboHUB
-# (C) 2015 - D. JACOB - IMRA UMR1332 BAP
+# Rnmr1D package: Build 1r spectrum from FID file (Bruker/RS2D/Varian/nmrML)
+# Project: NMRProcFlow
+# (C) 2019 - D. JACOB - IMRA UMR1332 BAP
 #------------------------------------------------
 
 #' Spec1rDoProc
@@ -1117,7 +1117,7 @@ Spec1rProcpar <- list (
    # Calibration based on TSP
    if (spec$param$TSP) {
       x0 <- abs(spec$pmin)/SW
-      n1 <- round(m*(x0-0.4/SW)); n2 <- round(m*(x0+0.1/SW))
+      n1 <- round(m*(x0-0.4/SW)); n2 <- round(m*(x0+0.2/SW))
       range <- c(n1:n2)
       if (max(spec$int[ range ])>10*C_estime_sd(spec$int,128)) {
           n0 <- which(spec$int[ range ] == max(spec$int[ range ])) + n1 - 2
