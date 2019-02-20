@@ -17,7 +17,7 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 ```R
 packages <- c("impute", "MassSpecWavelet","pcaMethods")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
-   if (R.Version()$minor> "5") {
+   if (paste(R.Version()$major,R.Version()$minor, sep=".") > "3.5") {
       if (!requireNamespace('BiocManager', quietly = TRUE))
           install.packages('BiocManager', repos='http://cran.rstudio.com/');
       BiocManager::install(setdiff(packages, rownames(installed.packages())), version = '3.8');
@@ -27,7 +27,6 @@ if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
    }
 }
 
-# For all R versions
 packages <- c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph')
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())), repos='http://cran.rstudio.com')

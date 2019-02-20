@@ -1319,7 +1319,7 @@ writeSpec = function(spec, outdir, mode="bin", name="1r")
    if (nchar(outdir)==0) stop("Error: outdir missing. You need to specify the output directory\n")
    binfile <- paste(outdir,name,sep='/')
 
-   if (spec$proc$TSP) spec <- .ppm_calibration(spec)
+   if (spec$param$TSP) spec <- .ppm_calibration(spec)
 
    # Get real spectrum
    spec.int <- spec$int
