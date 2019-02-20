@@ -944,7 +944,7 @@ Spec1rProcpar <- list (
     }
     param$SI <- length(rawspec)
 
-    proc <- list( phc0=0, phc1=0, RMS=0, SI=length(rawspec) )
+    proc <- list( phc0=0, phc1=0, RMS=0, SI=length(rawspec), CFRACPPM=param$CFRACPPM)
 
     # PPM Calibration
     m <- proc$SI
