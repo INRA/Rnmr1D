@@ -23,7 +23,7 @@ Spec1rDoProc <- function(Input, param=Spec1rProcpar)
 #' \itemize{
 #'   \item \code{DEBUG} : Debug - defaut value = TRUE
 #'   \item \code{LOGFILE} : Messages output file - default value = ""
-#'   \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian) - default value = 'bruker'
+#'   \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian, jeol, rs2d) - default value = 'bruker'
 #'   \item \code{READ_RAW_ONLY} : Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL - default value = FALSE
 #'   \item \code{INPUT_SIGNAL} : What type of input signal: 'fid' or '1r' - default value = 'fid'
 #'   \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
@@ -118,6 +118,19 @@ Spec1rProcpar <- list (
        acqval <-as.numeric(acqval)
    if (type=="string")
        acqval <-gsub("\"","",acqval)
+   acqval
+}
+
+#### Retrieve a parameter value from RS2D acquisition parameters
+#--  internal routine
+#--  ACQ: list of acquisition parameters of the acqus file
+#--  paramStr: name of the parameter
+.rs2d.get_param <- function (ACQ,paramStr,type="numeric")
+{
+   regexpStr <- paste("^",paramStr,"=",sep="")
+   acqval <- gsub("^[^=]+= ?","" ,ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)])
+   if (type=="numeric")
+       acqval <-as.numeric(acqval)
    acqval
 }
 
@@ -228,9 +241,77 @@ Spec1rProcpar <- list (
 
    acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
                 PROBE=PROBE, PULSE=PULSE, SOLVENT=SOLVENT, TEMP=TEMP, NUC=NUC, 
-                NUMBEROFSCANS=NUMBEROFSCANS, DUMMYSCANS=DUMMYSCANS,
+                NUMBEROFSCANS=NUMBEROFSCANS, DUMMYSCANS=DUMMYSCANS, OFFSET=O1/SFO1,
                 RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
                 TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+   spec <- list( path=DIR, acq=acq, fid=fid )
+
+   spec
+}
+
+#### Read FID data and the main parameters needed to generate the real spectrum
+#--  internal routine
+#-- DIR: RS2D directory containing the FID
+.read.FID.rs2d <- function(DIR)
+{
+   cur_dir <- getwd()
+   setwd(DIR)
+
+   # FID filename
+   FIDFILE <- "data.dat"
+   if (!file.exists(FIDFILE)) 
+       stop("Invalide data type : File ", FIDFILE, " does not exist\n")
+   # Acquisition parameters filename
+   ACQFILE <- "header.xml"
+   if (!file.exists(ACQFILE)) 
+       stop("Invalide data type : Acquisition parameter File (", ACQFILE, ") does not exist\n")
+   ACQ <- NULL
+   tree <- xmlTreeParse(ACQFILE)
+   root <- xmlRoot(tree)
+   xmlParams <- xmlElementsByTagName(root, "entry", recursive = TRUE)
+   for(i in 1:length(xmlParams)) {
+      L <- xmlToList(xmlElementsByTagName(xmlParams[[i]], "value", recursive = FALSE)[[1]])
+      ACQ <- c(ACQ,paste0(L$name,"=",L$value))
+   }
+
+   PROBE   <- .rs2d.get_param(ACQ,"PROBES",type="string")
+   SOLVENT <- .rs2d.get_param(ACQ,"SOLVENT",type="string")
+   PULSE   <- .rs2d.get_param(ACQ,"SEQUENCE_NAME",type="string")
+   TEMP    <- .rs2d.get_param(ACQ,"SAMPLE_TEMPERATURE")
+   RELAXDELAY  <- .rs2d.get_param(ACQ,"Last delay")
+   PULSEWIDTH <- .rs2d.get_param(ACQ,"P1.width")*1e6
+   SPINNINGRATE <- .rs2d.get_param(ACQ,"SPIN_RATE")
+   NUMBEROFSCANS <- .rs2d.get_param(ACQ,"NUMBER_OF_AVERAGES")
+   DUMMYSCANS <- .rs2d.get_param(ACQ,"DUMMY_SCAN")
+   NUC     <- .rs2d.get_param(ACQ,"OBSERVED_NUCLEUS",type="string")
+   TD      <- .rs2d.get_param(ACQ,"Nb Point")
+   SFO1    <- .rs2d.get_param(ACQ,"OBSERVED_FREQUENCY")/1e6
+   SWH     <- .rs2d.get_param(ACQ,"SPECTRAL_WIDTH")
+   SW      <- SWH/SFO1
+   O1      <- .rs2d.get_param(ACQ,"OFFSET_FREQ_1")
+   OFFSET  <- .rs2d.get_param(ACQ,"SR")/SFO1
+   LOCKPPM <- 0
+   LCKSTATE <- ifelse( .rs2d.get_param(ACQ,"LOCK",type="string")=='true', TRUE, FALSE )
+   ENDIAN  <-  "big"
+   INSTRUMENT <- paste("RS2D",.rs2d.get_param(ACQ,"MODEL_NAME",type="string"))
+   SOFTWARE <-  gsub(" \\[.+\\]","", .rs2d.get_param(ACQ,"SOFTWARE_VERSION",type="string"))
+
+   NP <- 2*TD
+   to.read = file(FIDFILE,"rb")
+   signal<-readBin(to.read, what="double", n=NP, size=4L, endian = ENDIAN)
+   close(to.read)
+   setwd(cur_dir)
+   
+   rawR <- signal[seq(from = 1, to = NP, by = 2)]
+   rawI <- signal[seq(from = 2, to = NP, by = 2)]
+   fid <- complex(real=rawR, imaginary=rawI)
+   TD <- length(fid)
+
+   acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN="RS2D", ORIGPATH=DIR, 
+                PROBE=PROBE, PULSE=PULSE, SOLVENT=SOLVENT, TEMP=TEMP, NUC=NUC, OFFSET=OFFSET,
+                NUMBEROFSCANS=NUMBEROFSCANS, DUMMYSCANS=DUMMYSCANS, LOCKPPM=LOCKPPM, LCKSTATE=LCKSTATE,
+                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
+                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=0 )
    spec <- list( path=DIR, acq=acq, fid=fid )
 
    spec
@@ -661,7 +742,7 @@ Spec1rProcpar <- list (
 
    acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, PROBE=PROBE, PULSE=PULSE, SOLVENT=SOLVENT,
                 RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH, TEMP=TEMP, NUC=NUC,
-                NUMBEROFSCANS='-', DUMMYSCANS='-', TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+                NUMBEROFSCANS='-', DUMMYSCANS='-', TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, OFFSET=O1/SFO1, GRPDLY=GRPDLY )
    spec <- list( path=filename, acq=acq, fid=fid )
 
    spec
@@ -870,28 +951,20 @@ Spec1rProcpar <- list (
     SW <- spec$acq$SW
     SWH <- spec$acq$SWH
     if (param$O1RATIO==1) {
-        O1 <- spec$acq$O1
+        offset <- spec$acq$OFFSET
     } else {
-        O1 <- SWH*param$O1RATIO
+        offset <- SW*param$O1RATIO
     }
     spec$dppm <- SW/(m-1)
     spec$pmin <- 1 - round(SW/5) # 5 - 0.5*SW
     
     repeat {
-       if (toupper(spec$acq$INSTRUMENT) %in% c("JEOL","VARIAN")) {
-          if (param$O1RATIO==1) {
-              spec$pmin <- spec$acq$OFFSET - SW/2
-          } else {
-              spec$pmin <- SW*param$O1RATIO - SW/2
-          }
-          break
-       }
        if (spec$acq$NUC %in% c('1H','H1') ) {
-          spec$pmin <- (O1/SWH-0.5)*SW
+          spec$pmin <- offset - SW/2
           break
        }
        if (spec$acq$NUC == '13C') {
-          spec$pmin <- (O1/SWH-0.5)*SW
+          spec$pmin <- offset - SW/2
           break
        }
        break
@@ -900,7 +973,7 @@ Spec1rProcpar <- list (
     spec$ppm <- seq(from=spec$pmin, to=spec$pmax, by=spec$dppm)
 
     ### Save into the spec object instance
-    spec$acq$TD <- length(rawspec)
+    #spec$acq$TD <- length(rawspec)
     spec$data <- rawspec
     spec$param <- param
     spec$proc <- proc
@@ -1044,7 +1117,7 @@ Spec1rProcpar <- list (
    # Calibration based on TSP
    if (spec$param$TSP) {
       x0 <- abs(spec$pmin)/SW
-      n1 <- round(m*(x0-0.3/SW)); n2 <- round(m*(x0+0.3/SW))
+      n1 <- round(m*(x0-0.4/SW)); n2 <- round(m*(x0+0.1/SW))
       range <- c(n1:n2)
       if (max(spec$int[ range ])>10*C_estime_sd(spec$int,128)) {
           n0 <- which(spec$int[ range ] == max(spec$int[ range ])) + n1 - 2
@@ -1085,6 +1158,10 @@ Spec1rProcpar <- list (
       }
       if (param$VENDOR == "bruker" && param$INPUT_SIGNAL == "1r") {
          spec <- .read.1r.bruker(Input,param)
+         break
+      }
+      if (param$VENDOR == "rs2d" && param$INPUT_SIGNAL == "fid") {
+         spec <- .read.FID.rs2d(Input)
          break
       }
       if (param$VENDOR == "varian"){
@@ -1163,13 +1240,13 @@ Spec1rProcpar <- list (
 #   x,y : spectra data (ppm, intensity)
 #   xlim, ylim : limits (ranges) of ppm(xlim) and intensity (ylim)
 #   tille : origin path of the spectra
-.Finalize <- function(spec, ppm = c(spec$ppm[1], spec$ppm[spec$acq$TD]), ratio=1, reverse=TRUE)
+Finalize <- function(spec, ppm = c(spec$ppm[1], spec$ppm[spec$proc$SI]), ratio=1, reverse=TRUE)
 {
-   if (spec$proc$TSP) spec <- .ppm_calibration(spec)
+   if (spec$param$TSP) spec <- .ppm_calibration(spec)
 
    # Get real spectrum
    spec.int <- spec$int
-   if (spec$proc$RABOT) {
+   if (spec$param$RABOT) {
        V <- stats::quantile( spec.int[ spec.int < 0 ], 0.25 )
        spec.int[ spec.int < V ] <- V
        spec.int <- ajustBL(spec.int,0)
@@ -1203,6 +1280,7 @@ printSpectrum = function(obj)
         "SOLVENT   = ", obj$acq$SOLVENT, "\n",
         "GRPDLY    = ", obj$acq$GRPDLY, "\n",
         "TD        = ", obj$acq$TD, "\n",
+        "SI        = ", obj$proc$SI, "\n",
         "SW        = ", obj$acq$SW, "\n",
         "SWH       = ", obj$acq$SWH, "\n",
         "SFO1      = ", obj$acq$SFO1, "\n",
@@ -1219,10 +1297,10 @@ printSpectrum = function(obj)
 #   ratio  : ratio between the max intensity of the plot, and the max intensity of the spectrum; default value = 1
 #   ppm    : ppm window of the plot; default = all the spectrum
 #   active : 0 => Open a new graphic window; 1 => put in the active graphic window (replace the content)
-plotSpectrum = function(obj, ppm = c(obj$ppm[1], obj$ppm[obj$acq$TD]), ratio=1, title="", 
+plotSpectrum = function(obj, ppm = c(obj$ppm[1], obj$ppm[obj$proc$SI]), ratio=1, title="", 
                          reverse=TRUE, active=FALSE, col="blue", overlay=FALSE, ovlCol="green" )
 {
-   g <- .Finalize(obj, ppm, ratio=ratio)
+   g <- Finalize(obj, ppm, ratio=ratio)
    if (nchar(title)==0) title <- g$title
    if (overlay) {
       graphics::lines( g$x, g$y, col=ovlCol )
@@ -1269,10 +1347,10 @@ writeSpec = function(spec, outdir, mode="bin", name="1r")
        paste('##@PHC1= ', spec$phc1*2*pi, sep=''),
        '##@PH_mod= 1',
        paste('##@SF= ', spec$acq$SFO1, sep=''),
-       paste('##@SI= ', spec$acq$TD, sep=''),
+       paste('##@SI= ', spec$proc$SI, sep=''),
        '##@SSB= 0',
        paste('##@SW_p= ', spec$acq$SWH, sep=''),
-       paste('##@TDeff= ', spec$acq$TD, sep=''),
+       paste('##@TDeff= ', spec$proc$SI, sep=''),
        '##@WDW= 1',
        paste('##@YMAX_p= ', max(spec$int), sep=''),
        paste('##@YMIN_p= ', min(spec$int), sep=''),

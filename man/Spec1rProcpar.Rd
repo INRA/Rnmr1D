@@ -12,7 +12,7 @@ Spec1rProcpar
 \itemize{
   \item \code{DEBUG} : Debug - defaut value = TRUE
   \item \code{LOGFILE} : Messages output file - default value = ""
-  \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian) - default value = 'bruker'
+  \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian, jeol, rs2d) - default value = 'bruker'
   \item \code{READ_RAW_ONLY} : Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL - default value = FALSE
   \item \code{INPUT_SIGNAL} : What type of input signal: 'fid' or '1r' - default value = 'fid'
   \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
