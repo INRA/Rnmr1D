@@ -15,14 +15,19 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 * Some R packages:
 
 ```R
-# Bioconductor packages : For R versions > = 3.5
-if (!requireNamespace('BiocManager', quietly = TRUE)) install.packages('BiocManager', repos='http://cran.rstudio.com/');
+# Bioconductor packages
 packages <- c("impute", "MassSpecWavelet","pcaMethods")
+
+# For R versions > = 3.5
+if (!requireNamespace('BiocManager', quietly = TRUE)) install.packages('BiocManager', repos='http://cran.rstudio.com/');
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
    BiocManager::install(setdiff(packages, rownames(installed.packages())), version = '3.8');
 }
-# Bioconductor packages : For R versions < 3.5
-source('http://bioconductor.org/biocLite.R'); biocLite(c('impute', 'MassSpecWavelet','pcaMethods'));"
+# For R versions < 3.5
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+   source('http://bioconductor.org/biocLite.R');
+   biocLite(setdiff(packages, rownames(installed.packages())));
+}
 
 # For all R versions
 packages <- c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph')
