@@ -175,9 +175,10 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
        specList <- foreach::foreach(x=1:(dim(LIST)[1]), .combine=cbind) %dopar% {
             ACQDIR <- LIST[x,1]
             NAMEDIR <- ifelse( procParams$VENDOR=='bruker', basename(dirname(ACQDIR)), basename(ACQDIR) )
+            PDATA_DIR <- ifelse( procParams$VENDOR=='rs2d', 'Proc', 'pdata' )
             # Init the log filename
             procParams$LOGFILE <- LOGFILE
-            procParams$PDATA_DIR <- file.path('pdata',LIST[x,3])
+            procParams$PDATA_DIR <- file.path(PDATA_DIR,LIST[x,3])
             spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
             if (procParams$INPUT_SIGNAL=='1r') Sys.sleep(0.3)
             Write.LOG(stderr(),".")

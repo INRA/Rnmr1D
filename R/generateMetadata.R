@@ -41,7 +41,7 @@ generateMetadata <- function(RAWDIR, procParams, samples=NULL)
           }
           break
       }
-      # Varian or nmrML without sample file 
+      # Varian, Jeol or nmrML without sample file 
       else {
           metadata <- set_Metadata(RAWDIR, procParams, samples )
           break

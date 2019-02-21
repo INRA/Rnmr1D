@@ -427,7 +427,6 @@ Spec1rProcpar <- list (
 #-- FILE: JEOL JDF file containing the FID
 .read.FID.jeol <- function(FILE)
 {
-
    if (!file.exists(FILE))
        stop("File ", FILE, " does not exist\n")
 
@@ -751,8 +750,8 @@ Spec1rProcpar <- list (
 #### Read 1r data and the main parameters needed to generate the real spectrum
 #--  internal routine
 #-- DIR: bruker directory containing the 1r
-.read.1r.bruker <- function(DIR, param=Spec1rProcpar) {
-
+.read.1r.bruker <- function(DIR, param=Spec1rProcpar)
+{
    cur_dir <- getwd()
    setwd(DIR)
    
@@ -834,6 +833,93 @@ Spec1rProcpar <- list (
    param$LINEBROADENING <- FALSE
 
    spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=signal, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
+
+   spec
+}
+
+#### Read 1r data and the main parameters
+#--  internal routine
+#-- DIR: rs2d directory containing the experience
+.read.1r.rs2d <- function(DIR, param=Spec1rProcpar)
+{
+   cur_dir <- getwd()
+   RAWDIR <- file.path(DIR,param$PDATA_DIR)
+   if (!file.exists(RAWDIR))
+       stop("Invalide folder : ", RAWDIR, " does not exist\n")
+
+   setwd(RAWDIR)
+   
+   # FID filename
+   FIDFILE <- "data.dat"
+   if (!file.exists(FIDFILE)) 
+       stop("Invalide data type : File ", FIDFILE, " does not exist\n")
+   # Acquisition parameters filename
+   ACQFILE <- "header.xml"
+   if (!file.exists(ACQFILE)) 
+       stop("Invalide data type : Acquisition parameter File (", ACQFILE, ") does not exist\n")
+   ACQ <- NULL
+   tree <- xmlTreeParse(ACQFILE)
+   root <- xmlRoot(tree)
+   xmlParams <- xmlElementsByTagName(root, "entry", recursive = TRUE)
+   for(i in 1:length(xmlParams)) {
+      L <- xmlToList(xmlElementsByTagName(xmlParams[[i]], "value", recursive = FALSE)[[1]])
+      ACQ <- c(ACQ,paste0(L$name,"=",L$value))
+   }
+
+   PROBE   <- .rs2d.get_param(ACQ,"PROBES",type="string")
+   SOLVENT <- .rs2d.get_param(ACQ,"SOLVENT",type="string")
+   PULSE   <- .rs2d.get_param(ACQ,"SEQUENCE_NAME",type="string")
+   TEMP    <- .rs2d.get_param(ACQ,"SAMPLE_TEMPERATURE")
+   RELAXDELAY  <- .rs2d.get_param(ACQ,"Last delay")
+   PULSEWIDTH <- .rs2d.get_param(ACQ,"P1.width")*1e6
+   SPINNINGRATE <- .rs2d.get_param(ACQ,"SPIN_RATE")
+   NUMBEROFSCANS <- .rs2d.get_param(ACQ,"NUMBER_OF_AVERAGES")
+   DUMMYSCANS <- .rs2d.get_param(ACQ,"DUMMY_SCAN")
+   NUC     <- .rs2d.get_param(ACQ,"OBSERVED_NUCLEUS",type="string")
+   TD      <- .rs2d.get_param(ACQ,"Nb Point")
+   SFO1    <- .rs2d.get_param(ACQ,"OBSERVED_FREQUENCY")/1e6
+   SWH     <- .rs2d.get_param(ACQ,"SPECTRAL_WIDTH")
+   SW      <- SWH/SFO1
+   O1      <- .rs2d.get_param(ACQ,"OFFSET_FREQ_1")
+   OFFSET  <- .rs2d.get_param(ACQ,"SR")/SFO1
+   LOCKPPM <- 0
+   LCKSTATE <- ifelse( .rs2d.get_param(ACQ,"LOCK",type="string")=='true', TRUE, FALSE )
+   ENDIAN  <-  "big"
+   INSTRUMENT <- paste("RS2D",.rs2d.get_param(ACQ,"MODEL_NAME",type="string"))
+   SOFTWARE <-  gsub(" \\[.+\\]","", .rs2d.get_param(ACQ,"SOFTWARE_VERSION",type="string"))
+   GRPDLY <- 0
+
+   # Read Processing parameters
+   SI <- TD
+   PHC0 <-  .rs2d.get_param(ACQ,"PHASE_0")
+   PHC1 <-  .rs2d.get_param(ACQ,"PHASE_1")
+
+   # Read the 1r spectrum
+   NP <- 2*TD
+   to.read = file(FIDFILE,"rb")
+   signal<-readBin(to.read, what="double", n=NP, size=4L, endian = ENDIAN)
+   close(to.read)
+   setwd(cur_dir)
+
+   rawR <- signal[seq(from = 1, to = NP, by = 2)]
+   rawI <- signal[seq(from = 2, to = NP, by = 2)]
+
+   dppm <- SW/(SI-1)
+   pmin <- OFFSET - SW/2
+   pmax <- OFFSET + SW/2
+   ppm <- seq(from=pmin, to=pmax, by=dppm)
+
+   acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN="RS2D", ORIGPATH=RAWDIR, 
+                PROBE=PROBE, PULSE=PULSE, NUC=NUC, SOLVENT=SOLVENT, TEMP=TEMP, 
+                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
+                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+
+   proc <- list( phc0=PHC0, phc1=PHC1, SI=SI )
+
+   param$ZEROFILLING <- FALSE
+   param$LINEBROADENING <- FALSE
+
+   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=rev(rawR), dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
 
    spec
 }
@@ -1164,6 +1250,10 @@ Spec1rProcpar <- list (
          spec <- .read.FID.rs2d(Input)
          break
       }
+      if (param$VENDOR == "rs2d" && param$INPUT_SIGNAL == "1r") {
+         spec <- .read.1r.rs2d(Input,param)
+         break
+      }
       if (param$VENDOR == "varian"){
          param$INPUT_SIGNAL <- "fid"
          spec <- .read.FID.varian(Input)
@@ -1323,7 +1413,7 @@ writeSpec = function(spec, outdir, mode="bin", name="1r")
 
    # Get real spectrum
    spec.int <- spec$int
-   if (spec$proc$RABOT) {
+   if (spec$param$RABOT) {
        V <- stats::quantile( spec.int[ spec.int < 0 ], 0.25 )
        spec.int[ spec.int < V ] <- V
        spec.int <- ajustBL(spec.int,0)
