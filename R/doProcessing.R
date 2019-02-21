@@ -137,6 +137,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
         if (! is.null(procpar$GB)) procParams$GB <- as.numeric(procpar$GB)
         if (! is.null(procpar$BLPHC)) procParams$BLPHC <- ifelse( procpar$BLPHC=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$ZF)) procParams$ZEROFILLING <- as.numeric(procpar$ZF)
+        if (! is.null(procpar$PHC0)) procParams$OPTPHC0 <- ifelse( procpar$PHC0=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$PHC1)) procParams$OPTPHC1 <- ifelse( procpar$PHC1=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$ZNEG)) procParams$RABOT <- ifelse( procpar$ZNEG=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$TSP)) procParams$TSP <- ifelse( procpar$TSP=="TRUE", TRUE, FALSE)
@@ -250,7 +251,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
        # Raw IDs : expno & procno
        IDS <- cbind(basename(dirname(as.vector(LIST[,1]))), LIST[, c(2:3)])
        if (N>1) {
-          if (specList[,1]$acq$INSTRUMENT=="Bruker") {
+          if (specList[,1]$acq$INSTRUMENT %in% c("Bruker","RS2D")) {
              PARS <- t(sapply(c(1:N), function(x) { c( samples[x, 1], samples[x, 2], IDS[x,c(2:3)],
                        specList[,x]$acq$PULSE, specList[,x]$acq$NUC, specList[,x]$acq$SOLVENT, specList[,x]$acq$GRPDLY,
                        specList[,x]$proc$phc0, specList[,x]$proc$phc1,
@@ -269,7 +270,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
           }
           specObj$nuc <- specList[,1]$acq$NUC
        } else {
-          if (spec$acq$INSTRUMENT=="Bruker") {
+          if (spec$acq$INSTRUMENT %in% c("Bruker","RS2D")) {
              PARS <- t( c( samples[1, 1], samples[1, 2], IDS[1,c(2:3)],
                        spec$acq$PULSE, spec$acq$NUC, spec$acq$SOLVENT, spec$acq$GRPDLY, spec$proc$phc0, spec$proc$phc1,
                        spec$acq$SFO1, spec$proc$SI, specList$acq$SW, spec$acq$SWH, spec$acq$RELAXDELAY, spec$acq$O1))

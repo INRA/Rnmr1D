@@ -32,26 +32,34 @@ generateMetadata <- function(RAWDIR, procParams, samples=NULL)
       # Bruker without sample file 
       if ( procParams$VENDOR=="bruker" ) {
           if ( procParams$INPUT_SIGNAL=="fid" ) {
-              metadata <- generate_Metadata_fid(RAWDIR, procParams )
+              metadata <- generate_Metadata_Bruker_fid(RAWDIR, procParams )
               break
           }
           if ( procParams$INPUT_SIGNAL=="1r" )  {
-              metadata <- generate_Metadata_1r(RAWDIR, procParams )
+              metadata <- generate_Metadata_Bruker_1r(RAWDIR, procParams )
+              break
+          }
+          break
+      }
+      if ( procParams$VENDOR=="rs2d" ) {
+          if ( procParams$INPUT_SIGNAL=="fid" ) {
+              metadata <- generate_Metadata_RS2D_fid(RAWDIR, procParams )
+              break
+          }
+          if ( procParams$INPUT_SIGNAL=="1r" )  {
+              metadata <- generate_Metadata_RS2D_1r(RAWDIR, procParams )
               break
           }
           break
       }
       # Varian, Jeol or nmrML without sample file 
-      else {
-          metadata <- set_Metadata(RAWDIR, procParams, samples )
-          break
-      }
+      metadata <- set_Metadata(RAWDIR, procParams, samples )
       break
    }
    return(metadata)
 }
 
-generate_Metadata_fid <- function(RAWDIR, procParams)
+generate_Metadata_Bruker_fid <- function(RAWDIR, procParams)
 {
    metadata <- list()
    ERRORLIST <- c()
@@ -122,7 +130,7 @@ generate_Metadata_fid <- function(RAWDIR, procParams)
    return(metadata)
 }
 
-generate_Metadata_1r <- function(RAWDIR, procParams)
+generate_Metadata_Bruker_1r <- function(RAWDIR, procParams)
 {
    metadata <- list()
    ERRORLIST <- c()
@@ -191,6 +199,67 @@ generate_Metadata_1r <- function(RAWDIR, procParams)
       M <-  MS[, c(1,2) ]
    }
    if (nr==1 && class(M)=="character") M <- as.matrix(t(M))
+
+   metadata$ERRORLIST <- ERRORLIST
+   if (OKRAW==1) {
+      metadata$samples <- M
+      metadata$rawids <- gsub("//", "/", rawdir)
+      metadata$factors <- lstfac
+   }
+   return(metadata)
+}
+
+generate_Metadata_RS2D_fid <- function(RAWDIR, procParams)
+{
+   metadata <- list()
+   ERRORLIST <- c()
+   OKRAW <- 1
+   lstfac <- matrix(c(1,"Samplecode"), nrow=1)
+   RAWPATH <- gsub("//", "/", RAWDIR)
+   LIST <- gsub("//", "/", list.files(path = RAWPATH, pattern = "data.dat$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
+   LIST <- grep(pattern = "/Proc/", LIST, value = TRUE, invert=TRUE)
+
+   rawdir <- cbind( dirname(LIST), rep(0, length(LIST)), rep(0, length(LIST)) )
+   M <- cbind( basename(dirname(LIST)), basename(dirname(LIST)) )
+
+   metadata$ERRORLIST <- ERRORLIST
+   if (OKRAW==1) {
+      metadata$samples <- M
+      metadata$rawids <- gsub("//", "/", rawdir)
+      metadata$factors <- lstfac
+   }
+   return(metadata)
+}
+
+generate_Metadata_RS2D_1r <- function(RAWDIR, procParams)
+{
+   metadata <- list()
+   ERRORLIST <- c()
+   OKRAW <- 1
+   lstfac <- matrix(c(1,"Samplecode"), nrow=1)
+   RAWPATH <- gsub("//", "/", RAWDIR)
+   LIST <- gsub("//", "/", list.files(path = RAWPATH, pattern = "data.dat$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
+   LIST <- dirname(grep(pattern = "/Proc/", LIST, value = TRUE, invert=FALSE))
+
+   L <- simplify2array(strsplit(LIST,'/'))
+   LIST <- as.data.frame(t(simplify2array(strsplit(LIST,'/'))))
+
+   nDir <- dim(simplify2array(strsplit(RAWPATH,'/')))[1]
+   LIST <- LIST[, c(-1:-nDir)]
+
+   nr <- dim(LIST)[1]
+
+   if (length(levels(LIST[,1]))<nr && length(levels(LIST[,1]))>1) {
+      L <- levels(LIST[,1])
+      LIST2 <- NULL
+      for (i in 1:length(L)) LIST2 <- rbind(LIST2, LIST[ LIST[,1]==L[i], ][1,])
+      LIST <- LIST2
+   }
+   nr <- dim(LIST)[1]
+   MS <- as.matrix(LIST)
+
+   M <- cbind( MS[,1], MS[,1] )
+   rawdir <- cbind( simplify2array(lapply(1:nr, function(x) paste(MS[x,], collapse = "/"))), MS[,3], MS[,3])
 
    metadata$ERRORLIST <- ERRORLIST
    if (OKRAW==1) {
