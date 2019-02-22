@@ -164,11 +164,11 @@ Spec1rProcpar <- list (
    # FID filename
    FIDFILE <- "fid"
    if (!file.exists(FIDFILE)) 
-       stop("Invalide data type : File ", FIDFILE, " does not exist\n")
+       stop("FID File ", FIDFILE, " does not exist\n")
    # Acquisition parameters filename
    ACQFILE <- "acqus"
    if (!file.exists(ACQFILE)) 
-       stop("Invalide data type : Acquisition parameter File (", ACQFILE, ") does not exist\n")
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
 
    ACQ     <- readLines(ACQFILE)
    PROBE   <- .bruker.get_param(ACQ,"PROBHD",type="string")
@@ -260,11 +260,11 @@ Spec1rProcpar <- list (
    # FID filename
    FIDFILE <- "data.dat"
    if (!file.exists(FIDFILE)) 
-       stop("Invalide data type : File ", FIDFILE, " does not exist\n")
+       stop("DATA File ", FIDFILE, " does not exist\n")
    # Acquisition parameters filename
    ACQFILE <- "header.xml"
    if (!file.exists(ACQFILE)) 
-       stop("Invalide data type : Acquisition parameter File (", ACQFILE, ") does not exist\n")
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
    ACQ <- NULL
    tree <- xmlTreeParse(ACQFILE)
    root <- xmlRoot(tree)
@@ -328,11 +328,11 @@ Spec1rProcpar <- list (
    # FID filename
    FIDFILE <- "fid"
    if (!file.exists(FIDFILE)) 
-       stop("Invalide data type : File ", FIDFILE, " does not exist\n")
+       stop("FID File ", FIDFILE, " does not exist\n")
    # Acquisition parameters filename
    ACQFILE <- "procpar"
    if (!file.exists(ACQFILE)) 
-       stop("Invalide data type : Acquisition parameter File (", ACQFILE, ") does not exist\n")
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
 
    ACQ  <- readLines(ACQFILE)
    SWH  <-  .varian.get_param(ACQ,"sw")
@@ -758,17 +758,17 @@ Spec1rProcpar <- list (
    # Acquisition parameters filename
    ACQFILE <- "acqus"
    if (!file.exists(ACQFILE)) 
-       stop("Invalide data type : Acquisition parameter File (", ACQFILE, ") does not exist\n")
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
 
    # 1r filename
    SPECFILE <- paste(param$PDATA_DIR,"/1r",sep="")
    if (!file.exists(SPECFILE))
-       stop("Invalide data type : File (", SPECFILE, ") does not exist\n")
+       stop("1r File (", SPECFILE, ") does not exist\n")
 
    # Processing parameters filename
    PROCFILE <- paste(param$PDATA_DIR,"/procs",sep="")
    if (!file.exists(PROCFILE)) 
-       stop("Invalide data type : Acquisition parameter File (", PROCFILE, ") does not exist\n")
+       stop("Processing parameter File (", PROCFILE, ") does not exist\n")
 
    # Read Acquisition parameters
    ACQ     <- readLines(ACQFILE)
@@ -852,11 +852,11 @@ Spec1rProcpar <- list (
    # FID filename
    FIDFILE <- "data.dat"
    if (!file.exists(FIDFILE)) 
-       stop("Invalide data type : File ", FIDFILE, " does not exist\n")
+       stop("DATA File ", FIDFILE, " does not exist\n")
    # Acquisition parameters filename
    ACQFILE <- "header.xml"
    if (!file.exists(ACQFILE)) 
-       stop("Invalide data type : Acquisition parameter File (", ACQFILE, ") does not exist\n")
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
    ACQ <- NULL
    tree <- xmlTreeParse(ACQFILE)
    root <- xmlRoot(tree)
@@ -1059,7 +1059,6 @@ Spec1rProcpar <- list (
     spec$ppm <- seq(from=spec$pmin, to=spec$pmax, by=spec$dppm)
 
     ### Save into the spec object instance
-    #spec$acq$TD <- length(rawspec)
     spec$data <- rawspec
     spec$param <- param
     spec$proc <- proc
@@ -1293,6 +1292,7 @@ Spec1rProcpar <- list (
 
           # Get real spectrum
           spec$int <- ajustBL(Re(spec$data),0)
+          spec$data <- NULL
 
           # PPM calibration based on TSP
           if (param$TSP) {

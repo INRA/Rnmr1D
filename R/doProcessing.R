@@ -248,41 +248,36 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
 
        samples <- metadata$samples
 
-       # Raw IDs : expno & procno
+       # Raw IDs : expno & procno 
        IDS <- cbind(basename(dirname(as.vector(LIST[,1]))), LIST[, c(2:3)])
        if (N>1) {
-          if (specList[,1]$acq$INSTRUMENT %in% c("Bruker","RS2D")) {
-             PARS <- t(sapply(c(1:N), function(x) { c( samples[x, 1], samples[x, 2], IDS[x,c(2:3)],
-                       specList[,x]$acq$PULSE, specList[,x]$acq$NUC, specList[,x]$acq$SOLVENT, specList[,x]$acq$GRPDLY,
-                       specList[,x]$proc$phc0, specList[,x]$proc$phc1,
-                       specList[,x]$acq$SFO1, specList[,x]$proc$SI, specList[,x]$acq$SW, specList[,x]$acq$SWH,
-                       specList[,x]$acq$RELAXDELAY, specList[,x]$acq$O1 )
+             PARS <- t(sapply( c(1:N), function(x) {
+                       c( specList[,x]$acq$PULSE, specList[,x]$acq$NUC,   specList[,x]$acq$SOLVENT,    specList[,x]$acq$GRPDLY, 
+                          specList[,x]$proc$phc0, specList[,x]$proc$phc1, specList[,x]$acq$SFO1,       specList[,x]$proc$SI, 
+                          specList[,x]$acq$SW,    specList[,x]$acq$SWH,   specList[,x]$acq$RELAXDELAY, specList[,x]$acq$O1 )
              }))
-            colnames(PARS) <- c("Spectrum", "Samplecode", "EXPNO", "PROCNO", "PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
-          } else {
-             PARS <- t(sapply(c(1:N), function(x) { c( samples[x, 1], samples[x, 2],
-                       specList[,x]$acq$PULSE, specList[,x]$acq$NUC, specList[,x]$acq$SOLVENT,
-                       specList[,x]$acq$GRPDLY, specList[,x]$proc$phc0, specList[,x]$proc$phc1,
-                       specList[,x]$acq$SFO1, specList[,x]$proc$SI, specList[,x]$acq$SW, specList[,x]$acq$SWH,
-                       specList[,x]$acq$RELAXDELAY, specList[,x]$acq$O1 )
-             }))
-            colnames(PARS) <- c("Spectrum", "Samplecode", "PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
-          }
-          specObj$nuc <- specList[,1]$acq$NUC
+             specObj$nuc <- specList[,1]$acq$NUC
        } else {
-          if (spec$acq$INSTRUMENT %in% c("Bruker","RS2D")) {
-             PARS <- t( c( samples[1, 1], samples[1, 2], IDS[1,c(2:3)],
-                       spec$acq$PULSE, spec$acq$NUC, spec$acq$SOLVENT, spec$acq$GRPDLY, spec$proc$phc0, spec$proc$phc1,
-                       spec$acq$SFO1, spec$proc$SI, specList$acq$SW, spec$acq$SWH, spec$acq$RELAXDELAY, spec$acq$O1))
-            colnames(PARS) <- c("Spectrum", "Samplecode", "EXPNO", "PROCNO", "PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
-          } else {
-             PARS <- t( c( samples[1, 1], samples[1, 2],
-                       spec$acq$PULSE, spec$acq$NUC, spec$acq$SOLVENT, spec$acq$GRPDLY, spec$proc$phc0, spec$proc$phc1,
-                       spec$acq$SFO1, spec$proc$SI, specList$acq$SW, spec$acq$SWH, spec$acq$RELAXDELAY, spec$acq$O1))
-            colnames(PARS) <- c("Spectrum", "Samplecode", "PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
-          }
-          specObj$nuc <- spec$acq$NUC
+             PARS <- t( c( spec$acq$PULSE, spec$acq$NUC, spec$acq$SOLVENT, spec$acq$GRPDLY, spec$proc$phc0,      spec$proc$phc1,
+                           spec$acq$SFO1,  spec$proc$SI, specList$acq$SW,  spec$acq$SWH,    spec$acq$RELAXDELAY, spec$acq$O1) )
+             specObj$nuc <- spec$acq$NUC
        }
+       LABELS <- c("PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
+       
+       if (regexpr('BRUKER', toupper(specList[,1]$acq$INSTRUMENT))>0) {
+          if (N>1) { PARS <- cbind( IDS[,c(2:3)], PARS ) } else { PARS <- c( IDS[1,c(2:3)], PARS ) }
+          LABELS <- c("EXPNO", "PROCNO", LABELS)
+       }
+       if (regexpr('RS2D', toupper(specList[,1]$acq$INSTRUMENT))>0) {
+          if (N>1) { PARS <- cbind( IDS[,3], PARS ) } else { PARS <- c( IDS[1,3], PARS ) }
+          LABELS <- c("PROCNO", LABELS)
+       }
+       if (N>1) {
+          PARS <- cbind( samples[,1], samples[,2], PARS )
+       } else {
+          PARS <- c( samples[1, 1], samples[1, 2], PARS )
+       }
+       colnames(PARS) <- c("Spectrum", "Samplecode", LABELS )
        specObj$infos <- PARS
        specObj$origin <- paste(procParams$VENDOR, procParams$INPUT_SIGNAL)
 
