@@ -416,11 +416,25 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
                }
             }
             i<-i+1
+            if (i==dim(V)[1] && V[i,3] == "0" && V[i-1,2]==V[i,2]) V[i,3] <- V[i-1,3] # a special case
          }
          MC[MC[,1] %in% V[,1],2+s] <- V[,3]
       }
    }
-   association <- MC[,c(1,4)]
+   #association <- MC[,c(1,4)]
+   
+   # Filters out non-significant clusters
+   CLUST <- unique(MC[,4])
+   association <- NULL
+   for (cl in 1:length(CLUST)) {
+       VARS <- MC[MC[,4] == CLUST[cl],1]
+       M <- matrix[ , VARS ]
+       cor_mat <- stats::cor(M,method=params$CMETH)
+       cor_mat[ lower.tri(cor_mat, diag=TRUE) ]<- 0
+       if ( stats::median(cor_mat[ cor_mat!=0 ]) > (params$CVAL-params$dC) )
+            association <- rbind(association, as.matrix(MC[MC[,4] == CLUST[cl], c(1,4)], ncol=2, byrow=T))
+   }
+
    association <- association[association[,2] != "0",]
    association <- cbind( association, gsub(params$BUCCHAR, "", gsub("_", ".", association[,1])) )
    colnames(association) <- c("VAR","CLID", "PPM")

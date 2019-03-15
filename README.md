@@ -27,7 +27,7 @@ if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
    }
 }
 
-packages <- c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph')
+packages <- c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph', 'ggplot2', 'plotly', 'plyr')
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())), repos='http://cran.rstudio.com')
 }
