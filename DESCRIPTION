@@ -1,8 +1,8 @@
 Package: Rnmr1D
 Type: Package
 Title: Perform the Complete Processing of a Set of Proton Nuclear Magnetic Resonance Spectra
-Version: 1.2.1
-Date: 2018-09-10
+Version: 1.2.2
+Date: 2019-03-22
 Authors@R: c(
     person("Daniel", "Jacob", email="daniel.jacob@inra.fr", role=c("cre", "aut"), comment=c(ORCID="0000-0002-6687-7169")),
     person("Catherine", "Deborde", email="catherine.deborde@inra.fr", role=c("ctb")),
