@@ -4,8 +4,9 @@
 \alias{ggplotLoadings}
 \title{plotLoadings}
 \usage{
-ggplotLoadings(data, pc1, pc2, associations = NULL, main = "Loadings",
-  fONLYLABELS = TRUE, fHIGHLABLELS = FALSE, gcontour = "ellipse")
+ggplotLoadings(data, pc1 = 1, pc2 = 2, EV = NULL,
+  associations = NULL, main = "Loadings", onlylabels = FALSE,
+  highlabels = FALSE, gcontour = "ellipse")
 }
 \arguments{
 \item{data}{the matrix of variable loadings coming from a multivariable analysis, typically a Principal Component Analysis (PCA)}
@@ -14,13 +15,15 @@ ggplotLoadings(data, pc1, pc2, associations = NULL, main = "Loadings",
 
 \item{pc2}{the second component of the matrix of variable loadings to be plotted.}
 
+\item{EV}{Eigenvalues vector}
+
 \item{associations}{the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1)}
 
 \item{main}{Change the default plot title on the rigth corner}
 
-\item{fONLYLABELS}{if TRUE, put only the association names without drawing the cluster contours. Implies that association matrix is provided.}
+\item{onlylabels}{if TRUE, put only the association names without drawing the cluster contours. Implies that association matrix is provided.}
 
-\item{fHIGHLABLELS}{if TRUE, put the the association names in blue, and others in grey. Implies that association matrix is provided and fONLYLABELS equal to TRUE.}
+\item{highlabels}{if TRUE, put the the association names in blue, and others in grey. Implies that association matrix is provided and fONLYLABELS equal to TRUE.}
 
 \item{gcontour}{type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'}
 }

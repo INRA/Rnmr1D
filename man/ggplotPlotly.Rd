@@ -4,8 +4,7 @@
 \alias{ggplotPlotly}
 \title{ggplotPlotly}
 \usage{
-ggplotPlotly(g, width = NULL, height = NULL, textposition = "right",
-  xlegendShift = FALSE, addButton = "none")
+ggplotPlotly(g, width = NULL, height = NULL, textposition = "right")
 }
 \arguments{
 \item{g}{The ggplot2 graph object to be translated into an interactive plotly version}
@@ -15,10 +14,6 @@ ggplotPlotly(g, width = NULL, height = NULL, textposition = "right",
 \item{height}{Height of the plot in pixels (optional, defaults to automatic sizing)}
 
 \item{textposition}{Position of the labels on the graphs relative to the points. Possible values are : 'right', 'left', 'top' or 'buttom'}
-
-\item{xlegendShift}{Shift slighly to the left the legend if TRUE.}
-
-\item{addButton}{Add a button to the menu bar. Possible values are : 'none' or 'help'}
 }
 \description{
 Translate 'ggplot2' graphs to an interactive plotly version

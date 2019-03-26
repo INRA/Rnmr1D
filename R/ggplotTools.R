@@ -31,6 +31,7 @@ ggplotCriterion <- function(clustObj)
     xlab <- "Critere"
     ylab <- paste0("Nb of variables / Clust Max Size / Nb of Cluster x ",ratioVC)
 
+    Vcut <- nbclust <- nbvars <- Maxsize <- NULL
     g <- ggplot2::ggplot(dfstat, ggplot2::aes(x = Vcut)) + ggplot2::ggtitle(GTITLE) +
          ggplot2::geom_line(ggplot2::aes(y = nbclust*ratioVC, colour="nbclust")) +
          ggplot2::geom_line(ggplot2::aes(y = nbvars, colour="nbvars")) +
@@ -74,11 +75,12 @@ ggplotClusters <- function(data, clustObj)
      M <- cbind( Rank, rownames(cent), cent)
      colnames(M)[1:2] <- c("Rank", "Clusters")
      M <- as.data.frame(M, stringsAsFactors=FALSE)
-     N <- reshape(M, direction="long", idvar=c("Rank","Clusters"), varying=list(3:dim(M)[2]))
+     N <- stats::reshape(M, direction="long", idvar=c("Rank","Clusters"), varying=list(3:dim(M)[2]))
 
      df <- data.frame( Group=as.factor(N[,1]), Clusters=as.factor(N[,2]), Values=as.numeric(N[, 4]) )
 
-     g <- ggplot2::ggplot(df, ggplot2::aes(Clusters,Values)) + ggplot2::geom_boxplot(ggplot2::aes(fill=Group), outlier.colour = "red", outlier.shape = 1) +
+     Clusters <- Values <- Group <- NULL
+     g <- ggplot2::ggplot(df, ggplot2::aes(x=Clusters,y=Values)) + ggplot2::geom_boxplot(ggplot2::aes(fill=Group), outlier.colour = "red", outlier.shape = 1) +
           ggplot2::labs(y = "Intensity (log10)", x = "Clusters") + ggplot2::ggtitle("Boxplot by clusters (log10 transformed)") +
           ggplot2::theme_light() + ggplot2::theme(legend.position="none")
      g
@@ -155,6 +157,7 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
     centroids$color=grDevices::rainbow(length(subCL), s=0.85, v=0.7)
     dfsub$color <- sapply( dfsub$CLID, function(x) { centroids[centroids$CLID==x,]$color })
 
+    pc1 <- pc2 <- CLID <- NULL
     for( i in 1:length(subCL) ) {
        dfcl <- dfsub[dfsub$CLID==subCL[i],]
        dfct <- centroids[centroids$CLID==subCL[i],]
@@ -171,7 +174,6 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
                  g <- g + ggplot2::geom_path(data=dfel, color=dfct$color, size=lw, alpha = 0.5)
           }
           if (draw.contour=="polygon") {
-              #dfel <- dfcl[chull(dfcl[, 1:2]), ]
               dfel <- expand_polygon(dfcl[grDevices::chull(dfcl[, 1:2]), ], expand=0.2)
               g <- g + ggplot2::geom_polygon(data = dfel, ggplot2::aes(x=pc1, y=pc2), fill=dfct$color, alpha = 0.2)
           }
@@ -205,39 +207,59 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
 #' @param data the matrix of variable loadings coming from a multivariable analysis, typically a Principal Component Analysis (PCA)
 #' @param pc1 the fist component of the matrix of variable loadings to be plotted.
 #' @param pc2 the second component of the matrix of variable loadings to be plotted.
+#' @param EV Eigenvalues vector
 #' @param associations the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1) 
 #' @param main Change the default plot title on the rigth corner
-#' @param fONLYLABELS if TRUE, put only the association names without drawing the cluster contours. Implies that association matrix is provided.
-#' @param fHIGHLABLELS if TRUE, put the the association names in blue, and others in grey. Implies that association matrix is provided and fONLYLABELS equal to TRUE.
+#' @param onlylabels if TRUE, put only the association names without drawing the cluster contours. Implies that association matrix is provided.
+#' @param highlabels if TRUE, put the the association names in blue, and others in grey. Implies that association matrix is provided and fONLYLABELS equal to TRUE.
 #' @param gcontour type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'
-ggplotLoadings <- function (data, pc1=1, pc2=2, associations=NULL, main="Loadings",  fONLYLABELS=TRUE, fHIGHLABLELS=FALSE, gcontour="ellipse" )
+ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main="Loadings", onlylabels=FALSE, highlabels=FALSE, gcontour="ellipse" )
 {
    P <- data[,c(pc1,pc2)]
    Loadings <- data.frame(IDS=rownames(P), pc1=P[,1], pc2=P[,2])
+   xlabs <- colnames(P)[1]; ylabs <- colnames(P)[2]
+   if (! is.null(EV)) {
+      xlabs <- paste0(xlabs," (",round(EV[pc1],2),"%)"); ylabs <- paste0(ylabs," (",round(EV[pc2],2),"%)")
+   }
 
+   fclust <- (!is.null(associations))
    draw.points <- TRUE
    draw.labels <- TRUE
    lw <- 0.3 # linewidth
    ps <- 0.5 # pointsize
    fs <- 4   # fontsize
-   
-   g <- ggplot2::ggplot(Loadings, ggplot2::aes(pc1, pc2)) + ggplot2::ggtitle(main) +
+
+  if (!fclust || (fclust && onlylabels)) {
+      facpc <- 0.7 # threshold value for highlighting loadings
+      Loadings$change <- rep("nochange", dim(Loadings)[1])
+      Loadings$change[ Loadings$pc2 > facpc*max(Loadings$pc2) ] <- "UP.PC2"
+      Loadings$change[ Loadings$pc2 < facpc*min(Loadings$pc2) ] <- "DOWN.PC2"
+      Loadings$change[ Loadings$pc1 > facpc*max(Loadings$pc1) ] <- "UP.PC1"
+      Loadings$change[ Loadings$pc1 < facpc*min(Loadings$pc1) ] <- "DOWN.PC1"
+   }
+   IDS <- CLID <- change <- NULL
+   g <- ggplot2::ggplot(Loadings, ggplot2::aes(x=pc1, y=pc2)) + ggplot2::ggtitle(main) +
          ggplot2::geom_hline(yintercept=0, color="red", linetype="dashed", , size=0.2) + 
          ggplot2::geom_vline(xintercept=0, color="red", linetype="dashed", , size=0.2) +
-         #ggplot2::stat_ellipse(level=0.6, linetype = 2, color="red", size=0.2) +
-         ggplot2::labs(x=colnames(P)[1], y=colnames(P)[2]) + ggplot2::theme_light() + 
-         ggplot2::theme(legend.position="none", text=ggplot2::element_text(size=9), 
+         ggplot2::labs(x=xlabs, y=ylabs) + ggplot2::theme_light()
+
+   if (fclust && !onlylabels) {
+         g <- g + ggplot2::theme(legend.position="none", text=ggplot2::element_text(size=9), 
               panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(), 
               plot.margin=ggplot2::margin(t = 0, r = 0, b = 0, l = 0, unit = "pt"))
-
-   if (!is.null(associations)) {
-         if (fONLYLABELS) { # Merged Clusters
+   }
+   if (fclust) {
+         if (onlylabels) { # Merged Clusters
               L <- which( rownames(P) %in% associations[,2] )
               Clusters <- data.frame( pc1 = P[L,1], pc2 = P[L,2], CLID = rownames(P)[L] )
-              if (fHIGHLABLELS)  { pcolor <- "grey" } else { pcolor <- "blue" }
-                                  g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, color=pcolor, size=3)
-              if (! fHIGHLABLELS) g <- g + ggplot2::geom_point(ggplot2::aes(pc1,pc2), data=Clusters, color="red", size=1)
-                                  g <- g + ggplot2::geom_text(ggplot2::aes(pc1, pc2, label=CLID), data=Clusters, hjust=0.5,vjust=0.5, color="blue", size=3)
+              if (highlabels) {
+                    g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, color="grey", size=3) +
+                             ggplot2::geom_text(ggplot2::aes(x=pc1, y=pc2, label=CLID), data=Clusters, hjust=0.5,vjust=0.5, color="blue", size=3)
+              } else {
+                    g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS, color=change),hjust=0.5,vjust=0.5, size=3) +
+                             ggplot2::geom_text(ggplot2::aes(x=pc1, y=pc2, label=CLID, color=change), data=Clusters, hjust=0.5,vjust=0.5, size=3)
+              }
+
          } else { # No Merged Clusters
               L <- which( rownames(P) %in% associations[,1] )
               Clusters <- data.frame( pc1 = P[L,1], pc2 = P[L,2],
@@ -247,10 +269,11 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, associations=NULL, main="Loading
                               draw.contour=gcontour, draw.points=draw.points, draw.labels=draw.labels)
          }
    } else {
-         g <- g + ggplot2::geom_point(color="red", size=1) + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, color="blue", size=3)
+         g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS, color=change),hjust=0.5,vjust=0.5, size=3)
    }
    g
 }
+
 
 
 ## Define the 'plot.scores' function for plotting PCA scores.
@@ -287,6 +310,7 @@ ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores
            ggplot2::geom_point() +
            ggplot2::labs(x=xlabs, y=ylabs, colour = "") + ggplot2::theme_light() + 
            ggplot2::theme(legend.position="none", plot.margin=ggplot2::margin(t = 0, r = 0, b = 0, l = 0, unit = "pt") )
+      IDS <- NULL
       if (glabels)
            g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, size=3)
    } else {
@@ -302,14 +326,12 @@ ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores
               g <- g + ggplot2::scale_shape_manual("",values = shape_values )
           }
       }
-      #grcols=grDevices::rainbow(nlevels(groups), s=0.9, v=0.8)
-      #g <- g + ggplot2::scale_colour_manual(values = grcols) + ggplot2::scale_fill_manual(values = grcols)
       if (gcontour=="ellipse")  g <- g + ggplot2::stat_ellipse(geom = "polygon", alpha = 0.2, level=params$cellipse, show.legend=FALSE)
       if (gcontour=="ellipse2") g <- g + ggplot2::stat_ellipse(ggplot2::aes(color = groups), level=params$cellipse, show.legend=FALSE)
 
       if (gcontour=="polygon") {
-          find_hull <- function(Scores) Scores[chull(Scores[,2], Scores[,3]), ]
-          hulls <- plyr::ddply(Scores, "groups", find_hull)
+          .find_hull <- function(Scores) Scores[grDevices::chull(Scores[,2], Scores[,3]), ]
+          hulls <- plyr::ddply(Scores, "groups", .find_hull)
           g <- g + ggplot2::geom_polygon(data = hulls, ggplot2::aes(pc1, pc2, fill=factor(groups)), alpha = 0.2, show.legend=FALSE)
       }
       g <- g + ggplot2::labs(x=xlabs, y=ylabs, color = "") + ggplot2::theme_light() + ggplot2::ggtitle(main) + 
@@ -376,13 +398,12 @@ ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores
 #' @param width Width of the plot in pixels (optional, defaults to automatic sizing).
 #' @param height Height of the plot in pixels (optional, defaults to automatic sizing)
 #' @param textposition Position of the labels on the graphs relative to the points. Possible values are : 'right', 'left', 'top' or 'buttom'
-#' @param xlegendShift Shift (slighly) to the left the legend. Typical value is 0.01
-ggplotPlotly <- function(g, width=NULL, height=NULL, textposition = "right", xlegendShift=0)
+ggplotPlotly <- function(g, width=NULL, height=NULL, textposition = "right")
 {
+      options(warn=-1)
       gg <- plotly::ggplotly(g, width=width, height=height) %>% plotly::style(textposition = textposition)
       gg$x$config$modeBarButtonsToAdd <- NULL
       gg$x$layout$margin$t <- gg$x$layout$margin$t + 50
-      if (xlegendShift>0) gg$x$layout$annotations[[1]]$y <- gg$x$layout$annotations[[1]]$y - xlegendShift
 
       ww <- plotly::as_widget(gg)
       ww$sizingPolicy$padding <- 10
