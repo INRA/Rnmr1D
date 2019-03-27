@@ -1,3 +1,8 @@
+# ID doProcessing.R
+# Copyright (C) 2017-2019 INRA
+# Authors: D. Jacob
+#
+
 #' detectCores
 #'
 #' \code{detectCores} is simply a shortcut for parallel::detectCores().

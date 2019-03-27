@@ -1,3 +1,8 @@
+# ID generateMetadata.R
+# Copyright (C) 2017-2019 INRA
+# Authors: D. Jacob
+#
+
 #' generateMetadata
 #'
 #' \code{generateMetadata} Generate the metadata from the list of raw spectra namely the samples, the experimental factors and the list of selected raw spectra. Depending on whether the sample matrix is supplied as input or not, 
@@ -401,8 +406,6 @@ set_Metadata <- function(RAWDIR, procParams, samples)
    LIST <- gsub('//', '/', list.files(path = RAWDIR, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
    if ( class(LIST)=="character" && length(LIST)==0 ) return(0)
 
-#   if (!is.null(SampleFile) && file.exists(SampleFile)) {
-#       samples <- read.table(SampleFile, sep="\t", header=T,stringsAsFactors=FALSE)
    if (!is.null(samples)) {
        samplesize <- dim(samples)
        nraw <- samplesize[1]

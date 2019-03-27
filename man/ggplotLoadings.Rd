@@ -17,7 +17,7 @@ ggplotLoadings(data, pc1 = 1, pc2 = 2, EV = NULL,
 
 \item{EV}{Eigenvalues vector}
 
-\item{associations}{the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1)}
+\item{associations}{the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1). See \code{getClusters}}
 
 \item{main}{Change the default plot title on the rigth corner}
 

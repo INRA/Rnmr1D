@@ -1,3 +1,8 @@
+# ID ggplotTools.R
+# Copyright (C) 2019 INRA
+# Authors: D. Jacob
+#
+
 #-------------------------------------------------------------------------------------------------------------------------
 # ggplot2 routines
 #-------------------------------------------------------------------------------------------------------------------------
@@ -208,7 +213,7 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
 #' @param pc1 the fist component of the matrix of variable loadings to be plotted.
 #' @param pc2 the second component of the matrix of variable loadings to be plotted.
 #' @param EV Eigenvalues vector
-#' @param associations the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1) 
+#' @param associations the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1). See \code{getClusters}
 #' @param main Change the default plot title on the rigth corner
 #' @param onlylabels if TRUE, put only the association names without drawing the cluster contours. Implies that association matrix is provided.
 #' @param highlabels if TRUE, put the the association names in blue, and others in grey. Implies that association matrix is provided and fONLYLABELS equal to TRUE.

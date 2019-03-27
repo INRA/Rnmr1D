@@ -1,3 +1,7 @@
+# ID RnmrTools.R
+# Copyright (C) 2017-2019 INRA
+# Authors: D. Jacob
+#
 
 lbALIGN <- 'align'
 lbGBASELINE <- 'gbaseline'

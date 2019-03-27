@@ -1,6 +1,5 @@
-
 # ID StatTools.R
-# Copyright (C) 2017 INRA
+# Copyright (C) 2017-2019 INRA
 # Authors: D. Jacob
 #
 trim<-function(x) gsub("^\\s+|\\s+$", "", x)
