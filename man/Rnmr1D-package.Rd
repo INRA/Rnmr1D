@@ -37,7 +37,8 @@ Daniel Jacob
 Maintainer: Daniel Jacob <daniel.jacob@inra.fr>
 }
 \references{
-   Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. \doi{10.1007/s11306-017-1178-y}}
+   Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. \url{https://www.ncbi.nlm.nih.gov/pubmed/28261014}
+}
 \keyword{ package }
 \seealso{
   the NMRProcFlow online documentation \url{https://nmrprocflow.org/}

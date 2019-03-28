@@ -85,8 +85,9 @@ ggplotClusters <- function(data, clustObj)
      df <- data.frame( Group=as.factor(N[,1]), Clusters=as.factor(N[,2]), Values=as.numeric(N[, 4]) )
 
      Clusters <- Values <- Group <- NULL
+     method <- clustObj$params$method
      g <- ggplot2::ggplot(df, ggplot2::aes(x=Clusters,y=Values)) + ggplot2::geom_boxplot(ggplot2::aes(fill=Group), outlier.colour = "red", outlier.shape = 1) +
-          ggplot2::labs(y = "Intensity (log10)", x = "Clusters") + ggplot2::ggtitle("Boxplot by clusters (log10 transformed)") +
+          ggplot2::labs(y = "Intensity (log10)", x = "Clusters") + ggplot2::ggtitle(paste0("Boxplot by clusters (",toupper(method),")")) +
           ggplot2::theme_light() + ggplot2::theme(legend.position="none")
      g
 }
