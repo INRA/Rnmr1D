@@ -991,45 +991,56 @@ Spec1rProcpar <- list (
        spec$fid <- c( spec$fid, rep(complex(real=0, imaginary=0), (tdp2-td)) )
        td <- length(spec$fid)
     }
-    spec$rawfid <- spec$fid
-    spec$fid0 <- .groupDelay_correction(spec, param)
 
+    transform2spec <- function(fid) {
+       ### FFT of FID
+       if(param$DEBUG) .v("\tFFT ...", logfile=logfile)
+       Spectrum <- stats::fft(fid)
+       if(param$DEBUG) .v("OK\n", logfile=logfile)
+       ### Rotation
+       td <- length(Spectrum); p <- td/2
+       spec.p <- c( Spectrum[(p+1):td], Spectrum[1:p] )
+       param$REVTIME <- param$REVTIME || ( length(grep("VARIAN",toupper(spec$acq$INSTRUMENT)))>0 || length(grep("JEOL",toupper(spec$acq$INSTRUMENT)))>0)
+       if ( param$REVTIME ) {
+          rawspec <- spec.p[rev(1:td)]
+       } else {
+          rawspec <- spec.p
+       }
+       rawspec
+    }
+
+    # Compute the spectrum in freq. domain before zero filling
+    spec$fid0 <- .groupDelay_correction(spec, param)
+    rawspec <- transform2spec(spec$fid0)
+    spec$data0 <- rawspec
+   
     ### Zero filling
     if (param$ZEROFILLING) {
        TDMAX <- min(param$ZFFAC*td,131072)
        if(param$DEBUG) .v("\tZero Filling (x%d)\n", round(TDMAX/td), logfile=logfile)
        while ((td/TDMAX) < 1 ) {
-          td=length(spec$fid)
+          td <- length(spec$fid)
           spec$fid <- c( spec$fid, rep(complex(real=0, imaginary=0), td) )
-          td=length(spec$fid)
+          td <- length(spec$fid)
        }
-       td=length(spec$fid)
+       td <- length(spec$fid)
+
+       ### Group Delay correction if needed
+       if (spec$acq$GRPDLY>0) {
+          if(param$DEBUG) .v("\tApplied GRPDLY ...", logfile=logfile)
+          spec$fid <- .groupDelay_correction(spec, param)
+          if(param$DEBUG) .v("OK\n", logfile=logfile)
+       }
+       # Compute the spectrum in freq. domain after zero filling
+       rawspec <- transform2spec(spec$fid)
+
+    } else {
+       if(param$DEBUG) .v("\tApplied GRPDLY ...OK\n", logfile=logfile)
+       spec$fid <- spec$fid0
     }
     if (param$DEBUG) .v("\tSI = %d\n", td, logfile=logfile)
 
-    ### Group Delay correction if needed
-    if (spec$acq$GRPDLY>0) {
-       if(param$DEBUG) .v("\tApplied GRPDLY ...", logfile=logfile)
-       spec$fid <- .groupDelay_correction(spec, param)
-       if(param$DEBUG) .v("OK\n", logfile=logfile)
-    }
-
-    ### FFT of FID
-    if(param$DEBUG) .v("\tFFT ...", logfile=logfile)
-    Spectrum <- stats::fft(spec$fid)
-    if(param$DEBUG) .v("OK\n", logfile=logfile)
-
-    ### Rotation
-    p <- td/2
-    spec.p <- c( Spectrum[(p+1):td], Spectrum[1:p] )
-    param$REVTIME <- param$REVTIME || ( length(grep("VARIAN",toupper(spec$acq$INSTRUMENT)))>0 || length(grep("JEOL",toupper(spec$acq$INSTRUMENT)))>0)
-    if ( param$REVTIME ) {
-       rawspec <- spec.p[rev(1:td)]
-    } else {
-       rawspec <- spec.p
-    }
     param$SI <- length(rawspec)
-
     proc <- list( phc0=0, phc1=0, RMS=0, SI=length(rawspec), CFRACPPM=param$CFRACPPM)
 
     # PPM Calibration
@@ -1087,9 +1098,9 @@ Spec1rProcpar <- list (
    }
 
    if (spec$param$ALGO2==FALSE && spec$acq$NUC %in% c('1H','H1')) {
-      V <- spec$data
+      V <- spec$data0; SI <- length(V)
       x0 <- (spec$param$SOLVPPM+abs(spec$pmin))/spec$acq$SW
-      V[ round(spec$proc$SI*(x0-0.3/spec$acq$SW)):round(spec$proc$SI*(x0+0.3/spec$acq$SW)) ] <- 0+0i
+      V[ round(SI*(x0-0.3/spec$acq$SW)):round(SI*(x0+0.3/spec$acq$SW)) ] <- 0+0i
       lparams <- list(re=Re(V),im=Im(V), phc0=0, phc1=0, alpha=0, p=0.95, blphc=spec$param$BLPHC)
       best1 <- C_optim_phc(-pi, pi, lparams, 0, 1e-7)
       best2 <- C_optim_phc(0, 2*pi, lparams, 0, 1e-7)
@@ -1116,6 +1127,12 @@ Spec1rProcpar <- list (
 
 .optimphase1 <- function(spec)
 {
+   fmidzero <- function(V) {
+      SI <- length(V)
+      x0 <- (spec$param$SOLVPPM+abs(spec$pmin))/spec$acq$SW
+      V[ round(SI*(x0-0.3/spec$acq$SW)):round(SI*(x0+0.3/spec$acq$SW)) ] <- 0+0i
+      return(V)
+   }
    spec1r_cal <- function(flg=0,midzero=0) {
       if (flg==0) { 
           fid <- spec$fid0
@@ -1126,10 +1143,7 @@ Spec1rProcpar <- list (
       Spectrum <- stats::fft(fid)
       p <- ceiling(m/2); seq1 <- ( (p+1):m ); seq2 <- ( 1:p )
       V <- c( Spectrum[seq1], Spectrum[seq2] )
-      if (midzero==1) {
-          N <- length(fid); SW <- spec$acq$SW
-          V[ round(N*(0.5-0.3/SW)):round(N*(0.5+0.3/SW)) ] <- 0+0i
-      }
+      if (midzero==1) V <- fmidzero(V)
       return(V)
    }
 
@@ -1159,17 +1173,17 @@ Spec1rProcpar <- list (
    }
 
    # Compute criterim for phc1=0
-   spec1r <- spec1r_cal(flg=1,midzero=1)
+   spec1r <- fmidzero(spec$data0) # spec1r_cal(flg=1,midzero=1)
    blphc <-  ifelse( spec$param$BLPHC, 1, 0)
    best0 <- C_optim_phc(0, 0, list(re=Re(spec1r),im=Im(spec1r), phc0=spec$proc$phc0, phc1=0, alpha=0, p=0.95, blphc=blphc), -1, 0)
 
    # Optimisation of the first order phase
    if (spec$param$FRACPPM>0) {
-      spec1r <- spec1r_cal(flg=1,midzero=1)
+      spec1r <- fmidzero(spec$data0) # spec1r_cal(flg=1,midzero=1)
       opt <- OptimAlpha(spec$param$FRACPPM, spec$param$FRACPPM, 0)
    } else {
       # Step 1: Fast exploration of full space for alpha
-      spec1r <- spec1r_cal(flg=0,midzero=1)
+      spec1r <- fmidzero(spec$data0) # spec1r_cal(flg=0,midzero=1)
       opt <- OptimAlpha(0.125, 0.875, spec$param$INCFRACPPM1)
       # Step 2: Exploration of the optimial local space for alpha
       opt <- OptimAlpha(opt$fracppm-0.0625, opt$fracppm+0.0625, spec$param$INCFRACPPM1)
@@ -1292,7 +1306,7 @@ Spec1rProcpar <- list (
 
           # Get real spectrum
           spec$int <- ajustBL(Re(spec$data),0)
-          spec$data <- NULL
+          spec$data <- spec$data0 <- NULL
 
           # PPM calibration based on TSP
           if (param$TSP) {
