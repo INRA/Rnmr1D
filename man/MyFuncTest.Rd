@@ -15,7 +15,7 @@ MyFuncTest(spec, ppmrange, filt, peaks, verbose = 1)
 
 \item{peaks}{a list of specific parameters for deconvolution}
 
-\item{verbose}{fixes the level of debug information}
+\item{verbose}{level of debug information}
 }
 \value{
 a list

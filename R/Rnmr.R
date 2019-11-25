@@ -1654,3 +1654,30 @@ align_segment = function (specMat, shifts, istart, iend, selected=NULL)
        C_align_segment (specMat, shifts, istart, iend, selected)
    }
 }
+
+#' Lorentz
+#'
+#' \code{Lorentz} belongs to the low-level functions group for deconvolution.
+#' @param ppm a vector of ppm values
+#' @param amp amplitude of the lorentzian
+#' @param x0 central value of the lorentzian
+#' @param sigma half-width of the lorentzian
+#' @return a vector of the lorentzian values (same size as ppm)
+Lorentz = function(ppm, amp, x0, sigma)
+{
+   C_Lorentz(ppm, amp, x0, sigma)
+}
+
+#' MyFuncTest
+#'
+#' \code{MyFuncTest} belongs to the low-level functions group for deconvolution.
+#' @param spec a 'spec' object
+#' @param ppmrange a ppm range as a list of two values
+#' @param filt a list of specific parameters for filtering
+#' @param peaks a list of specific parameters for deconvolution
+#' @param verbose level of debug information
+#' @return a list
+MyFuncTest = function(spec, ppmrange, filt, peaks, verbose=1)
+{
+   C_MyFuncTest(spec, ppmrange, filt, peaks, verbose)
+}
