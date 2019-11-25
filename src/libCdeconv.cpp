@@ -1271,7 +1271,6 @@ void _Ajust_LB_ (SEXP s, SEXP b, int n1, int n2)
             lb[k]=a*(k-n1)+lb[n1];
 }
 
-// [[Rcpp::export]]
 SEXP MyFuncTest2(SEXP spec, int n1, int n2)
 {
     NumericVector Y(spec);
