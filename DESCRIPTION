@@ -16,7 +16,7 @@ License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.7), base64enc (>= 0.1), MASS(>= 7.3), Matrix, methods, 
 		 doParallel (>= 1.0.11), foreach (>= 1.4.4), igraph (>= 1.2.1), impute (>= 1.54.0), MassSpecWavelet (>= 1.46.0), ptw (>= 1.9), signal (>= 0.7), speaq (>= 2.3.3), XML (>= 3.98), ggplot2 (>= 3.0.0), plotly (>= 4.8.0), plyr (>= 1.8.4)
 LinkingTo: Rcpp
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr

@@ -125,6 +125,7 @@ generate_Metadata_Bruker_fid <- function(RAWDIR, procParams)
       M <-  MS[, c(1,2) ]
    }
    if (nr==1 && class(M)=="character") M <- as.matrix(t(M))
+   if (nr>1 && length(unique(sort(M[,2])))==1) M[,2] <- M[,1]
 
    metadata$ERRORLIST <- ERRORLIST
    if (OKRAW==1) {

@@ -4,7 +4,7 @@
 \name{Spec1rProcpar}
 \alias{Spec1rProcpar}
 \title{Spec1rProcpar}
-\format{An object of class \code{list} of length 26.}
+\format{An object of class \code{list} of length 31.}
 \usage{
 Spec1rProcpar
 }
@@ -18,9 +18,11 @@ Spec1rProcpar
   \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
   \item \code{LB} : Exponantial Line Broadening parameter - default value = 0.3
   \item \code{GB} : Gaussian Line Broadening parameter - default value = 0
-  \item \code{REVTIME} : Reverse time points - default value = FALSE
-  \item \code{BLPHC} : Intensity offset correction - default value = FALSE
-  \item \code{SOLVPPM} : ppm of the solvent (D20 by default) - default value = 4.8
+  \item \code{REMLFREQ} : Remove low frequencies by applying a polynomial subtraction method. - default order of the model = 0
+  \item \code{REVPPM} : Reverse ppm scale - default value = FALSE
+  \item \code{BLPHC} : Number of points for baseline smoothing during phasing - default value = 260
+  \item \code{KSIG} : Number of times the noise signal to be considered during phasing - default value = 6
+  \item \code{CPMG} : Indicate if CPMG sequence  - default value = FALSE
   \item \code{ZEROFILLING} : Zero Filling - - default value = FALSE
   \item \code{ZFFAC} : Max factor for Zero Filling - default value = 4
   \item \code{LINEBROADENING} : Line Broading - default value = TRUE
@@ -28,11 +30,8 @@ Spec1rProcpar
   \item \code{RABOT} : Zeroing of Negative Values - default value = FALSE
   \item \code{OPTPHC0} : Zero order phase optimization - default value = TRUE
   \item \code{OPTPHC1} : First order phase optimization - default value = FALSE
-  \item \code{ALGO2} : alternative algorithm for phase optimization - default value = FALSE
-  \item \code{FRACPPM} : Origin point for adjustment of the first order phase (defined as a fraction of the ppm scale) - default value = 0
-  \item \code{INCFRACPPM1} : Incrementation value for search of optimal point for adjustment of the first order phase : step 1 - default value = 0.125
-  \item \code{INCFRACPPM2} : Incrementation value for search of optimal point for adjustment of the first order phase : step 2 - default value = 0.0125
-  \item \code{JGD_INNER} : JEOL : internal or external estimation for Group Delay - default value = TRUE
+  \item \code{OPTCRIT1} : Criterium for phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy - default value = 3
+  \item \code{JGD_INNER} : JEOL : internal (or external) estimation for Group Delay - default value = TRUE
 }
 }
 \description{
