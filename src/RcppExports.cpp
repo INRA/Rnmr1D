@@ -5,6 +5,48 @@
 
 using namespace Rcpp;
 
+// lorentz
+double lorentz(double x, double x0, double s);
+RcppExport SEXP _Rnmr1D_lorentz(SEXP xSEXP, SEXP x0SEXP, SEXP sSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type x0(x0SEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    rcpp_result_gen = Rcpp::wrap(lorentz(x, x0, s));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_Lorentz
+SEXP C_Lorentz(SEXP ppm, double amp, double x0, double sigma);
+RcppExport SEXP _Rnmr1D_C_Lorentz(SEXP ppmSEXP, SEXP ampSEXP, SEXP x0SEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type ppm(ppmSEXP);
+    Rcpp::traits::input_parameter< double >::type amp(ampSEXP);
+    Rcpp::traits::input_parameter< double >::type x0(x0SEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_Lorentz(ppm, amp, x0, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_MyFuncTest
+SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt, Nullable<List> peaks, int verbose);
+RcppExport SEXP _Rnmr1D_C_MyFuncTest(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP filtSEXP, SEXP peaksSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type spec(specSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ppmrange(ppmrangeSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type filt(filtSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type peaks(peaksSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_MyFuncTest(spec, ppmrange, filt, peaks, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // SDL
 SEXP SDL(SEXP x, double Sigma);
 RcppExport SEXP _Rnmr1D_SDL(SEXP xSEXP, SEXP SigmaSEXP) {
@@ -391,23 +433,56 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// C_optim_phc
-SEXP C_optim_phc(double ax, double bx, SEXP l, int flg, double tol);
-RcppExport SEXP _Rnmr1D_C_optim_phc(SEXP axSEXP, SEXP bxSEXP, SEXP lSEXP, SEXP flgSEXP, SEXP tolSEXP) {
+// Fmin
+double Fmin(SEXP par, SEXP re, SEXP im, int blphc, double B, int flg);
+RcppExport SEXP _Rnmr1D_Fmin(SEXP parSEXP, SEXP reSEXP, SEXP imSEXP, SEXP blphcSEXP, SEXP BSEXP, SEXP flgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type ax(axSEXP);
-    Rcpp::traits::input_parameter< double >::type bx(bxSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type l(lSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type par(parSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type re(reSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type im(imSEXP);
+    Rcpp::traits::input_parameter< int >::type blphc(blphcSEXP);
+    Rcpp::traits::input_parameter< double >::type B(BSEXP);
     Rcpp::traits::input_parameter< int >::type flg(flgSEXP);
-    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_optim_phc(ax, bx, l, flg, tol));
+    rcpp_result_gen = Rcpp::wrap(Fmin(par, re, im, blphc, B, flg));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Fentropy
+double Fentropy(SEXP par, SEXP re, SEXP im, int blphc, double B, double gamma);
+RcppExport SEXP _Rnmr1D_Fentropy(SEXP parSEXP, SEXP reSEXP, SEXP imSEXP, SEXP blphcSEXP, SEXP BSEXP, SEXP gammaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type par(parSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type re(reSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type im(imSEXP);
+    Rcpp::traits::input_parameter< int >::type blphc(blphcSEXP);
+    Rcpp::traits::input_parameter< double >::type B(BSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    rcpp_result_gen = Rcpp::wrap(Fentropy(par, re, im, blphc, B, gamma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_SDL_convolution
+SEXP C_SDL_convolution(SEXP x, SEXP y, double sigma);
+RcppExport SEXP _Rnmr1D_C_SDL_convolution(SEXP xSEXP, SEXP ySEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_SDL_convolution(x, y, sigma));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_Rnmr1D_lorentz", (DL_FUNC) &_Rnmr1D_lorentz, 3},
+    {"_Rnmr1D_C_Lorentz", (DL_FUNC) &_Rnmr1D_C_Lorentz, 4},
+    {"_Rnmr1D_C_MyFuncTest", (DL_FUNC) &_Rnmr1D_C_MyFuncTest, 5},
     {"_Rnmr1D_SDL", (DL_FUNC) &_Rnmr1D_SDL, 2},
     {"_Rnmr1D_C_write_pack", (DL_FUNC) &_Rnmr1D_C_write_pack, 4},
     {"_Rnmr1D_C_read_pack", (DL_FUNC) &_Rnmr1D_C_read_pack, 1},
@@ -438,7 +513,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rnmr1D_C_estime_sd", (DL_FUNC) &_Rnmr1D_C_estime_sd, 2},
     {"_Rnmr1D_ajustBL", (DL_FUNC) &_Rnmr1D_ajustBL, 2},
     {"_Rnmr1D_C_corr_spec_re", (DL_FUNC) &_Rnmr1D_C_corr_spec_re, 1},
-    {"_Rnmr1D_C_optim_phc", (DL_FUNC) &_Rnmr1D_C_optim_phc, 5},
+    {"_Rnmr1D_Fmin", (DL_FUNC) &_Rnmr1D_Fmin, 6},
+    {"_Rnmr1D_Fentropy", (DL_FUNC) &_Rnmr1D_Fentropy, 6},
+    {"_Rnmr1D_C_SDL_convolution", (DL_FUNC) &_Rnmr1D_C_SDL_convolution, 3},
     {NULL, NULL, 0}
 };
 

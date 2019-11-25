@@ -1023,7 +1023,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_massifs *massi
    =========================================================================*/
 
 // [[Rcpp::export]]
-SEXP Lorentz(SEXP ppm, double amp, double x0, double sigma)
+SEXP C_Lorentz(SEXP ppm, double amp, double x0, double sigma)
 {
     int k;
     NumericVector VecIn(ppm);
@@ -1037,7 +1037,7 @@ SEXP Lorentz(SEXP ppm, double amp, double x0, double sigma)
 }
 
 // [[Rcpp::export]]
-SEXP MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nullable<List> peaks = R_NilValue, int verbose=1)
+SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nullable<List> peaks = R_NilValue, int verbose=1)
 {
     List slist(spec);
     NumericVector Y = as<NumericVector>(slist["int"]);

@@ -990,12 +990,12 @@ Spec1rProcpar <- list (
    rawR <- Re(fid)
    rawI <- Im(fid)
    
-   model <- lm(rawR ~ poly(1:length(rawR), np))
-   rM <- fitted(model)
+   model <- stats::lm(rawR ~ poly(1:length(rawR), np))
+   rM <- stats::fitted(model)
    rawR <- rawR - rM
    
-   model <- lm(rawI ~ poly(1:length(rawR), np))
-   iM <- fitted(model)
+   model <- stats::lm(rawI ~ poly(1:length(rawR), np))
+   iM <- stats::fitted(model)
    rawI <- rawI - iM
 
    complex(real=rawR, imaginary=rawI)
@@ -1086,9 +1086,7 @@ Spec1rProcpar <- list (
 
     param$SI <- length(rawspec)
     proc <- list( phc0=0, phc1=0, crit=NULL, RMS=0, SI=length(rawspec))
-    attach(param)
-    if (!exists("phc0")) param$phc0 <- param$phc1 <- 0
-    detach(param)
+    if (is.null(param$phc0)) param$phc0 <- param$phc1 <- 0
 
     # PPM Calibration
     m <- proc$SI
@@ -1219,7 +1217,7 @@ Spec1rProcpar <- list (
    N <- 2; C <- 0
    while( C==0 && N>0 ) {
       opt <- tryCatch({
-                 optim(par=phc, fn=Fmin, method="Nelder-Mead", re=Re(V), im=Im(V), 
+                 stats::optim(par=phc, fn=Fmin, method="Nelder-Mead", re=Re(V), im=Im(V), 
                                 blphc=spec$param$BLPHC, B=spec$param$KSIG*spec$B, flg=flg, control=list(maxit=200))
              },  error = function(e) {  list(convergence=1) })
       if (opt$convergence==0) {
@@ -1239,7 +1237,7 @@ Spec1rProcpar <- list (
          if (spec$param$DEBUG).v("\n\t%d: No convergence   ",  lopt, logfile=spec$param$LOGFILE)
          N <- N - 1
       }
-      phc <- c( runif(1, -pi, pi), runif(1, -pi/10, pi/10) )
+      phc <- c( stats::runif(1, -pi, pi), stats::runif(1, -pi/10, pi/10) )
    }
    lopt <- lopt + 1
    return( list(spec=spec, lopt=lopt, ret=ret) )
