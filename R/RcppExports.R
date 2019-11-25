@@ -13,6 +13,10 @@ C_MyFuncTest <- function(spec, ppmrange, filt = NULL, peaks = NULL, verbose = 1L
     .Call('_Rnmr1D_C_MyFuncTest', PACKAGE = 'Rnmr1D', spec, ppmrange, filt, peaks, verbose)
 }
 
+C_MyFuncTest2 <- function(spec, n1, n2) {
+    .Call('_Rnmr1D_C_MyFuncTest2', PACKAGE = 'Rnmr1D', spec, n1, n2)
+}
+
 SDL <- function(x, Sigma) {
     .Call('_Rnmr1D_SDL', PACKAGE = 'Rnmr1D', x, Sigma)
 }

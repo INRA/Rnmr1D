@@ -47,6 +47,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// C_MyFuncTest2
+SEXP C_MyFuncTest2(SEXP spec, int n1, int n2);
+RcppExport SEXP _Rnmr1D_C_MyFuncTest2(SEXP specSEXP, SEXP n1SEXP, SEXP n2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type spec(specSEXP);
+    Rcpp::traits::input_parameter< int >::type n1(n1SEXP);
+    Rcpp::traits::input_parameter< int >::type n2(n2SEXP);
+    rcpp_result_gen = Rcpp::wrap(C_MyFuncTest2(spec, n1, n2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // SDL
 SEXP SDL(SEXP x, double Sigma);
 RcppExport SEXP _Rnmr1D_SDL(SEXP xSEXP, SEXP SigmaSEXP) {
@@ -483,6 +496,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rnmr1D_lorentz", (DL_FUNC) &_Rnmr1D_lorentz, 3},
     {"_Rnmr1D_C_Lorentz", (DL_FUNC) &_Rnmr1D_C_Lorentz, 4},
     {"_Rnmr1D_C_MyFuncTest", (DL_FUNC) &_Rnmr1D_C_MyFuncTest, 5},
+    {"_Rnmr1D_C_MyFuncTest2", (DL_FUNC) &_Rnmr1D_C_MyFuncTest2, 3},
     {"_Rnmr1D_SDL", (DL_FUNC) &_Rnmr1D_SDL, 2},
     {"_Rnmr1D_C_write_pack", (DL_FUNC) &_Rnmr1D_C_write_pack, 4},
     {"_Rnmr1D_C_read_pack", (DL_FUNC) &_Rnmr1D_C_read_pack, 1},
