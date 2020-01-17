@@ -508,7 +508,7 @@ getMergedDataset <- function(data, clustObj, onlycluster=FALSE)
 {
    association <- clustObj$clustertab
    matrix <- data
-   if (class(association)=="matrix" && dim(association)[1]>1) {
+   if ("matrix" %in% class(association) && dim(association)[1]>1) {
       Clusters <- sort(unique(association[,2]))
       M <- simplify2array(lapply( 1:length(Clusters), function(x) { apply( matrix[, colnames(matrix) %in% association[association[,2] == Clusters[x],1] ], 1, mean ) } ))
       colnames(M) <- Clusters
@@ -697,7 +697,7 @@ plotLoadings <- function (data, pc1, pc2, associations=NULL, main="Loadings",
    graphics::abline(h=0,v=0)
    #plotEllipse( data[, pc1], data[, pc2], center=c(0,0), level=0.666, col="red", lty=3, lwd=0.1, type="l")
    # Use Associations (assoc1=T)
-   if (class(associations)=="matrix" && dim(associations)[1]>1) {
+   if ("matrix" %in% class(associations) && dim(associations)[1]>1) {
        graphics::points(t(V), pch=pch, col="grey")
        graphics::text( adj=0, t(V)[,1], t(V)[,2], col="lightgrey", colnames(V), cex=cexlabel )
        colnames(V) <- as.vector(sapply(rownames(data),function(x) { ifelse(sum( associations[,1] %in% x), associations[,2][associations[,1] %in%  x ], x) }))
