@@ -1,7 +1,7 @@
 #------------------------------------------------
 # Rnmr1D package: Build 1r spectrum from FID file (Bruker/RS2D/Varian/nmrML)
 # Project: NMRProcFlow
-# (C) 2019 - D. JACOB - IMRA UMR1332 BAP
+# (C) 2015-2020 - D. JACOB - IMRA UMR1332 BAP
 #------------------------------------------------
 
 #' Spec1rDoProc
