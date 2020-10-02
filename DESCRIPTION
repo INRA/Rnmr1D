@@ -2,15 +2,15 @@ Package: Rnmr1D
 Type: Package
 Title: Perform the Complete Processing of a Set of Proton Nuclear Magnetic Resonance Spectra
 Version: 1.2.6
-Date: 2020-01-01
+Date: 2020-01-02
 Authors@R: c(
-    person("Daniel", "Jacob", email="daniel.jacob@inra.fr", role=c("cre", "aut"), comment=c(ORCID="0000-0002-6687-7169")),
-    person("Catherine", "Deborde", email="catherine.deborde@inra.fr", role=c("ctb")),
-    person("Marie", "Lefebvre", email="marie.lefebvre@inra.fr", role=c("ctb")))
-Copyright: Institut National de la Recherche Agronomique (INRA)
+    person("Daniel", "Jacob", email="daniel.jacob@inrae.fr", role=c("cre", "aut"), comment=c(ORCID="0000-0002-6687-7169")),
+    person("Catherine", "Deborde", email="catherine.deborde@inrae.fr", role=c("ctb")),
+    person("Marie", "Lefebvre", email="marie.lefebvre@inrae.fr", role=c("ctb")))
+Copyright: Institut national de recherche pour l’agriculture, l’alimentation et l’environnement (INRAE)
 URL: https://github.com/INRA/Rnmr1D
 Encoding: UTF-8
-Maintainer: Daniel Jacob <daniel.jacob@inra.fr>
+Maintainer: Daniel Jacob <daniel.jacob@inrae.fr>
 Description: Perform the complete processing of a set of proton nuclear magnetic resonance spectra from the free induction decay (raw data) and based on a processing sequence (macro-command file). An additional file specifies all the spectra to be considered by associating their sample code as well as the levels of experimental factors to which they belong. More detail can be found in Jacob et al. (2017) <doi:10.1007/s11306-017-1178-y>.
 Depends: R (>= 3.1.0)
 License: GPL (>= 2)

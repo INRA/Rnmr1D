@@ -9,8 +9,6 @@ output:
     toc_float: yes
     theme: cerulean
     highlight: tango
-  pdf_document:
-    toc: yes
 always_allow_html: yes
 colorlinks: yes
 urlcolor: blue
@@ -126,7 +124,7 @@ plotSpecMat(out$specMat, ppm_lim=c(0.5,5), K=0.67, dppm_max=0, cols=cols)
 
 ### Apply additional processing 
 
-It is possible to apply additionnal processing after the main processing. For that the doProcCmd  function can process macro-commands included in a string array to be applied on the spectra set previously generated. In the previous processing, the bucketing has been done with a uniform approach. We are going to change this by an intelligent bucketing [1], more efficient to generate relevant variables as we will further see .
+It is possible to apply additionnal processing after the main processing. For that the doProcCmd  function can process macro-commands included in a string array to be applied on the spectra set previously generated. In the previous processing, the bucketing has been done with a uniform approach. We are going to change this by an intelligent bucketing [[2](#ref2)], more efficient to generate relevant variables as we will further see .
 
 ```{r proc3, echo=TRUE, eval=TRUE}
 specMat.new <- Rnmr1D::doProcCmd(out, 
@@ -215,11 +213,11 @@ The'Corr' approach produces fewer clusters but correlations between all buckets 
 
 ```{r plot5a, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 g1 <- ggplotCriterion(clustcor)
-ggplotPlotly(g1, width=820, height=400)
-#g1
+#ggplotPlotly(g1, width=820, height=400)
+g1
 g2 <- ggplotCriterion(clusthca)
-ggplotPlotly(g2, width=820, height=400)
-#g2
+#ggplotPlotly(g2, width=820, height=400)
+g2
 ```
 
 #### Clusters distribution
@@ -242,11 +240,11 @@ We see that they cover three orders (log scaled)
 
 ```{r plot5c, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 g3 <- ggplotClusters(outMat,clustcor)
-ggplotPlotly(g3, width=820, height=400)
-#g3
+#ggplotPlotly(g3, width=820, height=400)
+g3
 g4 <- ggplotClusters(outMat,clusthca)
-ggplotPlotly(g4, width=820, height=400)
-#g4
+#ggplotPlotly(g4, width=820, height=400)
+g4
 
 ```
 
@@ -270,28 +268,32 @@ evnorm <- (100*eigenvalues/sum(eigenvalues))[1:10]
 
 ```{r plot6a, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 g5 <- ggplotScores(pca$x, 1, 2, groups=out$samples$Treatment, EV=evnorm , gcontour="polygon")
-ggplotPlotly(g5, width=820, height=450)
-#g5
+#ggplotPlotly(g5, width=820, height=450)
+g5
 ```
 
-#### Plot PCA Loadings
+<br>
+
+#### Plot PCA Loadings (based on the HCA method)
 
 Having calculated the clustering in the previous step (see above), it can be superimposed on the loadings plot in order to view its distribution and thus its efficiency. Here we choose those based on the HCA method. We can see that where the clusters are located, this corresponds to the maximum variance of the buckets, i.e. mainly at the ends of the first principal component (PC1).
 
 ```{r plot6b, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
 g6 <- ggplotLoadings(pca$rotation, 1, 2, associations=clusthca$clustertab, EV=evnorm, main=sprintf("Loadings - Crit=%s",clusthca$vcrit), gcontour="ellipse" )
-ggplotPlotly(g6, width=820, height=650)
-#g6
+#ggplotPlotly(g6, width=820, height=650)
+g6
 ```
 
-Plot loadings with the only merged variables for each cluster (based on their average)
+<br>
+
+#### Plot loadings with the only merged variables for each cluster (based on their average)
 
 ```{r plot6c, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
 outMat.merged <- Rnmr1D::getMergedDataset(outMat, clusthca, onlycluster=TRUE)
 pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
 g7 <- ggplotLoadings(pca.merged$rotation, 1, 2, associations=NULL, EV=evnorm)
-ggplotPlotly(g7, width=820, height=650)
-#g7
+#ggplotPlotly(g7, width=820, height=650)
+g7
 ```
 
 Quod erat demonstrandum !

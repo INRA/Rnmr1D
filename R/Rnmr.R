@@ -88,61 +88,8 @@ Spec1rProcpar <- list (
 .v <- function(..., logfile=Spec1rProcpar$LOGFILE) cat(sprintf(...), sep='', file=logfile, append=TRUE)
 
 
-
-#--------------------------------
-# READ FID && Acquisition Parameters
-#--------------------------------
-
-#### Retrieve a parameter value from Bruker acquisition parameters
-#--  internal routine
-#--  ACQ: list of acquisition parameters of the acqus file
-#--  paramStr: name of the parameter
-.bruker.get_param <- function (ACQ,paramStr,type="numeric", arrayType=FALSE)
-{
-   regexpStr <- paste("^...",paramStr,"=",sep="")
-   if (!arrayType) {
-       acqval <- gsub("^[^=]+= ?","" ,ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)])
-   } else {
-       acqval <-simplify2array(strsplit(ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)+1]," "))[2]
-   }
-   if (type=="numeric")
-       acqval <-as.numeric(acqval)
-   if (type=="string")
-       acqval <-gsub("<","",gsub(">","",acqval))
-   acqval
-}
-
-#### Retrieve a parameter value from Varian acquisition parameters
-#--  internal routine
-#--  ACQ: list of acquisition parameters of the procpar file
-#--  paramStr: name of the parameter
-.varian.get_param <- function (ACQ,paramStr,type="numeric")
-{
-   regexpStr <- paste("^",paramStr," ",sep="")
-   acqval <- gsub("1 ","",ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)+1])
-   if (type=="numeric")
-       acqval <-as.numeric(acqval)
-   if (type=="string")
-       acqval <-gsub("\"","",acqval)
-   acqval
-}
-
-#### Retrieve a parameter value from RS2D acquisition parameters
-#--  internal routine
-#--  ACQ: list of acquisition parameters of the acqus file
-#--  paramStr: name of the parameter
-.rs2d.get_param <- function (ACQ,paramStr,type="numeric")
-{
-   regexpStr <- paste("^",paramStr,"=",sep="")
-   acqval <- gsub("^[^=]+= ?","" ,ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)])
-   if (type=="numeric")
-       acqval <-as.numeric(acqval)
-   acqval
-}
-
 ### Estime Group Delay
 #-- fid : free induction decay - Complex data type
-
 .estime_grpdelay <- function(fid)
 {
    P <- sqrt(  Re(fid)^2 + Im(fid)^2 )
@@ -161,6 +108,30 @@ Spec1rProcpar <- list (
    }
    G
 }
+
+#--------------------------------
+# BRUKER : FID & 1r
+#--------------------------------
+
+#### Retrieve a parameter value from Bruker acquisition parameters
+#--  internal routine
+#--  ACQ: list of acquisition parameters of the acqus file
+#--  paramStr: name of the parameter
+.bruker.get_param <- function (ACQ,paramStr,type="numeric", arrayType=FALSE)
+{
+   regexpStr <- paste("^...",paramStr,"=",sep="")
+   if (!arrayType) {
+       acqval <- gsub("^[^=]+= ?","" ,ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)])
+   } else {
+       acqval <-simplify2array(strsplit(ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)+1]," "))
+   }
+   if (type=="numeric")
+       acqval <-as.numeric(acqval)
+   if (type=="string")
+       acqval <-gsub("<","",gsub(">","",acqval))
+   acqval
+}
+
 
 #### Read FID data and the main parameters needed to generate the real spectrum
 #--  internal routine
@@ -184,8 +155,8 @@ Spec1rProcpar <- list (
    SOLVENT <- .bruker.get_param(ACQ,"SOLVENT",type="string")
    PULSE   <- .bruker.get_param(ACQ,"PULPROG",type="string")
    TEMP    <- .bruker.get_param(ACQ,"TE",type="string")
-   RELAXDELAY  <- .bruker.get_param(ACQ,"D",type="string",  arrayType=TRUE)
-   PULSEWIDTH <- .bruker.get_param(ACQ,"P",type="string",  arrayType=TRUE)
+   RELAXDELAY  <- .bruker.get_param(ACQ,"D",type="string",  arrayType=TRUE)[2]
+   PULSEWIDTH <- .bruker.get_param(ACQ,"P",type="string",  arrayType=TRUE)[2]
    SPINNINGRATE <- .bruker.get_param(ACQ,"MASR",type="string")
    NUMBEROFSCANS <- .bruker.get_param(ACQ,"NS")
    DUMMYSCANS <- .bruker.get_param(ACQ,"DS")
@@ -268,6 +239,117 @@ Spec1rProcpar <- list (
    spec
 }
 
+#### Read 1r data and the main parameters needed to generate the real spectrum
+#--  internal routine
+#-- DIR: bruker directory containing the 1r
+.read.1r.bruker <- function(DIR, param=Spec1rProcpar)
+{
+   cur_dir <- getwd()
+   setwd(DIR)
+   
+   # Acquisition parameters filename
+   ACQFILE <- "acqus"
+   if (!file.exists(ACQFILE)) 
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
+
+   # 1r filename
+   SPECFILE <- paste(param$PDATA_DIR,"/1r",sep="")
+   if (!file.exists(SPECFILE))
+       stop("1r File (", SPECFILE, ") does not exist\n")
+
+   # Processing parameters filename
+   PROCFILE <- paste(param$PDATA_DIR,"/procs",sep="")
+   if (!file.exists(PROCFILE)) 
+       stop("Processing parameter File (", PROCFILE, ") does not exist\n")
+
+   # Read Acquisition parameters
+   ACQ     <- readLines(ACQFILE)
+   PROBE   <- .bruker.get_param(ACQ,"PROBHD",type="string")
+   SOLVENT <- .bruker.get_param(ACQ,"SOLVENT",type="string")
+   NUC     <- .bruker.get_param(ACQ,"NUC1",type="string")
+   PULSE   <- .bruker.get_param(ACQ,"PULPROG",type="string")
+   TEMP    <- .bruker.get_param(ACQ,"TE",type="string")
+   RELAXDELAY  <- .bruker.get_param(ACQ,"D",type="string",  arrayType=TRUE)[2]
+   PULSEWIDTH <- .bruker.get_param(ACQ,"P",type="string",  arrayType=TRUE)[2]
+   SPINNINGRATE <- .bruker.get_param(ACQ,"MASR",type="string")
+   TD      <- .bruker.get_param(ACQ,"TD")
+   SW      <- .bruker.get_param(ACQ,"SW")
+   SWH     <- .bruker.get_param(ACQ,"SW_h")
+   SFO1    <- .bruker.get_param(ACQ,"SFO1")
+   O1      <- .bruker.get_param(ACQ,"O1")
+   GRPDLY  <- .bruker.get_param(ACQ,"GRPDLY")
+   INSTRUMENT <- "Bruker"
+   SOFTWARE <- gsub("..TITLE= ?Parameter ...., ","", gsub("Version ", "", gsub("\t\t", " ", ACQ[1])))
+   ORIGIN   <- gsub("^[^=]+= ","", ACQ[which(simplify2array(regexpr("^..ORIGIN=",ACQ))>0)])
+   ORIGPATH <- gsub("^.. ", "", ACQ[which(simplify2array(regexpr("acqus$",ACQ))>0)])
+
+   GRPDLY <- tryCatch ( { if (!is.na(as.numeric(GRPDLY)) && as.numeric(GRPDLY)>0) round(GRPDLY); }, warning = function(w){}, error=function(e){} )
+   if (is.null(GRPDLY)) {
+        GRPDLY <- 0
+   }
+
+   # Read Processing parameters
+   PROC <- readLines(PROCFILE)
+   BYTORDP <- .bruker.get_param(PROC,"BYTORDP")
+   DTYPP <- .bruker.get_param(PROC,"DTYPP")
+   NC_proc <-  .bruker.get_param(PROC,"NC_proc")
+   OFFSET <- .bruker.get_param(PROC,"OFFSET")
+   SI <- .bruker.get_param(PROC,"SI")
+   PHC0 <-  .bruker.get_param(PROC,"PHC0")
+   PHC1 <-  .bruker.get_param(PROC,"PHC1")
+
+   # Read the 1r spectrum
+   ENDIAN <- ifelse( BYTORDP==0, "little", "big")
+   SIZE <- ifelse( DTYPP==0, 4L, 8L)
+   DTYPE <- ifelse( DTYPP==0, "int", "double" )
+   
+   to.read <- file(SPECFILE,"rb")
+   signal <- rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
+   close(to.read)
+   signal <- (2^NC_proc)*signal
+   TD <- SI <- length(signal)
+
+   setwd(cur_dir)
+
+   dppm <- SW/(TD-1)
+   pmax <- OFFSET
+   pmin <- OFFSET - SW
+   ppm <- seq(from=pmin, to=pmax, by=dppm)
+
+   acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
+                PROBE=PROBE, PULSE=PULSE, NUC=NUC, SOLVENT=SOLVENT, TEMP=TEMP, 
+                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
+                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+
+   proc <- list( phc0=PHC0*pi/180, phc1=PHC1*pi/180, SI=SI )
+
+   param$ZEROFILLING <- FALSE
+   param$LINEBROADENING <- FALSE
+
+   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=signal, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
+
+   spec
+}
+
+
+
+#--------------------------------
+# RS2D : FID & 1r
+#--------------------------------
+
+#### Retrieve a parameter value from RS2D acquisition parameters
+#--  internal routine
+#--  ACQ: list of acquisition parameters of the acqus file
+#--  paramStr: name of the parameter
+.rs2d.get_param <- function (ACQ,paramStr,type="numeric")
+{
+   regexpStr <- paste("^",paramStr,"=",sep="")
+   acqval <- gsub("^[^=]+= ?","" ,ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)])
+   if (type=="numeric")
+       acqval <-as.numeric(acqval)
+   acqval
+}
+
 #### Read FID data and the main parameters needed to generate the real spectrum
 #--  internal routine
 #-- DIR: RS2D directory containing the FID
@@ -333,6 +415,115 @@ Spec1rProcpar <- list (
    spec <- list( path=DIR, acq=acq, fid=fid )
 
    spec
+}
+
+
+#### Read 1r data and the main parameters
+#--  internal routine
+#-- DIR: rs2d directory containing the experience
+.read.1r.rs2d <- function(DIR, param=Spec1rProcpar)
+{
+   cur_dir <- getwd()
+   RAWDIR <- file.path(DIR,param$PDATA_DIR)
+   if (!file.exists(RAWDIR))
+       stop("Invalide folder : ", RAWDIR, " does not exist\n")
+
+   setwd(RAWDIR)
+   
+   # FID filename
+   FIDFILE <- "data.dat"
+   if (!file.exists(FIDFILE)) 
+       stop("DATA File ", FIDFILE, " does not exist\n")
+   # Acquisition parameters filename
+   ACQFILE <- "header.xml"
+   if (!file.exists(ACQFILE)) 
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
+   ACQ <- NULL
+   tree <- xmlTreeParse(ACQFILE)
+   root <- xmlRoot(tree)
+   xmlParams <- xmlElementsByTagName(root, "entry", recursive = TRUE)
+   for(i in 1:length(xmlParams)) {
+      L <- xmlToList(xmlElementsByTagName(xmlParams[[i]], "value", recursive = FALSE)[[1]])
+      ACQ <- c(ACQ,paste0(L$name,"=",L$value))
+   }
+
+   PROBE   <- .rs2d.get_param(ACQ,"PROBES",type="string")
+   SOLVENT <- .rs2d.get_param(ACQ,"SOLVENT",type="string")
+   PULSE   <- .rs2d.get_param(ACQ,"SEQUENCE_NAME",type="string")
+   TEMP    <- .rs2d.get_param(ACQ,"SAMPLE_TEMPERATURE")
+   RELAXDELAY  <- .rs2d.get_param(ACQ,"Last delay")
+   PULSEWIDTH <- .rs2d.get_param(ACQ,"P1.width")*1e6
+   SPINNINGRATE <- .rs2d.get_param(ACQ,"SPIN_RATE")
+   NUMBEROFSCANS <- .rs2d.get_param(ACQ,"NUMBER_OF_AVERAGES")
+   DUMMYSCANS <- .rs2d.get_param(ACQ,"DUMMY_SCAN")
+   NUC     <- .rs2d.get_param(ACQ,"OBSERVED_NUCLEUS",type="string")
+   TD      <- .rs2d.get_param(ACQ,"Nb Point")
+   SFO1    <- .rs2d.get_param(ACQ,"OBSERVED_FREQUENCY")/1e6
+   SWH     <- .rs2d.get_param(ACQ,"SPECTRAL_WIDTH")
+   SW      <- SWH/SFO1
+   O1      <- .rs2d.get_param(ACQ,"OFFSET_FREQ_1")
+   OFFSET  <- .rs2d.get_param(ACQ,"SR")/SFO1
+   LOCKPPM <- 0
+   LCKSTATE <- ifelse( .rs2d.get_param(ACQ,"LOCK",type="string")=='true', TRUE, FALSE )
+   ENDIAN  <-  "big"
+   INSTRUMENT <- paste("RS2D",.rs2d.get_param(ACQ,"MODEL_NAME",type="string"))
+   SOFTWARE <-  gsub(" \\[.+\\]","", .rs2d.get_param(ACQ,"SOFTWARE_VERSION",type="string"))
+   GRPDLY <- 0
+
+   # Read Processing parameters
+   SI <- TD
+   PHC0 <-  .rs2d.get_param(ACQ,"PHASE_0")
+   PHC1 <-  .rs2d.get_param(ACQ,"PHASE_1")
+
+   # Read the 1r spectrum
+   NP <- 2*TD
+   to.read = file(FIDFILE,"rb")
+   signal<-readBin(to.read, what="double", n=NP, size=4L, endian = ENDIAN)
+   close(to.read)
+   setwd(cur_dir)
+
+   rawR <- signal[seq(from = 1, to = NP, by = 2)]
+   rawI <- signal[seq(from = 2, to = NP, by = 2)]
+
+   dppm <- SW/(SI-1)
+   pmin <- OFFSET - SW/2
+   pmax <- OFFSET + SW/2
+   ppm <- seq(from=pmin, to=pmax, by=dppm)
+
+   acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN="RS2D", ORIGPATH=RAWDIR, 
+                PROBE=PROBE, PULSE=PULSE, NUC=NUC, SOLVENT=SOLVENT, TEMP=TEMP, 
+                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
+                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+
+   proc <- list( phc0=PHC0*pi/180, phc1=PHC1*pi/180, SI=SI )
+
+   param$ZEROFILLING <- FALSE
+   param$LINEBROADENING <- FALSE
+
+   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=rev(rawR), dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
+
+   spec
+}
+
+
+
+#--------------------------------
+# VARIAN : FID only
+#--------------------------------
+
+#### Retrieve a parameter value from Varian acquisition parameters
+#--  internal routine
+#--  ACQ: list of acquisition parameters of the procpar file
+#--  paramStr: name of the parameter
+.varian.get_param <- function (ACQ,paramStr,type="numeric")
+{
+   regexpStr <- paste("^",paramStr," ",sep="")
+   acqval <- gsub("1 ","",ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)+1])
+   if (type=="numeric")
+       acqval <-as.numeric(acqval)
+   if (type=="string")
+       acqval <-gsub("\"","",acqval)
+   acqval
 }
 
 #### Read FID data and the main parameters needed to generate the real spectrum
@@ -439,6 +630,12 @@ Spec1rProcpar <- list (
    spec
 
 }
+
+
+
+#--------------------------------
+# JEOL : FID only
+#--------------------------------
 
 #### Read FID data and the main parameters needed to generate the real spectrum
 #--  internal routine
@@ -684,6 +881,12 @@ Spec1rProcpar <- list (
    spec
 }
 
+
+
+#--------------------------------
+# nmrML : FID only
+#--------------------------------
+
 #### Read FID data from the nmrML file 'filename'
 #--  internal routine
 .read.FID.nmrML <- function(filename)
@@ -765,184 +968,6 @@ Spec1rProcpar <- list (
    spec
 }
 
-#### Read 1r data and the main parameters needed to generate the real spectrum
-#--  internal routine
-#-- DIR: bruker directory containing the 1r
-.read.1r.bruker <- function(DIR, param=Spec1rProcpar)
-{
-   cur_dir <- getwd()
-   setwd(DIR)
-   
-   # Acquisition parameters filename
-   ACQFILE <- "acqus"
-   if (!file.exists(ACQFILE)) 
-       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
-
-   # 1r filename
-   SPECFILE <- paste(param$PDATA_DIR,"/1r",sep="")
-   if (!file.exists(SPECFILE))
-       stop("1r File (", SPECFILE, ") does not exist\n")
-
-   # Processing parameters filename
-   PROCFILE <- paste(param$PDATA_DIR,"/procs",sep="")
-   if (!file.exists(PROCFILE)) 
-       stop("Processing parameter File (", PROCFILE, ") does not exist\n")
-
-   # Read Acquisition parameters
-   ACQ     <- readLines(ACQFILE)
-   PROBE   <- .bruker.get_param(ACQ,"PROBHD",type="string")
-   SOLVENT <- .bruker.get_param(ACQ,"SOLVENT",type="string")
-   NUC     <- .bruker.get_param(ACQ,"NUC1",type="string")
-   PULSE   <- .bruker.get_param(ACQ,"PULPROG",type="string")
-   TEMP    <- .bruker.get_param(ACQ,"TE",type="string")
-   RELAXDELAY  <- .bruker.get_param(ACQ,"D",type="string",  arrayType=TRUE)
-   PULSEWIDTH <- .bruker.get_param(ACQ,"P",type="string",  arrayType=TRUE)
-   SPINNINGRATE <- .bruker.get_param(ACQ,"MASR",type="string")
-   TD      <- .bruker.get_param(ACQ,"TD")
-   SW      <- .bruker.get_param(ACQ,"SW")
-   SWH     <- .bruker.get_param(ACQ,"SW_h")
-   SFO1    <- .bruker.get_param(ACQ,"SFO1")
-   O1      <- .bruker.get_param(ACQ,"O1")
-   GRPDLY  <- .bruker.get_param(ACQ,"GRPDLY")
-   INSTRUMENT <- "Bruker"
-   SOFTWARE <- gsub("..TITLE= ?Parameter ...., ","", gsub("Version ", "", gsub("\t\t", " ", ACQ[1])))
-   ORIGIN   <- gsub("^[^=]+= ","", ACQ[which(simplify2array(regexpr("^..ORIGIN=",ACQ))>0)])
-   ORIGPATH <- gsub("^.. ", "", ACQ[which(simplify2array(regexpr("acqus$",ACQ))>0)])
-
-   GRPDLY <- tryCatch ( { if (!is.na(as.numeric(GRPDLY)) && as.numeric(GRPDLY)>0) round(GRPDLY); }, warning = function(w){}, error=function(e){} )
-   if (is.null(GRPDLY)) {
-        GRPDLY <- 0
-   }
-
-   # Read Processing parameters
-   PROC <- readLines(PROCFILE)
-   BYTORDP <- .bruker.get_param(PROC,"BYTORDP")
-   DTYPP <- .bruker.get_param(PROC,"DTYPP")
-   NC_proc <-  .bruker.get_param(PROC,"NC_proc")
-   OFFSET <- .bruker.get_param(PROC,"OFFSET")
-   SI <- .bruker.get_param(PROC,"SI")
-   PHC0 <-  .bruker.get_param(PROC,"PHC0")
-   PHC1 <-  .bruker.get_param(PROC,"PHC1")
-
-   # Read the 1r spectrum
-   ENDIAN <- ifelse( BYTORDP==0, "little", "big")
-   SIZE <- ifelse( DTYPP==0, 4L, 8L)
-   DTYPE <- ifelse( DTYPP==0, "int", "double" )
-   
-   to.read <- file(SPECFILE,"rb")
-   signal <- rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
-   close(to.read)
-   signal <- (2^NC_proc)*signal
-   TD <- SI <- length(signal)
-
-   setwd(cur_dir)
-
-   dppm <- SW/(TD-1)
-   pmax <- OFFSET
-   pmin <- OFFSET - SW
-   ppm <- seq(from=pmin, to=pmax, by=dppm)
-
-   acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
-                PROBE=PROBE, PULSE=PULSE, NUC=NUC, SOLVENT=SOLVENT, TEMP=TEMP, 
-                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
-                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
-
-   proc <- list( phc0=PHC0*pi/180, phc1=PHC1*pi/180, SI=SI )
-
-   param$ZEROFILLING <- FALSE
-   param$LINEBROADENING <- FALSE
-
-   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=signal, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
-
-   spec
-}
-
-#### Read 1r data and the main parameters
-#--  internal routine
-#-- DIR: rs2d directory containing the experience
-.read.1r.rs2d <- function(DIR, param=Spec1rProcpar)
-{
-   cur_dir <- getwd()
-   RAWDIR <- file.path(DIR,param$PDATA_DIR)
-   if (!file.exists(RAWDIR))
-       stop("Invalide folder : ", RAWDIR, " does not exist\n")
-
-   setwd(RAWDIR)
-   
-   # FID filename
-   FIDFILE <- "data.dat"
-   if (!file.exists(FIDFILE)) 
-       stop("DATA File ", FIDFILE, " does not exist\n")
-   # Acquisition parameters filename
-   ACQFILE <- "header.xml"
-   if (!file.exists(ACQFILE)) 
-       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
-   ACQ <- NULL
-   tree <- xmlTreeParse(ACQFILE)
-   root <- xmlRoot(tree)
-   xmlParams <- xmlElementsByTagName(root, "entry", recursive = TRUE)
-   for(i in 1:length(xmlParams)) {
-      L <- xmlToList(xmlElementsByTagName(xmlParams[[i]], "value", recursive = FALSE)[[1]])
-      ACQ <- c(ACQ,paste0(L$name,"=",L$value))
-   }
-
-   PROBE   <- .rs2d.get_param(ACQ,"PROBES",type="string")
-   SOLVENT <- .rs2d.get_param(ACQ,"SOLVENT",type="string")
-   PULSE   <- .rs2d.get_param(ACQ,"SEQUENCE_NAME",type="string")
-   TEMP    <- .rs2d.get_param(ACQ,"SAMPLE_TEMPERATURE")
-   RELAXDELAY  <- .rs2d.get_param(ACQ,"Last delay")
-   PULSEWIDTH <- .rs2d.get_param(ACQ,"P1.width")*1e6
-   SPINNINGRATE <- .rs2d.get_param(ACQ,"SPIN_RATE")
-   NUMBEROFSCANS <- .rs2d.get_param(ACQ,"NUMBER_OF_AVERAGES")
-   DUMMYSCANS <- .rs2d.get_param(ACQ,"DUMMY_SCAN")
-   NUC     <- .rs2d.get_param(ACQ,"OBSERVED_NUCLEUS",type="string")
-   TD      <- .rs2d.get_param(ACQ,"Nb Point")
-   SFO1    <- .rs2d.get_param(ACQ,"OBSERVED_FREQUENCY")/1e6
-   SWH     <- .rs2d.get_param(ACQ,"SPECTRAL_WIDTH")
-   SW      <- SWH/SFO1
-   O1      <- .rs2d.get_param(ACQ,"OFFSET_FREQ_1")
-   OFFSET  <- .rs2d.get_param(ACQ,"SR")/SFO1
-   LOCKPPM <- 0
-   LCKSTATE <- ifelse( .rs2d.get_param(ACQ,"LOCK",type="string")=='true', TRUE, FALSE )
-   ENDIAN  <-  "big"
-   INSTRUMENT <- paste("RS2D",.rs2d.get_param(ACQ,"MODEL_NAME",type="string"))
-   SOFTWARE <-  gsub(" \\[.+\\]","", .rs2d.get_param(ACQ,"SOFTWARE_VERSION",type="string"))
-   GRPDLY <- 0
-
-   # Read Processing parameters
-   SI <- TD
-   PHC0 <-  .rs2d.get_param(ACQ,"PHASE_0")
-   PHC1 <-  .rs2d.get_param(ACQ,"PHASE_1")
-
-   # Read the 1r spectrum
-   NP <- 2*TD
-   to.read = file(FIDFILE,"rb")
-   signal<-readBin(to.read, what="double", n=NP, size=4L, endian = ENDIAN)
-   close(to.read)
-   setwd(cur_dir)
-
-   rawR <- signal[seq(from = 1, to = NP, by = 2)]
-   rawI <- signal[seq(from = 2, to = NP, by = 2)]
-
-   dppm <- SW/(SI-1)
-   pmin <- OFFSET - SW/2
-   pmax <- OFFSET + SW/2
-   ppm <- seq(from=pmin, to=pmax, by=dppm)
-
-   acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN="RS2D", ORIGPATH=RAWDIR, 
-                PROBE=PROBE, PULSE=PULSE, NUC=NUC, SOLVENT=SOLVENT, TEMP=TEMP, 
-                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
-                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
-
-   proc <- list( phc0=PHC0*pi/180, phc1=PHC1*pi/180, SI=SI )
-
-   param$ZEROFILLING <- FALSE
-   param$LINEBROADENING <- FALSE
-
-   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=rev(rawR), dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
-
-   spec
-}
 
 
 

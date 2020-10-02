@@ -29,12 +29,12 @@ generateMetadata <- function(RAWDIR, procParams, samples=NULL)
 {
    metadata <- list()
    repeat {
-      # Bruker, Varian or nmrML with a provided sample file 
+      # if a sample file is provided 
       if (! is.null(samples) ) {
           metadata <- set_Metadata(RAWDIR, procParams, samples )
           break
       }
-      # Bruker without sample file 
+      # if Bruker without sample file 
       if ( procParams$VENDOR=="bruker" ) {
           if ( procParams$INPUT_SIGNAL=="fid" ) {
               metadata <- generate_Metadata_Bruker_fid(RAWDIR, procParams )
@@ -46,6 +46,7 @@ generateMetadata <- function(RAWDIR, procParams, samples=NULL)
           }
           break
       }
+      # if RS2D without sample file 
       if ( procParams$VENDOR=="rs2d" ) {
           if ( procParams$INPUT_SIGNAL=="fid" ) {
               metadata <- generate_Metadata_RS2D_fid(RAWDIR, procParams )
@@ -57,7 +58,7 @@ generateMetadata <- function(RAWDIR, procParams, samples=NULL)
           }
           break
       }
-      # Varian, Jeol or nmrML without sample file 
+      # else: Varian, Jeol or nmrML without sample file 
       metadata <- set_Metadata(RAWDIR, procParams, samples )
       break
    }

@@ -969,7 +969,7 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
           }
           if (cmdName == lbBUCKET) {
               if ( !( length(cmdPars) >= 6 && cmdPars[2] %in% c('aibin','unif') ) &&
-                   !( length(cmdPars) == 2 && cmdPars[2] %in% c('vsb') ) ) {
+                   !( length(cmdPars) <= 3 && cmdPars[2] %in% c('vsb') ) ) {
                  CMD <- CMD[-1]
                  break;
               }
@@ -989,6 +989,7 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
               } else {
                   PPM_NOISE <- NULL
                   resol <- 0; snr <- 0;
+                  if (length(params)>2) fappend <- params[3]
                   Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2]),"\n"))
               }
               Write.LOG(LOGFILE,"Rnmr1D:  Bucketing the selected PPM ranges ...\n")

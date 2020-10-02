@@ -171,6 +171,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
    LIST <- metadata$rawids
    Write.LOG(LOGFILE, paste0("Rnmr1D:  -- Nb Spectra = ",dim(LIST)[1]," -- Nb Cores = ",ncpu,"\n"))
 
+   specObj <- NULL
    tryCatch({
 
        cl <- parallel::makeCluster(ncpu)

@@ -90,3 +90,7 @@ spectra <- getSpectraData(out)
 vignette("Rnmr1D")
 ```
 
+You can access the vignette online : https://nmrprocflow.org/themes/html/Rnmr1D.html
+
+
+
