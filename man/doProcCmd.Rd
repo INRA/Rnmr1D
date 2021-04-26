@@ -31,7 +31,7 @@ function for more details on its structure
     CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
     SAMPLEFILE <- file.path(data_dir, "Samples.txt")
     out <- Rnmr1D::doProcessing(data_dir, cmdfile=CMDFILE, 
-                                samplefile=SAMPLEFILE, ncpu=detectCores())
+                                samplefile=SAMPLEFILE, ncpu=2)
 # Apply an intelligent bucketing (AIBIN)
     specMat.new <- Rnmr1D::doProcCmd(out, 
              c("bucket aibin 10.2 10.5 0.3 3 0", 

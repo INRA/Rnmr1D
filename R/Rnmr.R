@@ -1,7 +1,7 @@
 #------------------------------------------------
 # Rnmr1D package: Build 1r spectrum from FID file (Bruker/RS2D/Varian/nmrML)
 # Project: NMRProcFlow
-# (C) 2015-2020 - D. JACOB - IMRA UMR1332 BAP
+# (C) 2015-2021 - D. JACOB - IMRAE UMR1332 BAP
 #------------------------------------------------
 
 #' Spec1rDoProc
@@ -24,14 +24,14 @@ Spec1rDoProc <- function(Input, param=Spec1rProcpar)
 #'   \item \code{DEBUG} : Debug - defaut value = TRUE
 #'   \item \code{LOGFILE} : Messages output file - default value = ""
 #'   \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian, jeol, rs2d) - default value = 'bruker'
-#'   \item \code{READ_RAW_ONLY} : Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL - default value = FALSE
+#'   \item \code{READ_RAW_ONLY} : Read raw file only; do not carry out processing; raw file is depending on INPUT_SIGNAL - default value = FALSE
 #'   \item \code{INPUT_SIGNAL} : What type of input signal: 'fid' or '1r' - default value = 'fid'
 #'   \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
 #'   \item \code{LB} : Exponantial Line Broadening parameter - default value = 0.3
 #'   \item \code{GB} : Gaussian Line Broadening parameter - default value = 0
 #'   \item \code{REMLFREQ} : Remove low frequencies by applying a polynomial subtraction method. - default order of the model = 0
 #'   \item \code{REVPPM} : Reverse ppm scale - default value = FALSE
-#'   \item \code{BLPHC} : Number of points for baseline smoothing during phasing - default value = 260
+#'   \item \code{BLPHC} : Number of points for baseline smoothing during phasing - default value = 50
 #'   \item \code{KSIG} : Number of times the noise signal to be considered during phasing - default value = 6
 #'   \item \code{CPMG} : Indicate if CPMG sequence  - default value = FALSE
 #'   \item \code{ZEROFILLING} : Zero Filling - - default value = FALSE
@@ -41,7 +41,7 @@ Spec1rDoProc <- function(Input, param=Spec1rProcpar)
 #'   \item \code{RABOT} : Zeroing of Negative Values - default value = FALSE
 #'   \item \code{OPTPHC0} : Zero order phase optimization - default value = TRUE
 #'   \item \code{OPTPHC1} : First order phase optimization - default value = FALSE
-#'   \item \code{OPTCRIT1} : Criterium for phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy - default value = 3
+#'   \item \code{OPTCRIT1} : Criterium for phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy - default value = 2
 #'   \item \code{JGD_INNER} : JEOL : internal (or external) estimation for Group Delay - default value = TRUE
 #' }
 Spec1rProcpar <- list (
@@ -53,28 +53,34 @@ Spec1rProcpar <- list (
     READ_RAW_ONLY=FALSE,       # Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL
     INPUT_SIGNAL="fid",        # What type of input signal: 'fid' or '1r'
     PDATA_DIR='pdata/1',       # subdirectory containing the 1r file (bruker's format only)
+    CLEANUP_OUTPUT=TRUE,       # Clean up the final output objet
 
 ### PRE-PROCESSING
+    LINEBROADENING=TRUE,       # Line Broading
     LB= 0.3,                   # Exponantial Line Broadening parameter
     GB= 0,                     # Gaussian Line Broadening parameter
-    REMLFREQ=0,                # Remove low frequencies by applying a polynomial subtraction method.
     REVPPM=FALSE,              # Reverse ppm scale
+    ZEROFILLING=FALSE,         # Zero Filling
+    ZFFAC=4,                   # Max factor for Zero Filling
+    TSP=FALSE,                 # PPM referencing
+    O1RATIO=1,                 # Fractionnal value of the Sweep Width for PPM calibration
+                               # if not based on the parameter of the spectral region center (O1)
+    RABOT=FALSE,               # Zeroing of Negative Values
+
+### Phase Correction
+    OPTPHC0=TRUE,              # Zero order phase optimization
+    OPTPHC1=TRUE,              # Zero order and first order phases optimization
+    OPTCRIT1=2,                # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
+
+### PRE-PROCESSING
+    REMLFREQ=0,                # Remove low frequencies by applying a polynomial subtraction method.
     BLPHC=50,                  # Number of points for baseline smoothing during phasing
     KSIG=2,                    # Number of times the noise signal to be considered
     GAMMA=0.005,               # Penalty factor for the calculation of the entropy
     CPMG=FALSE,                # Indicate if CPMG sequence
     KZERO=0.3,                 # PPM range around the center to be masked during phase correction
-    ZEROFILLING=FALSE,         # Zero Filling
-    ZFFAC=4,                   # Max factor for Zero Filling 
-    LINEBROADENING=TRUE,       # Line Broading
-    TSP=FALSE,                 # PPM referencing
-    O1RATIO=1,                 # Fractionnal value of the Sweep Width for PPM calibration if not based on the parameter of the spectral region center (O1)
-    RABOT=FALSE,               # Zeroing of Negative Values 
-    OPTPHC0=TRUE,              # Zero order phase optimization
-    OPTPHC1=FALSE,             # First order phase optimization
     OPTSTEP=TRUE,              # applied the lifting minimum to zero
     OPTCRIT0=0,                # Criterium for zero order phasing optimization (0 for SSneg, 1 for SSpos)
-    OPTCRIT1=2,                # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
     CRITSTEP1=0,               # Criterium for first step of the first order phasing optimization
     CRITSTEP2=2,               # Criterium for second step of the first order phasing optimization
     RATIOPOSNEGMIN=0.4,        # Ratio Positive/Negative Minimum
@@ -88,8 +94,14 @@ Spec1rProcpar <- list (
 .v <- function(..., logfile=Spec1rProcpar$LOGFILE) cat(sprintf(...), sep='', file=logfile, append=TRUE)
 
 
+
+#--------------------------------
+# READ FID && Acquisition Parameters
+#--------------------------------
+
 ### Estime Group Delay
 #-- fid : free induction decay - Complex data type
+
 .estime_grpdelay <- function(fid)
 {
    P <- sqrt(  Re(fid)^2 + Im(fid)^2 )
@@ -108,6 +120,7 @@ Spec1rProcpar <- list (
    }
    G
 }
+
 
 #--------------------------------
 # BRUKER : FID & 1r
@@ -131,7 +144,6 @@ Spec1rProcpar <- list (
        acqval <-gsub("<","",gsub(">","",acqval))
    acqval
 }
-
 
 #### Read FID data and the main parameters needed to generate the real spectrum
 #--  internal routine
@@ -416,7 +428,6 @@ Spec1rProcpar <- list (
 
    spec
 }
-
 
 #### Read 1r data and the main parameters
 #--  internal routine
@@ -1015,12 +1026,12 @@ Spec1rProcpar <- list (
    rawR <- Re(fid)
    rawI <- Im(fid)
    
-   model <- stats::lm(rawR ~ poly(1:length(rawR), np))
-   rM <- stats::fitted(model)
+   model <- lm(rawR ~ poly(1:length(rawR), np))
+   rM <- fitted(model)
    rawR <- rawR - rM
    
-   model <- stats::lm(rawI ~ poly(1:length(rawR), np))
-   iM <- stats::fitted(model)
+   model <- lm(rawI ~ poly(1:length(rawR), np))
+   iM <- fitted(model)
    rawI <- rawI - iM
 
    complex(real=rawR, imaginary=rawI)
@@ -1111,7 +1122,9 @@ Spec1rProcpar <- list (
 
     param$SI <- length(rawspec)
     proc <- list( phc0=0, phc1=0, crit=NULL, RMS=0, SI=length(rawspec))
-    if (is.null(param$phc0)) param$phc0 <- param$phc1 <- 0
+    attach(param)
+    if (!exists("phc0")) param$phc0 <- param$phc1 <- 0
+    detach(param)
 
     # PPM Calibration
     m <- proc$SI
@@ -1152,7 +1165,7 @@ Spec1rProcpar <- list (
    n <- round(length(Yre)/24)
    Yre <- Yre[n:(23*n)]
    if (spec$param$BLPHC>0) Yre <- Yre + rep(spec$B/4, length(Yre))
-   entropy <- Fentropy(phc, Re(V),Im(V), spec$param$BLPHC, spec$param$KSIG*spec$B, spec$param$GAMMA)
+   entropy <- Fentropy(phc, Re(V),Im(V), spec$param$BLPHC, spec$param$BLPHC, spec$param$KSIG*spec$B, spec$param$GAMMA)
    x0 <- 0.5*(spec$pmax-spec$pmin) + spec$param$KZERO*c(-1,1)
    Yre[ round(length(Yre)*x0[1]/spec$acq$SW):round(length(Yre)*x0[2]/spec$acq$SW) ] <- 0
    #p <- 0.95
@@ -1242,7 +1255,7 @@ Spec1rProcpar <- list (
    N <- 2; C <- 0
    while( C==0 && N>0 ) {
       opt <- tryCatch({
-                 stats::optim(par=phc, fn=Fmin, method="Nelder-Mead", re=Re(V), im=Im(V), 
+                 optim(par=phc, fn=Fmin, method="Nelder-Mead", re=Re(V), im=Im(V), 
                                 blphc=spec$param$BLPHC, B=spec$param$KSIG*spec$B, flg=flg, control=list(maxit=200))
              },  error = function(e) {  list(convergence=1) })
       if (opt$convergence==0) {
@@ -1262,7 +1275,7 @@ Spec1rProcpar <- list (
          if (spec$param$DEBUG).v("\n\t%d: No convergence   ",  lopt, logfile=spec$param$LOGFILE)
          N <- N - 1
       }
-      phc <- c( stats::runif(1, -pi, pi), stats::runif(1, -pi/10, pi/10) )
+      phc <- c( runif(1, -pi, pi), runif(1, -pi/10, pi/10) )
    }
    lopt <- lopt + 1
    return( list(spec=spec, lopt=lopt, ret=ret) )
@@ -1461,11 +1474,13 @@ Spec1rProcpar <- list (
           }
 
           #cleanup the final object
-          spec$data <- NULL
-          spec$data0 <- NULL
-          spec$fid0 <- NULL
-          spec$crit <- NULL
-          spec$B <- NULL
+          if (param$CLEANUP_OUTPUT) {
+              spec$crit <- NULL
+              spec$fid0 <- NULL
+              spec$data0 <- NULL
+              spec$data <- NULL
+              spec$B <- NULL
+          }
       }
 
       # Define spec list as a Spectrum object

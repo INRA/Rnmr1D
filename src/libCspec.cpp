@@ -1,6 +1,6 @@
 /*
   ID libCspec.cpp
-  Copyright (C) 2017-2019 INRA
+  Copyright (C) 2015-2021 INRAE
   Authors: D. Jacob
 */
  
@@ -248,30 +248,23 @@ double WinMoy (SEXP v, int n1, int n2)
 // [[Rcpp::export]]
 SEXP Smooth (SEXP v, int n)
 {
-    NumericVector specR(v);
-    int N = specR.size();
+    NumericVector V(v);
+    int N = V.size();
     NumericVector S(N);
     
-    double W=specR[0];
-    for (int k=1; k<N; k++) {
-        if (k<=n) {
-           W += (specR[2*k-1] + specR[2*k]);
-           S[k] = W/(2*k+1);
-        }
-        if (k>n && k<(N-n-1)) {
-           W += (specR[k+n]- specR[k-n-1]);
-           S[k] = W/(2*n+1);
-        }
-        if (k>(N-n) && k<N) {
-           W -= (specR[2*k-N]- specR[2*k-N-1]);
-           S[k] = W/(2*(N-k)-1);
-        }
+    double Wk=V[0];
+    S[0]=V[0];
+    for (int k=1; k<(N-1); k++) {
+        if (k<=n)            { Wk += (V[2*k]   + V[2*k-1]);    S[k] = Wk/(2*k+1);     }
+        if (k>n && k<=(N-n)) { Wk += (V[k+n]   - V[k-n-1]);    S[k] = Wk/(2*n+1);     }
+        if (k>(N-n))         { Wk -= (V[2*k-N] - V[2*k-N-1]);  S[k] = Wk/(2*(N-k)+1); }
     }
+    S[N-1]=V[N-1];
     return S;
 }
 
 // [[Rcpp::export]]
-void Ajust_LB (SEXP s, SEXP b, int n1, int n2)
+void fitLines (SEXP s, SEXP b, int n1, int n2)
 {
     NumericVector specR(s), lb(b);
     int k,ni;
@@ -288,7 +281,7 @@ void Ajust_LB (SEXP s, SEXP b, int n1, int n2)
         a=(specR[ni]-lb[n1])/(ni-n1);
         for (k=n1+1; k<=ni; k++)
             lb[k]=a*(k-n1)+lb[n1];
-        Ajust_LB(specR,lb,ni,n2);
+        fitLines(specR,lb,ni,n2);
     }
     else
         for (k=n1; k<n2; k++)
@@ -329,14 +322,14 @@ SEXP C_Estime_LB (SEXP s, int istart, int iend, double WS, double NEIGH, double 
             if (cnt<NEIGH*ws) { cnt=0; continue; }
             for (k=n2; k<count; k++) lb[k] = m1[k];
             if (n1<n2) {
-                Ajust_LB(specR,lb,n1,n2);
+                fitLines(specR,lb,n1,n2);
             }
             n1=count-1;
             cnt=0;
         }
    }
    if (cnt>0) for (k=n2; k<count; k++) lb[k] = m1[k];
-   if (n1<n2) Ajust_LB(specR,lb,n1,iend-1);
+   if (n1<n2) fitLines(specR,lb,n1,iend-1);
    return(lb);
 }
 
@@ -348,12 +341,9 @@ SEXP C_Estime_LB2 (SEXP s, int istart, int iend, double WS, double NEIGH, double
    int TD = specR.size();
    int N = round(log2(TD));
    int ws = N>15 ? 2 : 1;
-   int edgesize=10;
 
    // Create the lb vector initialize with spectrum values
    NumericVector lb(TD), m1(TD), m2(TD);
-
-   // (s1,neigh) = (50,35) => soft, (25,15) => intermediate, (10,5) => hard
 
    m1=Smooth(specR,WS*ws);
    m2=Smooth(specR,4*ws);
@@ -361,9 +351,6 @@ SEXP C_Estime_LB2 (SEXP s, int istart, int iend, double WS, double NEIGH, double
    cnt=n1=n2=0;
    for (count=0; count<TD; count++) {
         if (count<istart || count>iend ) {
-            lb[count]=0;  n1=count; n2=count; cnt=0; continue;
-        }
-        if (count<(istart+edgesize)) {
             lb[count]=m1[count];  n1=count; n2=count; cnt=0; continue;
         }
         if ((_abs(m2[count] - m1[count])) <= sig) {
@@ -380,11 +367,11 @@ SEXP C_Estime_LB2 (SEXP s, int istart, int iend, double WS, double NEIGH, double
             cnt=0;
         }
    }
-   if (cnt>0) for (k=n2; k<count; k++) lb[k] = m1[k];
+   if (cnt>0) for (k=n2; k<TD; k++) lb[k] = m1[k];
    if (n1<n2) {
-       n2=iend-1;
+//       n2=iend-1;
        double a=(lb[n2]-lb[n1])/(n2-n1);  for (k=n1; k<n2; k++) lb[k]=a*(k-n1)+lb[n1];
-    }
+   }
    return(lb);
 }
 
@@ -467,7 +454,8 @@ SEXP C_spec_ref (SEXP x, IntegerVector v)
 }
 
 // [[Rcpp::export]]
-SEXP C_MedianSpec(SEXP x) {
+SEXP C_MedianSpec(SEXP x)
+{
    NumericMatrix VV(x);
    int n_specs = VV.nrow();
    int count_max = VV.ncol();
@@ -496,9 +484,15 @@ SEXP C_Derive1 (SEXP v)
    NumericVector D(count_max);
 
    for (count=0; count<count_max; count++) D[count]=0.0;
-   D[1]=specR[1]-specR[0]; D[0]=specR[1];
-   for (count=2; count<count_max-2; count++)
-       D[count] = (specR[count-2]-8*specR[count-1]+8*specR[count+1]-specR[count+2])/12;
+//   D[1]=specR[1]-specR[0]; D[0]=specR[1];
+//   for (count=2; count<count_max-2; count++)
+//       D[count] = (specR[count-2]-8*specR[count-1]+8*specR[count+1]-specR[count+2])/12;
+   for (count=5; count<count_max-5; count++)
+       D[count] = (42*(specR[count+1]-specR[count-1]) + 
+                   48*(specR[count+2]-specR[count-2]) + 
+                   27*(specR[count+3]-specR[count-3]) +
+                    8*(specR[count+4]-specR[count-4]) +
+                       specR[count+5]-specR[count-5] )/512;
    return (D);
 }
 
@@ -986,13 +980,11 @@ SEXP ajustBL (SEXP x, int flg) {
 
    NumericVector Y( X.size() );
    NumericVector m(n2);
-   //double m[n2];
+
    double mx, sdx, med, sdev;
 
-  Rcpp::Environment base("package:stats"); 
-  Rcpp::Function median_r = base["median"];
-
-  // Call the function and receive its list output
+   Rcpp::Environment base("package:stats"); 
+   Rcpp::Function median_r = base["median"];
 
    sdx=0; mx=0;
    for (i=3; i<30; ++i) {
@@ -1010,6 +1002,42 @@ SEXP ajustBL (SEXP x, int flg) {
 
    return(Y);
 }
+
+//SEXP ajustBL (SEXP x, int flg)
+//{
+//
+//   NumericVector X(x);
+//   const size_t n = (size_t)(X.size());
+//   const size_t n2 = n/32;
+//   const size_t n3 = (size_t)(n/24);
+//   size_t i,k;
+//
+//   NumericVector Y( X.size() );
+//   NumericVector m(2*n2);
+//
+//   double mx1, mx2, mx;
+//
+//   Rcpp::Environment base("package:stats"); 
+//   Rcpp::Function median_r = base["median"];
+//
+//   for (k=0; k<2*n2; ++k) m[k] = X[n2+k];
+//   NumericVector res1 = median_r(m);
+//   mx1 = res1[0];
+//
+//   for (k=0; k<2*n2; ++k) m[k] = X[29*n2+k];
+//   NumericVector res2 = median_r(m);
+//   mx2 = res2[0];
+//
+//   mx = 0.5*(mx1+mx2);
+//   
+//   for (i=0; i<n; ++i)
+//     if (flg==0 || i>n3 || i<(n-n3))
+//         Y[i] = X[i]-mx;
+//     else
+//         Y[i] = 0;
+//
+//   return(Y);
+//}
 
 // C_corr_spec_re( l=list(spec1r$re, spec1r$im, phc0, phc1) )
 //   m <- length(spec1r)
@@ -1047,7 +1075,7 @@ SEXP C_corr_spec_re (SEXP l)
 }
 
 // [[Rcpp::export]]
-double Fmin(SEXP par, SEXP re, SEXP im, int blphc, double B, int flg=0)
+double Fmin(SEXP par, SEXP re, SEXP im, int blphc, int neigh, double B, Nullable<NumericVector> vmask = R_NilValue, int crit=0)
 {
    NumericVector P(par);
    NumericVector Re(re);
@@ -1056,81 +1084,114 @@ double Fmin(SEXP par, SEXP re, SEXP im, int blphc, double B, int flg=0)
    double phc1  = P[1];;
    const size_t n = (size_t)(Re.size());
    const size_t n2 = (size_t)(n/24);
-   size_t i;
-   double phi, Xmin, Xmax, SS;
+   size_t i,m;
+   long long int k;
+   double phi, Xmin, SS;
 
+   // X = real( data * exp(1j * (phase0 + phase1 * x)) )
    NumericVector X(n);
    for (i=0; i<n; i++) {
-       //phi = phc0 + phc1*(i/n-0.5);
        phi = phc0 + phc1*i/n;
        X[i] = cos(phi)*Re[i] - sin(phi)*Im[i];
    }
-   X=ajustBL (X, 0);
+   X=ajustBL (X, 1);
 
-   NumericVector lb(n);
-   if (blphc>0)
-      lb=C_Estime_LB2(X, 1, n-1, blphc, blphc, B);
-
-   Xmax=Xmin=0;
-   for (i=n2; i<(n-n2); i++) {
-      if (blphc==0 && i>n/2 && i<n) X[i]=0;
-      if (blphc>0) X[i] -= lb[i];
-      if (X[i]<Xmin) Xmin=X[i];
-      if (X[i]>Xmax) Xmax=X[i];
+   // X <- X - baseline
+   NumericVector lb(n2);
+   if (blphc>0) {
+      lb=C_Estime_LB2(X, 0, n, blphc, neigh, B);
+      for (i=n2; i<(n-n2); i++) X[i] -= lb[i];
    }
 
+   // X <- X with the masked zone equal to zero
+   if (vmask.isNotNull() && blphc>0) {
+      NumericVector Vm(vmask);
+      for (k=0; k<Vm.size(); k++) {
+          m = (size_t)(Vm[k]);
+          if (m>n2 && m<(n-n2)) X[m]=0;
+      }
+   }
+
+   // find Xmin
+   // if no BL, sets the second half of X to zero
+   Xmin=0;
+   for (i=n2; i<(n-n2); i++)
+      if (X[i]<Xmin) Xmin=X[i];
+
+   // Compute the criterion
    SS=0;
    for (i=n2; i<(n-n2); i++) {
-       if (flg==0) SS +=  X[i] < 0 ? pow(X[i]/Xmax,2) : 0;
-       if (flg==1) SS +=  pow(X[i]/Xmax,2);
-       if (flg==2) SS +=  X[i] < 0 ? pow((X[i]-Xmin)/Xmax,2) : pow(Xmin,2);
-       if (flg==3) SS +=  pow(abs(X[i]/Xmax),0.5);
+       // SSneg
+       if (crit==0) SS +=  X[i] <= 0 ? pow(X[i],2) : 0;
+       // Modified SSneg
+       if (crit==1) SS +=  X[i] <= 0 ? pow(X[i],2) : pow(Xmin,2);
+       // Power of 0.05
+       if (crit==2) SS +=  pow(X[i],0.05);
    }
    return(SS);
 }
 
 // [[Rcpp::export]]
-double Fentropy(SEXP par, SEXP re, SEXP im, int blphc, double B, double gamma=5e-5)
+double Fentropy(SEXP par, SEXP re, SEXP im, int blphc, int neigh, double B, double Gamma)
 {
    NumericVector P(par);
    NumericVector Re(re);
    NumericVector Im(im);
    double phc0  = P[0];
-   double phc1  = P[1];;
+   double phc1  = P[1];
    const size_t n = (size_t)(Re.size());
-   const size_t n2 = (size_t)(n/24);
    size_t i;
-   double phi, h, SR, SSX, E, F;
+   double phi, sumD, H1, Pfun, sumax, sumax2;
 
+   // X = real( data * exp(1j * (phase0 + phase1 * x)) )
    NumericVector X(n);
    for (i=0; i<n; i++) {
-       //phi = phc0 + phc1*(i/n-0.5);
        phi = phc0 + phc1*i/n;
        X[i] = cos(phi)*Re[i] - sin(phi)*Im[i];
    }
-   X=ajustBL (X, 0);
+   
+   // Ignore 1st N and last N points of the spectrum
+   size_t N=1000;
+   size_t n2=n-2*N;
+   NumericVector X2(n2);
+   for (i=0; i<n2; i++) X2[i] = X[i+N];
 
-   NumericVector lb(n);
+   // X <- X - baseline
+   NumericVector lb(n2);
+   X2=ajustBL (X2, 0);
    if (blphc>0) {
-      lb=C_Estime_LB2(X, 1, n-1, blphc, blphc, B);
-      for (i=0; i<n; i++) X[i] -= lb[i];
+      lb=C_Estime_LB2(X2, 1, n2-1, blphc, neigh, B);
+      for (i=0; i<n2; i++) X2[i] -= lb[i];
    }
 
-   NumericVector D(n);
-   D = C_Derive1(X);
+   // D = abs((X[3:n] - X[1:n - 2]) / 2.0)
+   NumericVector D(n2-2);
+   sumD = 0.0;
+   for (i=0; i<(n2-2); i++) { D[i] = _abs(X2[i+2]-X2[i])/2.0; sumD += D[i]; }
 
-   SR=SSX=0;
-   for (i=n2; i<(n-n2); i++) { SR += _abs(D[i]); SSX += X[i]*X[i]; }
+   // p1 = D / sum(D)
+   // p1[where(p1 == 0)] = 1
+   NumericVector p1(n2-2);
+   for (i=0; i<(n2-2); i++) { p1[i] = D[i]/sumD; if (p1[i]==0) p1[i] = 1; }
 
-   F=E=0;
-   for (i=n2; i<(n-n2); i++) { 
-        h= _abs(D[i])/SR; 
-        E += h*log(h);
-        if (X[i]<0) F += X[i]*X[i]/SSX;
-   }
-   E = gamma*F - E;
+   // H1 = sum(-p1 * log(p1))
+   H1 = 0.0;
+   for (i=0; i<(n2-2); i++) H1 += -p1[i]*log(p1[i]);
 
-   return(_abs(E));
+   // Pfun = 0.0
+   Pfun = 0.0;
+   
+   // sumax = sum(X - abs(X))
+   // sumax2 = sum((X - abs(X))^2)
+   sumax = sumax2 = 0.0;
+   for (i=0; i<n2; i++) { sumax += (X2[i] - _abs(X2[i])); sumax2 += pow(X2[i] - _abs(X2[i]),2); }
+ 
+   // if real(sumax) < 0:
+   //     Pfun = sumax2 / (2*n)^2
+   if (sumax<0) Pfun += sumax2/(4*pow(n2,2));
+
+   // return H1 + 1000 * Pfun
+   return(H1 + Gamma * Pfun);
 }
 
 // ---------------------------------------------------

@@ -1,5 +1,5 @@
 # ID StatTools.R
-# Copyright (C) 2017-2019 INRA
+# Copyright (C) 2017-2020 INRAE
 # Authors: D. Jacob
 #
 trim<-function(x) gsub("^\\s+|\\s+$", "", x)
@@ -48,7 +48,7 @@ replace_zero <- function(data)
 ##          NULL
 ##
 ########################################################################################
-getScaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Vast","Range","Level","L1","L2","NULL"))
+.getScaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Vast","Range","Level","L1","L2","NULL"))
 {
 ## LOG Transformation
    if (log==2) {
@@ -162,7 +162,7 @@ getScaling <- function(matrix, log, methods=c("Centering","Zscore","Pareto","Vas
 #'   cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
 #'   samplefile <- file.path(data_dir, "Samples.txt")
 #'   out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
-#'                                 samplefile=samplefile, ncpu=detectCores())
+#'                                 samplefile=samplefile, ncpu=2)
 #'   outMat <- getBucketsDataset(out, norm_meth='CSN')
 #'   clustcorr <- getClusters(outMat, method='corr', cval=0, dC=0.003, ncpu=2)
 #'   clusthca <- getClusters(outMat, method='hca', vcutusr=0)
@@ -221,7 +221,7 @@ get_Clusters_hca <- function(data, vcutusr=0, scalemeth='Zscore', log=0, distmet
         return(VarSet)
    }
 
-   matrix <- getScaling(data,log=params$log, methods=params$scalemeth)
+   matrix <- .getScaling(data,log=params$log, methods=params$scalemeth)
 
    VC <- 1
    CC <- 2
@@ -329,7 +329,7 @@ get_Clusters_corr <- function(data, scalemeth='Zscore', log=0, cmeth='pearson', 
 
    )
 
-   matrix <- getScaling(data,log=params$log, methods=params$scalemeth)
+   matrix <- .getScaling(data,log=params$log, methods=params$scalemeth)
 
 #---- CLUSTERING -----
 

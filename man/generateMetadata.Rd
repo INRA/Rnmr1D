@@ -27,7 +27,7 @@ generateMetadata(RAWDIR, procParams, samples = NULL)
 \examples{
 data_dir <- system.file("extra", package = "Rnmr1D")
 samplefile <- file.path(data_dir, "Samples.txt")
-samples <- read.table(samplefile, sep="\\t", header=TRUE,stringsAsFactors=FALSE)
+samples <- read.table(samplefile, sep="\t", header=TRUE,stringsAsFactors=FALSE)
 metadata <- generateMetadata(data_dir, procParams=Spec1rProcpar, samples)
 
 }

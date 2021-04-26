@@ -30,7 +30,7 @@ An internal reference can be used to normalize the data. For example, an electro
   cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
   samplefile <- file.path(data_dir, "Samples.txt")
   out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
-                                samplefile=samplefile, ncpu=detectCores())
+                                samplefile=samplefile, ncpu=2)
   outMat <- getBucketsDataset(out, norm_meth='CSN')
  }
 }

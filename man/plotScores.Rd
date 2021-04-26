@@ -4,8 +4,18 @@
 \alias{plotScores}
 \title{plotScores}
 \usage{
-plotScores(data, pc1, pc2, samples, factor = NULL, cexlabel = 1.2,
-  level = 0.95, xlim = NULL, ylim = NULL, col = NULL)
+plotScores(
+  data,
+  pc1,
+  pc2,
+  samples,
+  factor = NULL,
+  cexlabel = 1.2,
+  level = 0.95,
+  xlim = NULL,
+  ylim = NULL,
+  col = NULL
+)
 }
 \arguments{
 \item{data}{the matrix of scores coming from a multivariable analysis, typically a Principal Component Analysis (PCA)}

@@ -4,8 +4,12 @@
 \alias{plotClusters}
 \title{plotClusters}
 \usage{
-plotClusters(data, clustObj, horiz = TRUE,
-  main = "Boxplot by clusters (log10 transformed)")
+plotClusters(
+  data,
+  clustObj,
+  horiz = TRUE,
+  main = "Boxplot by clusters (log10 transformed)"
+)
 }
 \arguments{
 \item{data}{the matrix including the integrations of the areas defined by the buckets (columns)

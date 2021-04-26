@@ -4,9 +4,17 @@
 \alias{ggplotLoadings}
 \title{plotLoadings}
 \usage{
-ggplotLoadings(data, pc1 = 1, pc2 = 2, EV = NULL,
-  associations = NULL, main = "Loadings", onlylabels = FALSE,
-  highlabels = FALSE, gcontour = "ellipse")
+ggplotLoadings(
+  data,
+  pc1 = 1,
+  pc2 = 2,
+  EV = NULL,
+  associations = NULL,
+  main = "Loadings",
+  onlylabels = FALSE,
+  highlabels = FALSE,
+  gcontour = "ellipse"
+)
 }
 \arguments{
 \item{data}{the matrix of variable loadings coming from a multivariable analysis, typically a Principal Component Analysis (PCA)}

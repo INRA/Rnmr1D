@@ -4,8 +4,7 @@
 \alias{doProcessing}
 \title{doProcessing}
 \usage{
-doProcessing(path, cmdfile, samplefile = NULL, bucketfile = NULL,
-  ncpu = 1)
+doProcessing(path, cmdfile, samplefile = NULL, bucketfile = NULL, ncpu = 1)
 }
 \arguments{
 \item{path}{The full path of either the raw spectra directory on the disk}
@@ -62,7 +61,7 @@ instead of the whole set.
     cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
     samplefile <- file.path(data_dir, "Samples.txt")
     out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
-                                samplefile=samplefile, ncpu=detectCores())
+                                samplefile=samplefile, ncpu=2)
 }
 }
 \seealso{

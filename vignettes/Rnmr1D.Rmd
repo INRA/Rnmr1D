@@ -326,7 +326,8 @@ procParams$INPUT_SIGNAL <- 'fid'
 procParams$LB <- 0.3
 procParams$ZEROFILLING <- TRUE
 procParams$ZFFAC <- 4
-procParams$OPTPHC1 <- TRUE
+procParams$BLPHC <- TRUE
+procParams$OPTPHC1 <- FALSE
 procParams$TSP <- TRUE
 ```
 

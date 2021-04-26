@@ -4,7 +4,9 @@
 \name{Spec1rProcpar}
 \alias{Spec1rProcpar}
 \title{Spec1rProcpar}
-\format{An object of class \code{list} of length 31.}
+\format{
+An object of class \code{list} of length 32.
+}
 \usage{
 Spec1rProcpar
 }
@@ -13,14 +15,14 @@ Spec1rProcpar
   \item \code{DEBUG} : Debug - defaut value = TRUE
   \item \code{LOGFILE} : Messages output file - default value = ""
   \item \code{VENDOR} : Instrumental origin of the raw data (bruker, varian, jeol, rs2d) - default value = 'bruker'
-  \item \code{READ_RAW_ONLY} : Read Raw file only; do not carry out processing; if raw file is depending on INPUT_SIGNAL - default value = FALSE
+  \item \code{READ_RAW_ONLY} : Read raw file only; do not carry out processing; raw file is depending on INPUT_SIGNAL - default value = FALSE
   \item \code{INPUT_SIGNAL} : What type of input signal: 'fid' or '1r' - default value = 'fid'
   \item \code{PDATA_DIR} : subdirectory containing the 1r file (bruker's format only) - default value = 'pdata/1'
   \item \code{LB} : Exponantial Line Broadening parameter - default value = 0.3
   \item \code{GB} : Gaussian Line Broadening parameter - default value = 0
   \item \code{REMLFREQ} : Remove low frequencies by applying a polynomial subtraction method. - default order of the model = 0
   \item \code{REVPPM} : Reverse ppm scale - default value = FALSE
-  \item \code{BLPHC} : Number of points for baseline smoothing during phasing - default value = 260
+  \item \code{BLPHC} : Number of points for baseline smoothing during phasing - default value = 50
   \item \code{KSIG} : Number of times the noise signal to be considered during phasing - default value = 6
   \item \code{CPMG} : Indicate if CPMG sequence  - default value = FALSE
   \item \code{ZEROFILLING} : Zero Filling - - default value = FALSE
@@ -30,7 +32,7 @@ Spec1rProcpar
   \item \code{RABOT} : Zeroing of Negative Values - default value = FALSE
   \item \code{OPTPHC0} : Zero order phase optimization - default value = TRUE
   \item \code{OPTPHC1} : First order phase optimization - default value = FALSE
-  \item \code{OPTCRIT1} : Criterium for phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy - default value = 3
+  \item \code{OPTCRIT1} : Criterium for phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy - default value = 2
   \item \code{JGD_INNER} : JEOL : internal (or external) estimation for Group Delay - default value = TRUE
 }
 }

@@ -4,9 +4,16 @@
 \alias{plotSpecMat}
 \title{plotSpecMat Overlaid/Stacked Plot}
 \usage{
-plotSpecMat(specMat, ppm_lim = c(min(specMat$ppm), max(specMat$ppm)),
-  K = 0.67, pY = 1, dppm_max = 0.2 * (max(ppm_lim) - min(ppm_lim)),
-  asym = 1, beta = 0, cols = NULL)
+plotSpecMat(
+  specMat,
+  ppm_lim = c(min(specMat$ppm), max(specMat$ppm)),
+  K = 0.67,
+  pY = 1,
+  dppm_max = 0.2 * (max(ppm_lim) - min(ppm_lim)),
+  asym = 1,
+  beta = 0,
+  cols = NULL
+)
 }
 \arguments{
 \item{specMat}{a 'specMat' object - Spectra matrix in specMat$int (rows = samples, 
@@ -39,7 +46,7 @@ without a perspective effect.
   cmdfile <- file.path(data_dir, "NP_macro_cmd.txt")
   samplefile <- file.path(data_dir, "Samples.txt")
   out <- Rnmr1D::doProcessing(data_dir, cmdfile=cmdfile, 
-                                samplefile=samplefile, ncpu=detectCores())
+                                samplefile=samplefile, ncpu=2)
   # Overlaid plot
   plotSpecMat(out$specMat, ppm_lim=c(0.5,9), K=0, pY=0.1)
   # Stacked plot with perspective effect

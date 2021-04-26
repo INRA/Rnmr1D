@@ -4,9 +4,18 @@
 \alias{ggplotScores}
 \title{ggplotScores}
 \usage{
-ggplotScores(data, pc1 = 1, pc2 = 2, groups = NULL, EV = NULL,
-  main = "Scores", glabels = FALSE, psize = 3,
-  gcontour = "ellipse", params = list(cellipse = 0.95))
+ggplotScores(
+  data,
+  pc1 = 1,
+  pc2 = 2,
+  groups = NULL,
+  EV = NULL,
+  main = "Scores",
+  glabels = FALSE,
+  psize = 3,
+  gcontour = "ellipse",
+  params = list(cellipse = 0.95)
+)
 }
 \arguments{
 \item{data}{the matrix of scores coming from a multivariable analysis, typically a Principal Component Analysis (PCA)}
