@@ -1139,7 +1139,7 @@ Spec1rProcpar <- list (
     spec$pmin <- offset - SW/2
     spec$pmax <- SW + spec$pmin
     spec$ppm <- seq(from=spec$pmin, to=spec$pmax, by=spec$dppm)
-    spec$B <- C_estime_sd(Re(spec$data0),128)
+    spec$B <- Rnmr1D:::C_estime_sd(Re(spec$data0),128)
 
     ### Save into the spec object instance
     spec$data <- rawspec
@@ -1159,9 +1159,9 @@ Spec1rProcpar <- list (
 .computeCrit <- function(spec, phc) {
    V <- spec$data0;
    if (spec$param$REVPPM) V <- rev(V)
-   spec1r <- C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=phc[1], phc1=phc[2]))
+   spec1r <- Rnmr1D:::C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=phc[1], phc1=phc[2]))
    NPBLSM <- 100
-   Yre <- spec1r$re - C_Estime_LB2 (spec1r$re, 1, length(spec1r$re)-1, NPBLSM, NPBLSM, 6*spec$B)
+   Yre <- spec1r$re - Rnmr1D:::C_Estime_LB2 (spec1r$re, 1, length(spec1r$re)-1, NPBLSM, NPBLSM, 6*spec$B)
    n <- round(length(Yre)/24)
    Yre <- Yre[n:(23*n)]
    if (spec$param$BLPHC>0) Yre <- Yre + rep(spec$B/4, length(Yre))
@@ -1210,10 +1210,10 @@ Spec1rProcpar <- list (
 {
    # rms function to be optimised
    rms0 <- function(ang, y, B, type=0)  {
-      Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
+      Yrot <- Rnmr1D:::C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
       Yre <- Yrot$re
       NPBLSM <- 100
-      Yre <- Yre - C_Estime_LB2 (Yre, 1, length(Yre)-1, NPBLSM, NPBLSM, 6*B)
+      Yre <- Yre - Rnmr1D:::C_Estime_LB2 (Yre, 1, length(Yre)-1, NPBLSM, NPBLSM, 6*B)
       n <- round(length(Yre)/24)
       Yre <- Yre[n:(23*n)]
       if (type==0) ret <- sum((Yre[Yre<0])^2);
@@ -1337,7 +1337,7 @@ Spec1rProcpar <- list (
       spec$proc$phc1 <- spec$param$phc1
    }
    V <- spec$data
-   new_spec1r <- C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=spec$proc$phc0, phc1=spec$proc$phc1))
+   new_spec1r <- Rnmr1D:::C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=spec$proc$phc0, phc1=spec$proc$phc1))
    spec$data <- complex(real=new_spec1r$re,imaginary=new_spec1r$im)
    if (spec$param$REVPPM) spec$data <- rev(spec$data)
    spec
@@ -1361,7 +1361,7 @@ Spec1rProcpar <- list (
       x0 <- abs(spec$pmin)/SW
       n1 <- round(m*(x0-0.4/SW)); n2 <- round(m*(x0+0.2/SW))
       range <- c(n1:n2)
-      if (max(spec$int[ range ])>10*C_estime_sd(spec$int,128)) {
+      if (max(spec$int[ range ])>10*Rnmr1D:::C_estime_sd(spec$int,128)) {
           n0 <- which(spec$int[ range ] == max(spec$int[ range ])) + n1 - 2
           spec$pmin <- -SW*(n0/m)
           spec$pmax <- SW + spec$pmin
@@ -1637,7 +1637,7 @@ writeSpec = function(spec, outdir, mode="bin", name="1r")
 #' @export writeSpecMatrix
 writeSpecMatrix = function(specMat, ppm_min, ppm_max, filepack)
 {
-   C_write_pack(specMat, ppm_min, ppm_max, filepack)
+   Rnmr1D:::C_write_pack(specMat, ppm_min, ppm_max, filepack)
 }
 
 ### Read a Matrix of Spectrum in a binary mode (PACK format)
@@ -1649,7 +1649,7 @@ writeSpecMatrix = function(specMat, ppm_min, ppm_max, filepack)
 #' @export readSpecMatrix
 readSpecMatrix = function(filepack)
 {
-   C_read_pack(filepack)
+   Rnmr1D:::C_read_pack(filepack)
 }
 
 
@@ -1657,9 +1657,9 @@ readSpecMatrix = function(filepack)
 spec_ref= function (specMat, selected=NULL)
 {
    if (is.null(selected)) {
-       C_spec_ref(specMat, numeric(0))
+       Rnmr1D:::C_spec_ref(specMat, numeric(0))
    } else {
-       C_spec_ref(specMat, selected)
+       Rnmr1D:::C_spec_ref(specMat, selected)
    }
 }
 
@@ -1667,9 +1667,9 @@ spec_ref= function (specMat, selected=NULL)
 spec_ref_interval= function (specMat, istart, iend, selected=NULL)
 {
    if (is.null(selected)) {
-       C_spec_ref_interval(specMat, istart, iend, numeric(0))
+       Rnmr1D:::C_spec_ref_interval(specMat, istart, iend, numeric(0))
    } else {
-       C_spec_ref_interval(specMat, istart, iend, selected)
+       Rnmr1D:::C_spec_ref_interval(specMat, istart, iend, selected)
    }
 }
 
@@ -1677,9 +1677,9 @@ spec_ref_interval= function (specMat, istart, iend, selected=NULL)
 segment_shifts = function (specMat, idx_vref, decal_max, istart, iend, selected=NULL)
 {
    if (is.null(selected)) {
-       C_segment_shifts (specMat, idx_vref, decal_max, istart, iend, numeric(0))
+       Rnmr1D:::C_segment_shifts (specMat, idx_vref, decal_max, istart, iend, numeric(0))
    } else {
-       C_segment_shifts (specMat, idx_vref, decal_max, istart, iend, selected)
+       Rnmr1D:::C_segment_shifts (specMat, idx_vref, decal_max, istart, iend, selected)
    }
 }
 
@@ -1687,8 +1687,8 @@ segment_shifts = function (specMat, idx_vref, decal_max, istart, iend, selected=
 align_segment = function (specMat, shifts, istart, iend, selected=NULL)
 {
    if (is.null(selected)) {
-       C_align_segment (specMat, shifts, istart, iend, numeric(0))
+       Rnmr1D:::C_align_segment (specMat, shifts, istart, iend, numeric(0))
    } else {
-       C_align_segment (specMat, shifts, istart, iend, selected)
+       Rnmr1D:::C_align_segment (specMat, shifts, istart, iend, selected)
    }
 }
