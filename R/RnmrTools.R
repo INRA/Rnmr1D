@@ -195,7 +195,7 @@ RCalib1D <- function(specMat, PPM_NOISE_AREA, zoneref, ppmref)
        ppm0 <- specMat$ppm_max - (i0-1)*specMat$dppm
        dppmref <- ppm0 - ppmref
        decal <- 0
-       sig <- C_estime_sd(specMat$int[i, 1:specMat$size],128)
+       sig <- Rnmr1D:::C_estime_sd(specMat$int[i, 1:specMat$size],128)
        if (abs(dppmref) > specMat$dppm) {
            decal <- trunc(dppmref/specMat$dppm)
            dppmref <- dppmref - decal*specMat$dppm
@@ -283,12 +283,12 @@ RGbaseline1D <- function(specMat,PPM_NOISE_AREA, zone, WS, NEIGH)
        }
        V <- specMat$int[i, ]
        if (NBPASS==1) {
-           BL <- C_Estime_LB (V, i1, i2, WS, NEIGH, NFAC*sig)
+           BL <- Rnmr1D:::C_Estime_LB (V, i1, i2, WS, NEIGH, NFAC*sig)
        } else {
            BL <- 0*rep(1:length(V))
            for( n in 1:NBPASS) {
               # Estimation of Baseline
-              BLn <- C_Estime_LB (V, i1, i2, WS, NEIGH, NFAC*sig)
+              BLn <- Rnmr1D:::C_Estime_LB (V, i1, i2, WS, NEIGH, NFAC*sig)
               V <- V - BLn
               BL <- BL + BLn
            }
@@ -384,7 +384,7 @@ Rqnmrbc1D <- function(specMat, PPM_NOISE_AREA, zone)
        x <- specMat$int[i,c(i1:i2)]
        bc <- 0*rep(1:n)
        for (l in 1:NLOOP) {
-           bci <- C_GlobSeg(x, dN, CSIG*specSig)
+           bci <- Rnmr1D:::C_GlobSeg(x, dN, CSIG*specSig)
            x <- x - bci
            bc <- bc + bci
        }
@@ -500,10 +500,10 @@ RCluPA1D <- function(specMat, zonenoise, zone, resolution=0.02, SNR=3, idxSref=0
    PPM_NOISE_AREA <- c(min(zonenoise), max(zonenoise))
    idx_Noise <- c( length(which(specMat$ppm>PPM_NOISE_AREA[2])),(which(specMat$ppm<=PPM_NOISE_AREA[1])[1]) )
    Vref <- spec_ref(specMat$int)
-   ynoise <- C_noise_estimation(Vref,idx_Noise[1],idx_Noise[2])
+   ynoise <- Rnmr1D:::C_noise_estimation(Vref,idx_Noise[1],idx_Noise[2])
    
    # Parameters
-   baselineThresh <- SNR*mean( C_noise_estimate(specMat$int, idx_Noise[1],idx_Noise[2], 1) )
+   baselineThresh <- SNR*mean( Rnmr1D:::C_noise_estimate(specMat$int, idx_Noise[1],idx_Noise[2], 1) )
    nDivRange <- max( round(resolution/specMat$dppm,0), 64 )
    maxshift <- min( round(0.01/specMat$dppm), round(nDivRange/4) )
 
@@ -589,8 +589,8 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
       PPM_NOISE_AREA <- c(min(zonenoise), max(zonenoise))
       idx_Noise <- c( length(which(specMat$ppm>PPM_NOISE_AREA[2])),(which(specMat$ppm<=PPM_NOISE_AREA[1])[1]) )
       Vref <- spec_ref(specMat$int)
-      ynoise <- C_noise_estimation(Vref,idx_Noise[1],idx_Noise[2])
-      Vnoise <- abs( C_noise_estimate(specMat$int, idx_Noise[1],idx_Noise[2], 1) )
+      ynoise <- Rnmr1D:::C_noise_estimation(Vref,idx_Noise[1],idx_Noise[2])
+      Vnoise <- abs( Rnmr1D:::C_noise_estimate(specMat$int, idx_Noise[1],idx_Noise[2], 1) )
       
       bdata <- list()
       bdata$ynoise <- ynoise
@@ -616,14 +616,14 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
        if (Algo=='aibin') {
           Mbuc <- matrix(, nrow = MAXBUCKETS, ncol = 2)
           Mbuc[] <- 0
-          buckets_m <- C_aibin_buckets(specMat$int, Mbuc, Vref, bdata, i1, i2)
+          buckets_m <- Rnmr1D:::C_aibin_buckets(specMat$int, Mbuc, Vref, bdata, i1, i2)
        }
        if (Algo=='unif') {
           seq_buc <- seq(i1, i2, round(resol/specMat$dppm))
           n_bucs <- length(seq_buc) - 1
           buckets_m <- cbind ( seq_buc[1:n_bucs], seq_buc[2:(n_bucs+1)])
           # Keep only the buckets for which the SNR average is greater than 'snr'
-          MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
+          MaxVals <- Rnmr1D:::C_maxval_buckets (specMat$int, buckets_m)
           buckets_m <- buckets_m[ which( apply(t(MaxVals/(2*Vnoise)),1,stats::quantile)[4,]>snr), ]
        }
        if (Algo=='vsb') {
@@ -1148,7 +1148,7 @@ getBucketsTable <- function(specObj)
       buckets <- as.data.frame(buckets, stringsAsFactors=FALSE)
       buckets$center <- 0.5*(buckets[,1]+buckets[,2])
       buckets$width <-  0.5*abs(buckets[,1]-buckets[,2])
-      buckets$intMax <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
+      buckets$intMax <- specMat$ppm[ Rnmr1D:::C_ppmIntMax_buckets(specMat$int, buckets_m) ]
       if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
           buccenter <- buckets$center
       } else {
@@ -1205,13 +1205,13 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
                      function(x) { c( length(which(specMat$ppm>buckets[x,1])), length(which(specMat$ppm>buckets[x,2])) ) }
                     )))
       # Integration
-      buckets_IntVal <- C_all_buckets_integrate (specMat$int, buckets_m, 0)
+      buckets_IntVal <- Rnmr1D:::C_all_buckets_integrate (specMat$int, buckets_m, 0)
       if (norm_meth == 'CSN') {
-          buckets_IntVal <- C_buckets_CSN_normalize( buckets_IntVal )
+          buckets_IntVal <- Rnmr1D:::C_buckets_CSN_normalize( buckets_IntVal )
       }
       if (norm_meth == 'PQN') {
-          buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
-          bucVref_IntVal <- C_MedianSpec(buckets_IntVal_CSN)
+          buckets_IntVal_CSN <- Rnmr1D:::C_buckets_CSN_normalize( buckets_IntVal )
+          bucVref_IntVal <- Rnmr1D:::C_MedianSpec(buckets_IntVal_CSN)
           bucRatio <- buckets_IntVal_CSN / bucVref_IntVal
           Coeff <- apply(bucRatio,1, stats::median)
           buckets_IntVal <- buckets_IntVal_CSN / Coeff
@@ -1221,7 +1221,7 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
       if (! is.na(zoneref)) {
           istart <- length(which(specMat$ppm>max(zoneref)))
           iend <- length(which(specMat$ppm>min(zoneref)))
-          Vref <- C_spectra_integrate (specMat$int, istart, iend)
+          Vref <- Rnmr1D:::C_spectra_integrate (specMat$int, istart, iend)
           buckets_IntVal <- buckets_IntVal/Vref
       }
       # read samples
@@ -1230,7 +1230,7 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
       if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
           buccenter <- 0.5*(buckets[,1]+buckets[,2])
       } else {
-          buccenter <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
+          buccenter <- specMat$ppm[ Rnmr1D:::C_ppmIntMax_buckets(specMat$int, buckets_m) ]
       }
       bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buccenter))) )
       outdata <- buckets_IntVal
@@ -1271,8 +1271,8 @@ getSnrDataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
       i1 <- ifelse( max(zone_noise)>=specMat$ppm_max, 1, length(which(specMat$ppm>max(zone_noise))) )
       i2 <- ifelse( min(zone_noise)<=specMat$ppm_min, specMat$size - 1, which(specMat$ppm<=min(zone_noise))[1] )
       flg <- 1
-      Vnoise <- abs( C_noise_estimate(specMat$int, i1, i2, flg) )
-      MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
+      Vnoise <- abs( Rnmr1D:::C_noise_estimate(specMat$int, i1, i2, flg) )
+      MaxVals <- Rnmr1D:::C_maxval_buckets (specMat$int, buckets_m)
 
       # read samples
       samples <- specObj$samples
@@ -1280,7 +1280,7 @@ getSnrDataset <- function(specObj, zone_noise=c(10.2,10.5), ratio=TRUE)
       if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
           buccenter <- 0.5*(buckets[,1]+buckets[,2])
       } else {
-          buccenter <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
+          buccenter <- specMat$ppm[ Rnmr1D:::C_ppmIntMax_buckets(specMat$int, buckets_m) ]
       }
       bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buccenter))) )
       if (ratio) {

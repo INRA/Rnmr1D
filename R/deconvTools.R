@@ -14,7 +14,7 @@
 #' @return a vector of the same dimension as the entry one
 filterSavGol <- function(s, m, nl, nr)
 {
-   C_fSavGol(s, m, nl, nr)
+   Rnmr1D:::C_fSavGol(s, m, nl, nr)
 }
 
 
@@ -27,7 +27,7 @@ filterSavGol <- function(s, m, nl, nr)
 #' @return a vector of the same dimension as the entry one
 filterByWT <- function(s, wavelet, type = 0)
 {
-   C_FilterbyThreshold(s, wavelet, threshold = type)
+   Rnmr1D:::C_FilterbyThreshold(s, wavelet, threshold = type)
 }
 
 
@@ -40,7 +40,7 @@ filterByWT <- function(s, wavelet, type = 0)
 #' @return a vector of the same dimension as the entry one
 filterByThreshold <- function(s, wavelet, threshold = 0.5)
 {
-   C_FilterbyWT(s, type = wavelet, threshold)
+   Rnmr1D:::C_FilterbyWT(s, type = wavelet, threshold)
 }
 
 
@@ -54,7 +54,7 @@ filterByThreshold <- function(s, wavelet, threshold = 0.5)
 #' @return a vector of the lorentzian values (same size as ppm)
 Lorentz <- function(ppm, amp, x0, sigma)
 {
-   C_Lorentz(ppm, amp, x0, sigma)
+   Rnmr1D:::C_Lorentz(ppm, amp, x0, sigma)
 }
 
 
@@ -67,7 +67,7 @@ Lorentz <- function(ppm, amp, x0, sigma)
 #' @return a vector of the lorentzian parameters (same size as par)
 optimOneLorentz <- function(X, Y, par)
 {
-   C_OneLorentz(X, Y, par)
+   Rnmr1D:::C_OneLorentz(X, Y, par)
 }
 
 
@@ -82,7 +82,7 @@ optimOneLorentz <- function(X, Y, par)
 #' @return a list
 MyFuncTest <- function(spec, ppmrange, filt, peaks, verbose=1)
 {
-   C_MyFuncTest(spec, ppmrange, filt, peaks, verbose)
+   Rnmr1D:::C_MyFuncTest(spec, ppmrange, filt, peaks, verbose)
 }
 
 
@@ -95,7 +95,7 @@ MyFuncTest <- function(spec, ppmrange, filt, peaks, verbose=1)
 #' @return a vector of the same dimension as spec$int
 MyFuncTest2 <- function(spec, n1, n2)
 {
-   C_MyFuncTest2(spec, n1, n2)
+   Rnmr1D:::C_MyFuncTest2(spec, n1, n2)
 }
 
 
