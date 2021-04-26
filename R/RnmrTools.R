@@ -972,8 +972,8 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
               if (length(params)>=3) {
                  PPMRANGE <- c( min(params[1:2]), max(params[1:2]) )
                  RELDECAL= params[3]
-                 Write.LOG(LOGFILE,paste0("Rnmr1D:  Shift: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )"))
-                 Write.LOG(LOGFILE,paste0("Rnmr1D:     Shift value =",RELDECAL))
+                 Write.LOG(LOGFILE,paste0("Rnmr1D:  Shift: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
+                 Write.LOG(LOGFILE,paste0("Rnmr1D:     Shift value =",RELDECAL,"\n"))
                  specMat <- RWrapperCMD1D(cmdName,specMat, PPMRANGE, RELDECAL, Selected=Selected)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
