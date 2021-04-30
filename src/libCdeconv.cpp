@@ -197,8 +197,8 @@ void Derive (double *v1, double *v2, int count_max)
     //for (count=3; count<=count_max-2; count++)
     //    v2[count]=(v1[count-2]-8*v1[count-1]+8*v1[count+1]-v1[count+2])/12;
     for (count=6; count<=count_max-5; count++)
-        v2[count] = (42*(v1[count+1]-v1[count-1]) + 
-                     48*(v1[count+2]-v1[count-2]) + 
+        v2[count] = (42*(v1[count+1]-v1[count-1]) +
+                     48*(v1[count+2]-v1[count-2]) +
                      27*(v1[count+3]-v1[count-3]) +
                       8*(v1[count+4]-v1[count-4]) +
                          v1[count+5]-v1[count-5] )/512;
@@ -774,15 +774,15 @@ double lorentz(double x,double x0, double s) {  return s*s/(s*s+(x-x0)*(x-x0)); 
 
 double ppmval(struct s_spectre *sp, double count)
 {
-    return (sp->ppm_direct) ? 
-         sp->ppm_min + (count-1)*sp->delta_ppm : 
+    return (sp->ppm_direct) ?
+         sp->ppm_min + (count-1)*sp->delta_ppm :
          sp->ppm_max - (count-1)*sp->delta_ppm;
 }
 
 int cntval(struct s_spectre *sp, double ppm)
 {
-    return (sp->ppm_direct) ? 
-         (int)((ppm - sp->ppm_min)/sp->delta_ppm + 1) : 
+    return (sp->ppm_direct) ?
+         (int)((ppm - sp->ppm_min)/sp->delta_ppm + 1) :
          (int)((sp->ppm_max - ppm)/sp->delta_ppm + 1);
 }
 
@@ -829,7 +829,7 @@ if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("M1:
         Derive(d1,d2,sp->count_max);
         if (pk->d2filt)
            Filtre_WT(d1, sp->count_max, sp->LAYER_MAX, sp->LAYER_MAX, -1,daub8);
-       
+
        if (_verbose_>1) Rprintf("\tMinimum Method on d2sp ... ");
        fac2= (pk->d2cv>0) ? pk->d2cv : 0.05;
        cpm2=0;
@@ -844,7 +844,7 @@ if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("M1:
                   if (dabs((d2[count] - 0.5*(d2[count+2]+d2[count-2]))/d2[count]) < fac2 ) continue;
                   if (sp->V[count] - 0.5*(sp->V[count-1]+sp->V[count+1]) < 1.0*sp->B ) continue;
 if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("M2: %d, %f \n",count, ppmval(sp,count));
-                  vp[count] = sp->V[count]; 
+                  vp[count] = sp->V[count];
                   cpm2++;
            }
        }
@@ -907,7 +907,7 @@ void select_peaks(struct s_spectre *sp, struct s_peaks *pk)
 /* Estimation of Sigmas                 */
 /* ------------------------------------ */
 
-// Estimation of sigmas based on the second derivative 
+// Estimation of sigmas based on the second derivative
 void estime_sigma(struct s_spectre *sp,struct s_peaks *pk)
 {
     int k,i,j,n,loop;
@@ -957,23 +957,23 @@ void estime_sigma(struct s_spectre *sp,struct s_peaks *pk)
 /* Estimation of AK                     */
 /* ------------------------------------ */
 
-// Estimation of AK based on the first derivative 
+// Estimation of AK based on the first derivative
 void estime_AK(struct s_spectre *sp,struct s_peaks *pk)
 {
   int k,n,i,j;
   double v1,v2,dL1,dL2;
-  
+
   //-------- First Derivative -----------------------------------
   double  d1[COUNT_MAX];
   Derive(sp->V,d1,sp->count_max);
-  
+
   for (k=0; k<pk->npic; k++)
   {
       n = pk->pics[k];
       if (k>1 && sp->V[n-2]>sp->V[n]) n=n-2;
       else if (k>0 && sp->V[n-1]>sp->V[n]) n--;
       else if (k<pk->npic && sp->V[n+1]>sp->V[n]) n++;
-      else if (k<pk->npic-1 && sp->V[n+2]>sp->V[n]) n=n+2;      
+      else if (k<pk->npic-1 && sp->V[n+2]>sp->V[n]) n=n+2;
       if ( sp->V[n]>sp->V[n-1] && sp->V[n]>sp->V[n+1] && sp->V[n-1]>sp->V[n-2] && sp->V[n+1]>sp->V[n+2] )
       {
          i=0; if ((sp->V[n]-sp->V[n-1])/sp->V[n] < pk->spcv) i++;
@@ -996,7 +996,7 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
     int i,j,k,m,l,np,ind, indk, xk;
     int indx[MAXPICS];
 
-        
+
     for (k=0; k<pk->npic; k++) {
         xk = pk->pics[k];  yk = sp->V[xk];
         pk->AK[k] = yk;
@@ -1016,12 +1016,12 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
             if (ykl>0.01) indx[ind++]=k+l;
             l++;
         }
-        if (ind==1) continue; 
-        
+        if (ind==1) continue;
+
         np=ind;
         aa=matrix(np,np);
         vv=vector(np);
-        
+
         for(i=1;i<=np;i++)
             for(j=1; j<=np; j++) {
                 if (i==j) {  aa[i][j]=1.0; continue; }
@@ -1030,7 +1030,7 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
         for (i=1;i<=np;i++) { vv[i]=sp->V[pk->pics[indx[i-1]]]; }
         LU_resolv(aa,np,vv);
         pk->AK[k]=vv[indk+1]>0 ? vv[indk+1] : -vv[indk+1];
-        
+
         free_vector(vv);
         free_matrix(aa);
     }
@@ -1040,7 +1040,7 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
 /* Optimization of Amplitudes & Sigmas  */
 /* ------------------------------------ */
 
-// Parameters for the block spectrum division in order to optimize the peaks in packets ("blocks"): 
+// Parameters for the block spectrum division in order to optimize the peaks in packets ("blocks"):
 // computation time proportional to the inversion time of the matrix n*n (O(nlogn)),
 // with n = number of peaks in the "block" */
 // SCMIN : minimum distance (as a multiple of sigma) between two peaks
@@ -1067,7 +1067,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 if (sp->V[n]<fmin) { nstart=n; fmin=sp->V[n]; }
             }
         }
-        else 
+        else
             nstart=nstop;
 
          // End of the Block
@@ -1130,7 +1130,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
 
             // Optimize ak, sk, pk
             optimize(Xw,Yw,ndata,aw,iaw,na);
-            
+
             // Recovers the new values of the parameters and calculates the intensity of each peak in the block/bunch
             som_p=0;
             for (i=1; i<=np; i++) {
@@ -1138,7 +1138,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 if (aw[j+2]>pk->sigma_max)   aw[j+2]=pk->sigma_max;
                 if (aw[j+2]<pk->sigma_min)   aw[j] = 0.0;
                 if (aw[j]<pk->RatioPN*sp->B) aw[j] = 0.0;
-            
+
                 pk->AK[k+i-1] = aw[j];
                 pk->sigma[k+i-1] = aw[j+2]/sp->delta_ppm;
                 if (pk->optim_ppm) {
@@ -1157,7 +1157,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
         }
         pmin = ppmval(sp,nstart);
         pmax = ppmval(sp,nstop);
-        
+
         blocks->nstart[blocks->nbblocks]=nstart;
         blocks->nstop[blocks->nbblocks]=nstop;
         blocks->np[blocks->nbblocks]=np;
@@ -1299,7 +1299,7 @@ SEXP C_OneLorentz(SEXP X, SEXP Y, SEXP par)
    NumericVector vx(X);
    NumericVector vy(Y);
    NumericVector vp(par);
-   
+
    double  *Xw,*Yw,*aw;
    int     *iaw;
    int k, na,ndata;
@@ -1307,7 +1307,7 @@ SEXP C_OneLorentz(SEXP X, SEXP Y, SEXP par)
    ndata=vy.size(); na=3;
    Xw=vector(ndata); Yw=vector(ndata);
    aw=vector(na); iaw=ivector(na);
-   
+
    for (k=0; k<ndata; k++) { Xw[k+1]=vx[k]; Yw[k+1]=vy[k]; }
    for (k=0; k<na; k++)    { aw[k+1]=vp[k]; iaw[k+1]=1; }
    optimize(Xw,Yw,ndata,aw,iaw,na);
@@ -1452,7 +1452,7 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        sp.V = v1;
        estime_sigma(&sp,&pk);
        if(_verbose_>0) Rprintf("\tSigma Moy = %f\n",pk.sigma_moy*sp.delta_ppm);
-       
+
        // ------- Optimisation of Amplitudes & Sigmas ------
        if (pk.optim) {
           if (_verbose_>0) {
@@ -1518,7 +1518,7 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
                                           Named("nbpeaks") = M(_,4),
                                           Named("offset") = M(_,5),
                                           Named("slope") = M(_,6) );
-       
+
        // ------- Y model ----------------------------------
     // Note: Index translation  from range[1 - N] to range[0 - N-1]
        NumericVector Ymodel(Y.size());
@@ -1527,8 +1527,8 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
             ppm = ppmval(&sp,i+1);
             if (ppm>pk.wmin && ppm<pk.wmax) {
                for (k=0;k<pk.npic;k++)
-                    if (pk.AK[k]>0.0) Ymodel[i] += pk.optim_ppm ? 
-                          pk.AK[k]*lorentz(ppm, pk.ppm[k], sigfac*pk.sigma[k]*sp.delta_ppm) : 
+                    if (pk.AK[k]>0.0) Ymodel[i] += pk.optim_ppm ?
+                          pk.AK[k]*lorentz(ppm, pk.ppm[k], sigfac*pk.sigma[k]*sp.delta_ppm) :
                           pk.AK[k]*lorentz(i, pk.pics[k]+pk.pfac[k]-1, sigfac*pk.sigma[k]);
             }
        }

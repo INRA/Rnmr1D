@@ -153,8 +153,8 @@ C_corr_spec_re <- function(l) {
     .Call('_Rnmr1D_C_corr_spec_re', PACKAGE = 'Rnmr1D', l)
 }
 
-Fmin <- function(par, re, im, blphc, neigh, B, vmask = NULL, crit = 0L) {
-    .Call('_Rnmr1D_Fmin', PACKAGE = 'Rnmr1D', par, re, im, blphc, neigh, B, vmask, crit)
+Fmin <- function(par, re, im, blphc, B, flg = 0L) {
+    .Call('_Rnmr1D_Fmin', PACKAGE = 'Rnmr1D', par, re, im, blphc, B, flg)
 }
 
 Fentropy <- function(par, re, im, blphc, neigh, B, Gamma) {

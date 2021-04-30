@@ -1003,41 +1003,6 @@ SEXP ajustBL (SEXP x, int flg) {
    return(Y);
 }
 
-//SEXP ajustBL (SEXP x, int flg)
-//{
-//
-//   NumericVector X(x);
-//   const size_t n = (size_t)(X.size());
-//   const size_t n2 = n/32;
-//   const size_t n3 = (size_t)(n/24);
-//   size_t i,k;
-//
-//   NumericVector Y( X.size() );
-//   NumericVector m(2*n2);
-//
-//   double mx1, mx2, mx;
-//
-//   Rcpp::Environment base("package:stats"); 
-//   Rcpp::Function median_r = base["median"];
-//
-//   for (k=0; k<2*n2; ++k) m[k] = X[n2+k];
-//   NumericVector res1 = median_r(m);
-//   mx1 = res1[0];
-//
-//   for (k=0; k<2*n2; ++k) m[k] = X[29*n2+k];
-//   NumericVector res2 = median_r(m);
-//   mx2 = res2[0];
-//
-//   mx = 0.5*(mx1+mx2);
-//   
-//   for (i=0; i<n; ++i)
-//     if (flg==0 || i>n3 || i<(n-n3))
-//         Y[i] = X[i]-mx;
-//     else
-//         Y[i] = 0;
-//
-//   return(Y);
-//}
 
 // C_corr_spec_re( l=list(spec1r$re, spec1r$im, phc0, phc1) )
 //   m <- length(spec1r)
@@ -1075,7 +1040,7 @@ SEXP C_corr_spec_re (SEXP l)
 }
 
 // [[Rcpp::export]]
-double Fmin(SEXP par, SEXP re, SEXP im, int blphc, int neigh, double B, Nullable<NumericVector> vmask = R_NilValue, int crit=0)
+double Fmin(SEXP par, SEXP re, SEXP im, int blphc, double B, int flg=0)
 {
    NumericVector P(par);
    NumericVector Re(re);
@@ -1084,49 +1049,35 @@ double Fmin(SEXP par, SEXP re, SEXP im, int blphc, int neigh, double B, Nullable
    double phc1  = P[1];;
    const size_t n = (size_t)(Re.size());
    const size_t n2 = (size_t)(n/24);
-   size_t i,m;
-   long long int k;
-   double phi, Xmin, SS;
+   size_t i;
+   double phi, x0, Xmin, Xmax, SS;
 
-   // X = real( data * exp(1j * (phase0 + phase1 * x)) )
    NumericVector X(n);
    for (i=0; i<n; i++) {
+       //phi = phc0 + phc1*(i/n-0.5);
        phi = phc0 + phc1*i/n;
        X[i] = cos(phi)*Re[i] - sin(phi)*Im[i];
    }
-   X=ajustBL (X, 1);
+   X=ajustBL (X, 0);
 
-   // X <- X - baseline
-   NumericVector lb(n2);
-   if (blphc>0) {
-      lb=C_Estime_LB2(X, 0, n, blphc, neigh, B);
-      for (i=n2; i<(n-n2); i++) X[i] -= lb[i];
-   }
+   NumericVector lb(n);
+   if (blphc>0)
+      lb=C_Estime_LB2(X, 1, n-1, blphc, blphc, B);
 
-   // X <- X with the masked zone equal to zero
-   if (vmask.isNotNull() && blphc>0) {
-      NumericVector Vm(vmask);
-      for (k=0; k<Vm.size(); k++) {
-          m = (size_t)(Vm[k]);
-          if (m>n2 && m<(n-n2)) X[m]=0;
-      }
-   }
-
-   // find Xmin
-   // if no BL, sets the second half of X to zero
-   Xmin=0;
-   for (i=n2; i<(n-n2); i++)
+   Xmax=Xmin=0;
+   for (i=n2; i<(n-n2); i++) {
+      if (blphc==0 && i>n/2 && i<n) X[i]=0;
+      if (blphc>0) X[i] -= lb[i];
       if (X[i]<Xmin) Xmin=X[i];
+      if (X[i]>Xmax) Xmax=X[i];
+   }
 
-   // Compute the criterion
    SS=0;
    for (i=n2; i<(n-n2); i++) {
-       // SSneg
-       if (crit==0) SS +=  X[i] <= 0 ? pow(X[i],2) : 0;
-       // Modified SSneg
-       if (crit==1) SS +=  X[i] <= 0 ? pow(X[i],2) : pow(Xmin,2);
-       // Power of 0.05
-       if (crit==2) SS +=  pow(X[i],0.05);
+       if (flg==0) SS +=  X[i] < 0 ? pow(X[i]/Xmax,2) : 0;
+       if (flg==1) SS +=  pow(X[i]/Xmax,2);
+       if (flg==2) SS +=  X[i] < 0 ? pow((X[i]-Xmin)/Xmax,2) : pow(Xmin,2);
+       if (flg==3) SS +=  pow(abs(X[i]/Xmax),0.5);
    }
    return(SS);
 }

@@ -501,8 +501,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // Fmin
-double Fmin(SEXP par, SEXP re, SEXP im, int blphc, int neigh, double B, Nullable<NumericVector> vmask, int crit);
-RcppExport SEXP _Rnmr1D_Fmin(SEXP parSEXP, SEXP reSEXP, SEXP imSEXP, SEXP blphcSEXP, SEXP neighSEXP, SEXP BSEXP, SEXP vmaskSEXP, SEXP critSEXP) {
+double Fmin(SEXP par, SEXP re, SEXP im, int blphc, double B, int flg);
+RcppExport SEXP _Rnmr1D_Fmin(SEXP parSEXP, SEXP reSEXP, SEXP imSEXP, SEXP blphcSEXP, SEXP BSEXP, SEXP flgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -510,11 +510,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type re(reSEXP);
     Rcpp::traits::input_parameter< SEXP >::type im(imSEXP);
     Rcpp::traits::input_parameter< int >::type blphc(blphcSEXP);
-    Rcpp::traits::input_parameter< int >::type neigh(neighSEXP);
     Rcpp::traits::input_parameter< double >::type B(BSEXP);
-    Rcpp::traits::input_parameter< Nullable<NumericVector> >::type vmask(vmaskSEXP);
-    Rcpp::traits::input_parameter< int >::type crit(critSEXP);
-    rcpp_result_gen = Rcpp::wrap(Fmin(par, re, im, blphc, neigh, B, vmask, crit));
+    Rcpp::traits::input_parameter< int >::type flg(flgSEXP);
+    rcpp_result_gen = Rcpp::wrap(Fmin(par, re, im, blphc, B, flg));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -588,7 +586,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rnmr1D_C_estime_sd", (DL_FUNC) &_Rnmr1D_C_estime_sd, 2},
     {"_Rnmr1D_ajustBL", (DL_FUNC) &_Rnmr1D_ajustBL, 2},
     {"_Rnmr1D_C_corr_spec_re", (DL_FUNC) &_Rnmr1D_C_corr_spec_re, 1},
-    {"_Rnmr1D_Fmin", (DL_FUNC) &_Rnmr1D_Fmin, 8},
+    {"_Rnmr1D_Fmin", (DL_FUNC) &_Rnmr1D_Fmin, 6},
     {"_Rnmr1D_Fentropy", (DL_FUNC) &_Rnmr1D_Fentropy, 7},
     {"_Rnmr1D_C_SDL_convolution", (DL_FUNC) &_Rnmr1D_C_SDL_convolution, 3},
     {NULL, NULL, 0}
