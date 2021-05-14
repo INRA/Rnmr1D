@@ -17,14 +17,7 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 ```R
 packages <- c("impute", "MassSpecWavelet","pcaMethods")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
-   if (paste(R.Version()$major,R.Version()$minor, sep=".") > "3.5") {
-      if (!requireNamespace('BiocManager', quietly = TRUE))
-          install.packages('BiocManager', repos='http://cran.rstudio.com/');
-      BiocManager::install(setdiff(packages, rownames(installed.packages())), version = '3.8');
-   } else {
-      source('http://bioconductor.org/biocLite.R');
-      biocLite(setdiff(packages, rownames(installed.packages())));
-   }
+   BiocManager::install(setdiff(packages, rownames(installed.packages())));
 }
 
 packages <- c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph', 'ggplot2', 'plotly', 'plyr')
@@ -35,7 +28,7 @@ if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
 
 ## Installation of the R package 
 
-* Note for Windows 7/10: Before performing the installation within R GUI it may require to specify the Compiler binaries path in the PATH environment variable so that the C++ code compilation will be correctly done ( check with Sys.getenv("PATH") )
+* Note for Windows 10: Before performing the installation within R GUI it may require to specify the Compiler binaries path in the PATH environment variable so that the C++ code compilation will be correctly done ( check with Sys.getenv("PATH") )
 
 ```R
 require(devtools)
