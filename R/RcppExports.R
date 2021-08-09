@@ -25,8 +25,16 @@ C_OneLorentz <- function(X, Y, par) {
     .Call('_Rnmr1D_C_OneLorentz', PACKAGE = 'Rnmr1D', X, Y, par)
 }
 
-C_MyFuncTest <- function(spec, ppmrange, filt = NULL, peaks = NULL, verbose = 1L) {
-    .Call('_Rnmr1D_C_MyFuncTest', PACKAGE = 'Rnmr1D', spec, ppmrange, filt, peaks, verbose)
+C_peakFinder <- function(spec, ppmrange, filt = NULL, peaks = NULL, verbose = 1L) {
+    .Call('_Rnmr1D_C_peakFinder', PACKAGE = 'Rnmr1D', spec, ppmrange, filt, peaks, verbose)
+}
+
+C_peakOptimize <- function(spec, ppmrange, peaks, verbose = 1L) {
+    .Call('_Rnmr1D_C_peakOptimize', PACKAGE = 'Rnmr1D', spec, ppmrange, peaks, verbose)
+}
+
+C_specModel <- function(spec, ppmrange, peaks) {
+    .Call('_Rnmr1D_C_specModel', PACKAGE = 'Rnmr1D', spec, ppmrange, peaks)
 }
 
 C_MyFuncTest2 <- function(spec, n1, n2) {

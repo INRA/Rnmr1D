@@ -22,7 +22,8 @@ using namespace Rcpp;
 // Sets the size limits of the different entities
 #define COUNT_MAX   256*1024
 #define MAXPICS     5000
-#define MAXBLOCKS  1500
+#define MAXBLOCKS   500
+#define MAXBLORD    18
 #define WAVELET_MAX_SIZE    18
 
 // Parameters fixing the lower and upper limits for spectrum processing
@@ -35,6 +36,9 @@ using namespace Rcpp;
 
 // Minimal Distance between 2 Peaks
 #define MINDISTPK   4
+
+// Factor applied on the Spectrum/Noise ratio  for cutting
+#define FACCUT      2
 
 // Filters
 #define HAAR        0
@@ -51,11 +55,8 @@ using namespace Rcpp;
 #define fSAVGOL      3
 #define fSMOOTH      4
 
-int _DEBUG_   = 0;
-double _PPM1_ = 0;
-double _PPM2_ = 0;
 int _verbose_ = 1;
-int _AJLB_    = 0;
+int _OPBL_    = 0;
 
 struct s_spectre {
      double *V;
@@ -79,6 +80,7 @@ struct s_peaks {
      int     optim_int;
      int     optim_sigma;
      int     optim_ppm;
+     double  tol;
      double  spcv;
      double  d2cv;
      int     d1filt;
@@ -94,11 +96,11 @@ struct s_peaks {
 };
 
 struct s_blocks {
-     double  SCMIN;
+     double  **bl;
+     double  scmin;
+     int     oneblk;
      int     nstart[MAXBLOCKS];
      int     nstop[MAXBLOCKS];
-     double  offset[MAXBLOCKS];
-     double  slope[MAXBLOCKS];
      int     np[MAXBLOCKS];
      int     nbblocks;
 };
@@ -630,7 +632,7 @@ void florentz(double x, double a[], double *y, double dyda[], int na)
     double U,S,U2,S2,V,V2;
 
     *y=0.0;
-    np=(_AJLB_ >0) ? na - _AJLB_ - 1 : na;
+    np=(_OPBL_ >0) ? na - _OPBL_ - 2 : na;
     for (i=1;i<=np-2;i+=3) {
         U=x-a[i+1]; S=a[i+2]; U2=U*U; S2=S*S; V=U2+S2; V2=V*V;
         dyda[i]=S2/V;
@@ -638,10 +640,10 @@ void florentz(double x, double a[], double *y, double dyda[], int na)
         dyda[i+2]=2*a[i]*U2*S/V2;
         *y += a[i]*dyda[i];
     }
-    if (_AJLB_ >0) {
+    if (_OPBL_ >0) {
        double xp = 1;
-       dyda[np+1]=1;
-       for(i=1; i<=_AJLB_; i++) { *y += a[np+i+1]*xp; dyda[np+i+1]=0.01*xp; xp *= (x-a[np+1]); }
+       dyda[np+1]=0;
+       for(i=1; i<=(_OPBL_+1); i++) { *y += a[np+i+1]*xp; dyda[np+i+1]=xp; xp *= (x-a[np+1]); }
     }
 }
 
@@ -725,7 +727,7 @@ int mrqmin( double x[], double y[], double sig[], int ndata, double a[], int ma,
     return 0;
 }
 
-int optimize(double x[], double y[], int ndata, double a[], int ia[], int na)
+int optimize(double x[], double y[], int ndata, double a[], int ia[], int na, double tol=0.005)
 {
     double *sig, **covar, **alpha;
     double chi2,chisq,alamda,olamda;
@@ -748,7 +750,7 @@ int optimize(double x[], double y[], int ndata, double a[], int ia[], int na)
         chi2=chisq;
         olamda=alamda;
         if ( mrqmin(x,y,sig,ndata,a,na,ia,covar,alpha,&chisq,&alamda)<0 ) { free_matrix(alpha); free_matrix(covar); free_vector(sig); return -1; }
-        if (((chi2-chisq)/chi2)<0.005) break;
+        if (((chi2-chisq)/chi2)<tol) break;
         step++;
     }
 
@@ -810,7 +812,6 @@ void find_peaks (struct s_spectre *sp, struct s_peaks *pk)
              dy1=sp->V[count]-sp->V[count-3]; dy2=sp->V[count]-sp->V[count+3];
              if (dy1>dy2 && dy1/sp->V[count] < fac1 ) continue;
              if (dy2>dy1 && dy2/sp->V[count] < fac1 ) continue;
-if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("M1: %d, %f \n",count, ppmval(sp,count));
              vp[count]=sp->V[count];
              cpm1++;
         }
@@ -843,7 +844,6 @@ if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("M1:
                d2[count-1]<d2[count-2] && d2[count+1]<d2[count+2]) {
                   if (dabs((d2[count] - 0.5*(d2[count+2]+d2[count-2]))/d2[count]) < fac2 ) continue;
                   if (sp->V[count] - 0.5*(sp->V[count-1]+sp->V[count+1]) < 1.0*sp->B ) continue;
-if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("M2: %d, %f \n",count, ppmval(sp,count));
                   vp[count] = sp->V[count];
                   cpm2++;
            }
@@ -867,7 +867,6 @@ if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("M2:
            }
            pk->pics[pk->npic] = count;
            pk->ppm[pk->npic]=ppmval(sp,pk->pics[pk->npic]+pk->pfac[pk->npic]);
-if (_DEBUG_ && ppmval(sp,count)>_PPM1_ && ppmval(sp,count)<_PPM2_ ) Rprintf("SP: %d, %f \n",count, pk->ppm[pk->npic]);
            pk->AK[pk->npic] = 0.95*vp[count];
            pk->sigma[pk->npic] = pk->sigma_min/sp->delta_ppm;
            pk->npic++;
@@ -1040,61 +1039,70 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
 /* Optimization of Amplitudes & Sigmas  */
 /* ------------------------------------ */
 
-// Parameters for the block spectrum division in order to optimize the peaks in packets ("blocks"):
-// computation time proportional to the inversion time of the matrix n*n (O(nlogn)),
-// with n = number of peaks in the "block" */
-// SCMIN : minimum distance (as a multiple of sigma) between two peaks
-
+// Parameters for splitting spectrum to optimise peaks per batch (blocks) :
+// - computation time proportional to the inversion time of the matrix n*n (O(nlogn)),
+//   with n = number of peaks in the "block" */
+// - scmin : required minimum distance (as a multiple of sigma) between two peaks to determine a cut-off point
 void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks)
 {
-    double  *Xw,*Yw,*aw,diff_n,som_s,som_p,pmin,pmax,fmin,ac;
+    double  *Xw,*Yw,*aw,diff_n,som_s,som_p,pmin,pmax,fmin,ac, scmin;
     int     *iaw;
-    int i,j,k,l,m,n,np,na,som_np,ndata,nstart,nstop;
+    int i,j,k,l,n,np,na,som_np,ndata,nstart,nstop;
 
     blocks->nbblocks=0;
+    scmin = blocks->oneblk > 0 ? 2 : blocks->scmin ;
 
     if(_verbose_>1) Rprintf("\t #:  interval ppm\t#pts\t#peaks\tIntensity\n");
     if(_verbose_>1) Rprintf("\t----------------------------------------------------\n");
 
-    k=0; m=1; np=som_p=som_np=nstart=nstop=0;
+    k=nstart=nstop=np=som_p=som_np=0;
     while (k<pk->npic) {
-
-        // Start of the Block
-        if (k==0) {
-            fmin=sp->V[pk->pics[k]];
-            for (n=pk->pics[k]-2; n>(pk->pics[k]-8*blocks->SCMIN*pk->sigma[k]); n--) {
-                if (n==1) { nstart=1; break; }
-                if (sp->V[n]<fmin) { nstart=n; fmin=sp->V[n]; }
+        do {
+            // Start of the Block
+            if (k==0) {
+                fmin=sp->V[pk->pics[k]];
+                for (n=pk->pics[k]-2; n>(pk->pics[k]-8*scmin*pk->sigma[k]); n--) {
+                    if (n==1) { nstart=1; break; }
+                    if (sp->V[n]<fmin) { nstart=n; fmin=sp->V[n]; }
+                }
             }
-        }
-        else
-            nstart=nstop;
-
-         // End of the Block
-        l=0;
-        while ((k+l)<pk->npic) {
-            if ((k+l)==(pk->npic-1)) {
-               fmin=sp->V[pk->pics[k+l]];
-               for (n=pk->pics[k+l]+2; n<=(pk->pics[k+l]+8*blocks->SCMIN*pk->sigma[k+l]); n++) {
-                    if (n==sp->count_max) { nstop=n-1; break; }
-                    if (sp->V[n]<fmin) { nstop=n; fmin=sp->V[n]; }
-               }
-               break;
+            else {
+                if ( (pk->pics[k]-100*pk->sigma[k]) > (pk->pics[k-1]+100*pk->sigma[k-1]) )
+                    nstart = pk->pics[k]-100*pk->sigma[k];
+                else
+                    nstart = nstop;
             }
-            diff_n = pk->pics[k+l+1]  - pk->pics[k+l];
-            som_s  = pk->sigma[k+l+1] + pk->sigma[k+l];
-            if (diff_n >= blocks->SCMIN*som_s) {
-                   fmin=dmax( sp->V[pk->pics[k+l]], sp->V[pk->pics[k+l+1]] );
-                   for (n=pk->pics[k+l]+2; n<=pk->pics[k+l+1]-2; n++)
-                       if (sp->V[n]<fmin) { nstop=n; fmin=sp->V[n]; }
+             // End of the Block
+            l=0;
+            while ((k+l)<pk->npic) {
+                if ((k+l)==(pk->npic-1)) {
+                   fmin=sp->V[pk->pics[k+l]];
+                   for (n=pk->pics[k+l]+2; n<=(pk->pics[k+l]+8*scmin*pk->sigma[k+l]); n++) {
+                        if (n==sp->count_max) { nstop=n-1; break; }
+                        if (sp->V[n]<fmin) { nstop=n; fmin=sp->V[n]; }
+                   }
                    break;
+                }
+                diff_n = pk->pics[k+l+1]  - pk->pics[k+l];
+                som_s  = pk->sigma[k+l+1] + pk->sigma[k+l];
+                if (diff_n >= scmin*som_s) {
+                       fmin=dmax( sp->V[pk->pics[k+l]], sp->V[pk->pics[k+l+1]] );
+                       for (n=pk->pics[k+l]+2; n<=pk->pics[k+l+1]-2; n++)
+                           if (sp->V[n]<fmin) { nstop=n; fmin=sp->V[n]; }
+                       if (sp->V[nstop] < FACCUT*pk->RatioPN) break;
+                }
+                l++;
             }
-            l++;
-        }
+            if ( scmin>11 || (blocks->oneblk==0)  || (blocks->oneblk>0 && (l+1)>=pk->npic) )
+                break;
+            scmin = scmin + 1;
+        } while ( true );
+
         np=l+1;
         ndata=(nstop-nstart+1);
-        blocks->offset[blocks->nbblocks]=0;
-        blocks->slope[blocks->nbblocks]=0;
+        blocks->np[blocks->nbblocks]=np;
+        blocks->nstart[blocks->nbblocks]=nstart;
+        blocks->nstop[blocks->nbblocks]=nstop;
 
         if (pk->optim) {
             // Data extraction Y=f(X) between nstart and nstop
@@ -1104,7 +1112,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 Yw[j]=sp->V[nstart+j-1];
             }
             // Initial value of the parameters
-            na=(_AJLB_>0) ? np*3 + _AJLB_ + 1: np*3;
+            na=(_OPBL_>0) ? 3*np + _OPBL_ + 2 : 3*np;
             aw=vector(na); iaw=ivector(na);
             for (i=1; i<=np; i++) {
                 j=3*i-2;
@@ -1115,21 +1123,21 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 aw[j+2]=pk->sigma[k+i-1]*sp->delta_ppm;
                 iaw[j]=pk->optim_int; iaw[j+1]=pk->optim_ppm; iaw[j+2]=pk->optim_sigma;
             }
-            if (_AJLB_ >0) {
-                aw[np+1]=0.5*(ppmval(sp,nstop) + ppmval(sp,nstart)); iaw[np+1]=0;
-                aw[np+2]=0.05*(sp->V[nstop] + sp->V[nstart]);
-                iaw[np+2]=1;
+            if (_OPBL_ >0) {
+                aw[3*np+1]=0.5*(ppmval(sp,nstart) + ppmval(sp,nstop));
+                aw[3*np+2]=0.95*dmin(sp->V[nstart],sp->V[nstop]);
+                aw[3*np+3]=0.01*(sp->V[nstop] - sp->V[nstart])/(ppmval(sp,nstop) - ppmval(sp,nstart));
+                iaw[3*np+1]=0; iaw[3*np+2]=1; iaw[3*np+3]=1;
             }
-            if (_AJLB_ >1) {
-                aw[np+3]=0.01*(sp->V[nstop] - sp->V[nstart])/(ppmval(sp,nstop) - ppmval(sp,nstart));
-                iaw[np+3]=1;
+            if (_OPBL_ >1) {
+                aw[3*np+4]=0.01; iaw[3*np+4]=1;
             }
-            if (_AJLB_ >2) {
-                for(i=3; i<=_AJLB_; i++) { aw[np+i+1]=0.01; iaw[np+i+1]=1; }
+            if (_OPBL_ >2) for (i=3; i<=_OPBL_; i++) {
+                aw[3*np+i+2]=0; iaw[3*np+i+2]=1;
             }
 
             // Optimize ak, sk, pk
-            optimize(Xw,Yw,ndata,aw,iaw,na);
+            optimize(Xw,Yw,ndata,aw,iaw,na,pk->tol);
 
             // Recovers the new values of the parameters and calculates the intensity of each peak in the block/bunch
             som_p=0;
@@ -1139,8 +1147,10 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 if (aw[j+2]<pk->sigma_min)   aw[j] = 0.0;
                 if (aw[j]<pk->RatioPN*sp->B) aw[j] = 0.0;
 
-                pk->AK[k+i-1] = aw[j];
-                pk->sigma[k+i-1] = aw[j+2]/sp->delta_ppm;
+                if (pk->optim_int)
+                    pk->AK[k+i-1] = aw[j];
+                if (pk->optim_sigma)
+                    pk->sigma[k+i-1] = aw[j+2]/sp->delta_ppm;
                 if (pk->optim_ppm) {
                     pk->ppm[k+i-1] = aw[j+1];
                     pk->pics[k+i-1] = cntval(sp,aw[j+1]);
@@ -1148,8 +1158,10 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 som_np++;
                 som_p += M_PI*pk->AK[k+i-1]*pk->sigma[k+i-1];
             }
-            if (_AJLB_ >0 ) blocks->offset[blocks->nbblocks] = aw[np+2];
-            if (_AJLB_ >1 ) blocks->slope[blocks->nbblocks]  = aw[np+3];
+            if (_OPBL_ >0 )
+                for(i=0; i<=_OPBL_; i++)
+                    blocks->bl[blocks->nbblocks][i] = aw[3*np + i + 2];
+
             free_ivector(iaw);
             free_vector(aw);
             free_vector(Yw);
@@ -1158,15 +1170,13 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
         pmin = ppmval(sp,nstart);
         pmax = ppmval(sp,nstop);
 
-        blocks->nstart[blocks->nbblocks]=nstart;
-        blocks->nstop[blocks->nbblocks]=nstop;
-        blocks->np[blocks->nbblocks]=np;
-        blocks->nbblocks++;
-
         if(_verbose_>1) Rprintf("\t%2d: %f- %f\t%d\t%d",blocks->nbblocks,pmin,pmax,ndata,np);
         if(_verbose_>1) Rprintf("\t%f\n",som_p);
+
+        blocks->nbblocks++;
         if (blocks->nbblocks==MAXBLOCKS) ::Rf_error("Max block count has been reached");
-        m++; k += (l+1);
+
+        k += (l+1);
     }
 
     if(_verbose_>1) Rprintf("\t----------------------------------------------------\n");
@@ -1324,7 +1334,7 @@ SEXP C_OneLorentz(SEXP X, SEXP Y, SEXP par)
 
 
 // [[Rcpp::export]]
-SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nullable<List> peaks = R_NilValue, int verbose=1)
+SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nullable<List> peaks = R_NilValue, int verbose=1)
 {
     List slist(spec);
     NumericVector Y = as<NumericVector>(slist["int"]);
@@ -1332,9 +1342,8 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 
     struct s_spectre sp;
     struct s_peaks pk;
-    struct s_blocks blocks;
 
-    int i,k,fn;
+    int k,fn;
     double  *v1, *v2, ppm;
 
     v1=vector(COUNT_MAX);
@@ -1356,7 +1365,6 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
     pk.wmax = W[1];
 
     _verbose_ = verbose;
-    if(_verbose_>0) Rcerr << "----------------------------------------------------" << std::endl;
 
     if (filt.isNotNull()) {
        List flist(filt);
@@ -1389,10 +1397,10 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        for (k=1; k<=Y.size(); k++) v2[k]=v1[k];
     }
 
-    List ret;
-
     NumericVector Yf(Y.size());
     for (k=0; k<Y.size(); k++) Yf[k]=v2[k+1];
+
+    List ret;
     ret["int"] = Yf;
 
     if (peaks.isNotNull()) {
@@ -1400,42 +1408,14 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        List plist(peaks);
 
        // Get input parameters
+       pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
        pk.d2spmeth    = plist.containsElementNamed("d2spmeth")  ? as<int>(plist["d2spmeth"]) : 0;
-       pk.optim       = plist.containsElementNamed("optim")     ? as<int>(plist["optim"]) : 1;
-       pk.optim_int   = plist.containsElementNamed("oa")        ? as<int>(plist["oa"]) : 1;
-       pk.optim_sigma = plist.containsElementNamed("os")        ? as<int>(plist["os"]) : 1;
-       pk.optim_ppm   = plist.containsElementNamed("op")        ? as<int>(plist["op"]) : 0;
        pk.dist_fac    = plist.containsElementNamed("dist_fac")  ? as<double>(plist["dist_fac"]) : 2.0;
        pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
-       pk.sigma_max   = plist.containsElementNamed("sigma_max") ? as<double>(plist["sigma_max"]) : 0.005;
-       pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
        pk.spcv        = plist.containsElementNamed("spcv")      ? as<double>(plist["spcv"]) : 0.02;
        pk.d2cv        = plist.containsElementNamed("d2cv")      ? as<double>(plist["d2cv"]) : 0.1*pk.spcv;
        pk.d1filt      = plist.containsElementNamed("d1filt")    ? as<int>(plist["d1filt"]) : 0;
        pk.d2filt      = plist.containsElementNamed("d2filt")    ? as<int>(plist["d2filt"]) : 1;
-
-       blocks.SCMIN   = plist.containsElementNamed("scmin")     ? as<double>(plist["scmin"]) : 2;
-       _AJLB_         = plist.containsElementNamed("ajlb")      ? as<int>(plist["ajlb"]) : 0;
-       _DEBUG_        = plist.containsElementNamed("debug")     ? as<int>(plist["debug"]) : 0;
-       _PPM1_         = plist.containsElementNamed("ppm1")      ? as<int>(plist["ppm1"]) : 0;
-       _PPM2_         = plist.containsElementNamed("ppm2")      ? as<int>(plist["ppm2"]) : 0;
-
-       // ------- Parameters -------------------------------
-       ret["params"] = List::create(_["d2spmeth"] = pk.d2spmeth,
-                                    _["optim"] = pk.optim,
-                                    _["oa"] = pk.optim_int,
-                                    _["os"] = pk.optim_sigma,
-                                    _["op"] = pk.optim_ppm,
-                                    _["ratioSN"] = pk.RatioPN,
-                                    _["spcv"] = pk.spcv,
-                                    _["d2cv"] = pk.d2cv,
-                                    _["d1filt"] = pk.d1filt,
-                                    _["dist_fac"] = pk.dist_fac,
-                                    _["sigma_min"] = pk.sigma_min,
-                                    _["sigma_max"] = pk.sigma_max,
-                                    _["scmin"] = blocks.SCMIN,
-                                    _["wmin"] = pk.wmin,
-                                    _["wmax"] = pk.wmax );
 
        // ------- Peaks detection --------------------------
        if(_verbose_>0) Rprintf("Peaks detection\n");
@@ -1447,51 +1427,52 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        select_peaks(&sp,&pk);
        if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
 
-       // ------- Estimation of Amplitudes & Sigmas --------
+       // ------- Estimation of Sigmas --------
        if(_verbose_>0) Rprintf("Sigmas Estimation\n");
        sp.V = v1;
        estime_sigma(&sp,&pk);
        if(_verbose_>0) Rprintf("\tSigma Moy = %f\n",pk.sigma_moy*sp.delta_ppm);
 
-       // ------- Optimisation of Amplitudes & Sigmas ------
-       if (pk.optim) {
-          if (_verbose_>0) {
-             Rprintf("Peaks optimisation (Amplitudes");
-             if (pk.optim_sigma) Rprintf(",Sigmas");
-             if (pk.optim_ppm)   Rprintf(",ppm");
-             Rprintf(")\n");
-          }
-          sp.V = v1;
-          optim_peaks(&sp,&pk,&blocks);
-
        // ------- Estimation of Amplitudes -----------------
-       } else {
-          if(_verbose_>0) Rprintf("Amplitudes Estimation\n");
-          if (pk.optim_int) { sp.V = v2; estime_AK(&sp,&pk); }
+       int estimate_int  = plist.containsElementNamed("estimate_int") ? as<int>(plist["estimate_int"]) : 0;
+       if (estimate_int) {
+          if(_verbose_>0) Rprintf("Amplitude Estimation\n");
+          sp.V = v2;
+          if (estimate_int==1 ) estime_AK(&sp,&pk);
+          if (estimate_int >1 ) estime_AK2(&sp,&pk);
           sp.V = v1;
-          optim_peaks(&sp,&pk,&blocks);
+          if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+          select_peaks(&sp,&pk);
+          if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
        }
-
-       if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-       select_peaks(&sp,&pk);
-       if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
-
-       ret["nbpeak"]= pk.npic;
 
        free_vector(v1);
        free_vector(v2);
 
+       ret["nbpeak"]= pk.npic;
+
+       // ------- Parameters -------------------------------
+       ret["params"] = List::create(_["ratioSN"] = pk.RatioPN,
+                                    _["d2spmeth"] = pk.d2spmeth,
+                                    _["spcv"] = pk.spcv,
+                                    _["d2cv"] = pk.d2cv,
+                                    _["d1filt"] = pk.d1filt,
+                                    _["dist_fac"] = pk.dist_fac,
+                                    _["sigma_min"] = pk.sigma_min,
+                                    _["estimate_int"] = estimate_int,
+                                    _["wmin"] = pk.wmin,
+                                    _["wmax"] = pk.wmax );
+
        // ------- PeakList ----------------------------------
-       double sigfac=1;
        NumericMatrix P(pk.npic, 6);
        for (k=0; k<pk.npic; k++) {
           ppm = pk.optim_ppm ? pk.ppm[k] : ppmval(&sp,pk.pics[k]+pk.pfac[k]);
           P(k,0) = pk.pics[k];
           P(k,1) = ppm;
           P(k,2) = pk.AK[k];
-          P(k,3) = sigfac*pk.sigma[k]*sp.delta_ppm;
+          P(k,3) = pk.sigma[k]*sp.delta_ppm;
           P(k,4) = pk.pfac[k];
-          P(k,5) = M_PI*pk.AK[k]*pk.sigma[k];
+          P(k,5) = M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
        }
        ret["peaks"] = DataFrame::create( Named("pos") = P(_,0),
                                          Named("ppm") = P(_,1),
@@ -1499,46 +1480,207 @@ SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
                                          Named("sigma") = P(_,3),
                                          Named("pfac") = P(_,4),
                                          Named("integral") = P(_,5) );
-
-       // ------- Massifs  ---------------------------------
-       NumericMatrix M(blocks.nbblocks, 7);
-       for (k=0; k<blocks.nbblocks; k++) {
-          M(k,0) = blocks.nstart[k];
-          M(k,1) = blocks.nstop[k];
-          M(k,2) = ppmval(&sp,blocks.nstart[k]);
-          M(k,3) = ppmval(&sp,blocks.nstop[k]);
-          M(k,4) = blocks.np[k];
-          M(k,5) = blocks.offset[k];
-          M(k,6) = blocks.slope[k];
-       }
-       ret["blocks"] = DataFrame::create( Named("pos1") = M(_,0),
-                                          Named("pos2") = M(_,1),
-                                          Named("ppm1") = M(_,2),
-                                          Named("ppm2") = M(_,3),
-                                          Named("nbpeaks") = M(_,4),
-                                          Named("offset") = M(_,5),
-                                          Named("slope") = M(_,6) );
-
-       // ------- Y model ----------------------------------
-    // Note: Index translation  from range[1 - N] to range[0 - N-1]
-       NumericVector Ymodel(Y.size());
-       for (i=0; i<sp.count_max; i++) {
-            Ymodel[i]=0;
-            ppm = ppmval(&sp,i+1);
-            if (ppm>pk.wmin && ppm<pk.wmax) {
-               for (k=0;k<pk.npic;k++)
-                    if (pk.AK[k]>0.0) Ymodel[i] += pk.optim_ppm ?
-                          pk.AK[k]*lorentz(ppm, pk.ppm[k], sigfac*pk.sigma[k]*sp.delta_ppm) :
-                          pk.AK[k]*lorentz(i, pk.pics[k]+pk.pfac[k]-1, sigfac*pk.sigma[k]);
-            }
-       }
-       ret["model"]=Ymodel;
-
     }
 
-    if(_verbose_>0) Rcerr << "----------------------------------------------------" << std::endl;
+    return(ret);
+}
+
+NumericMatrix C_DF2mat(DataFrame x) {
+    Function asMatrix("as.matrix");
+    return asMatrix(x);
+}
+
+// [[Rcpp::export]]
+SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
+{
+    List slist(spec);
+    List plist(peaks);
+    NumericVector Y = as<NumericVector>(slist["int"]);
+    NumericVector W(ppmrange);
+
+    struct s_spectre sp;
+    struct s_peaks pk;
+    struct s_blocks blocks;
+
+    int i,k;
+    double  **bl, *v1, ppm;
+
+    bl=matrix(MAXBLOCKS,MAXBLORD+2);
+    blocks.bl = bl;
+
+    v1=vector(COUNT_MAX);
+
+    // Note: Index translation  from range[0 - N-1] to range[1 - N]
+    for (k=0; k<Y.size(); k++) v1[k+1]=Y[k];
+    sp.V = v1;
+
+    sp.count_max = Y.size();
+    sp.LAYER_MAX = as<double>(slist["LAYER_MAX"]);
+    sp.ppm_max = as<double>(slist["pmax"]);
+    sp.ppm_min = as<double>(slist["pmin"]);
+    sp.delta_ppm = as<double>(slist["dppm"]);
+    sp.B = as<double>(slist["B"]);
+    sp.ppm_direct = 1;
+
+    pk.wmin = W[0];
+    pk.wmax = W[1];
+
+    _verbose_ = verbose;
+
+    // Get input parameters
+    pk.optim       = plist.containsElementNamed("optim")     ? as<int>(plist["optim"]) : 1;
+    pk.optim_int   = plist.containsElementNamed("oa")        ? as<int>(plist["oa"]) : 1;
+    pk.optim_sigma = plist.containsElementNamed("os")        ? as<int>(plist["os"]) : 1;
+    pk.optim_ppm   = plist.containsElementNamed("op")        ? as<int>(plist["op"]) : 0;
+    pk.tol         = plist.containsElementNamed("tol")       ? as<int>(plist["tol"]) : 0.005;
+    pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
+    pk.sigma_max   = plist.containsElementNamed("sigma_max") ? as<double>(plist["sigma_max"]) : 0.005;
+    pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
+
+    blocks.oneblk  = plist.containsElementNamed("oneblk")    ? as<int>(plist["oneblk"]) : 0;
+    blocks.scmin   = plist.containsElementNamed("scmin")     ? as<double>(plist["scmin"]) : 2;
+    _OPBL_         = plist.containsElementNamed("obl")       ? as<int>(plist["obl"]) : 0;
+    if (_OPBL_ > MAXBLORD) _OPBL_ = MAXBLORD;
+
+    // ------- Optimisation of Amplitudes & Sigmas ------
+    NumericMatrix P0;
+    try { P0 = C_DF2mat(as<DataFrame>(plist["peaks"]));  }
+    catch(...) { P0 = as<NumericMatrix>(plist["peaks"]); }
+
+    pk.npic = P0.nrow();
+    for (k=0;k<P0.nrow();k++) {
+        pk.pics[k] = (int)P0(k,0);
+        pk.ppm[k] = P0(k,1);
+        pk.AK[k] = P0(k,2);
+        pk.sigma[k] = P0(k,3)/sp.delta_ppm;
+        pk.pfac[k] = P0(k,4);
+    }
+
+    // ------- Optimisation of Amplitudes & Sigmas ------
+    if (_verbose_>0) {
+        Rprintf("Peaks optimisation (Amplitudes");
+        if (pk.optim_sigma) Rprintf(",Sigmas");
+        if (pk.optim_ppm)   Rprintf(",ppm");
+        Rprintf(")\n");
+        if (_OPBL_>0) Rprintf("\tBaseline optimization activated\n");
+    }
+    optim_peaks(&sp,&pk,&blocks);
+
+    if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+    select_peaks(&sp,&pk);
+    if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+
+    free_vector(v1);
+
+    List ret;
+    ret["nbpeak"]= pk.npic;
+
+    // ------- Parameters -------------------------------
+    ret["params"] = List::create(_["optim"] = pk.optim,
+                                 _["oa"] = pk.optim_int,
+                                 _["os"] = pk.optim_sigma,
+                                 _["op"] = pk.optim_ppm,
+                                 _["ratioSN"] = pk.RatioPN,
+                                 _["sigma_min"] = pk.sigma_min,
+                                 _["sigma_max"] = pk.sigma_max,
+                                 _["scmin"] = blocks.scmin,
+                                 _["oneblk"] = blocks.oneblk,
+                                 _["obl"] = _OPBL_,
+                                 _["wmin"] = pk.wmin,
+                                 _["wmax"] = pk.wmax );
+
+    // ------- PeakList ----------------------------------
+    NumericMatrix P(pk.npic, 6);
+    for (k=0; k<pk.npic; k++) {
+        ppm = pk.optim_ppm ? pk.ppm[k] : ppmval(&sp,pk.pics[k]+pk.pfac[k]);
+        P(k,0) = pk.pics[k];
+        P(k,1) = ppm;
+        P(k,2) = pk.AK[k];
+        P(k,3) = pk.sigma[k]*sp.delta_ppm;
+        P(k,4) = pk.pfac[k];
+        P(k,5) = M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
+    }
+    ret["peaks"] = DataFrame::create( Named("pos") = P(_,0),
+                                      Named("ppm") = P(_,1),
+                                      Named("amp") = P(_,2),
+                                      Named("sigma") = P(_,3),
+                                      Named("pfac") = P(_,4),
+                                      Named("integral") = P(_,5) );
+
+    // ------- Massifs  ---------------------------------
+    NumericMatrix M(blocks.nbblocks, 5);
+    for (k=0; k<blocks.nbblocks; k++) {
+        M(k,0) = blocks.nstart[k];
+        M(k,1) = blocks.nstop[k];
+        M(k,2) = ppmval(&sp,blocks.nstart[k]);
+        M(k,3) = ppmval(&sp,blocks.nstop[k]);
+        M(k,4) = blocks.np[k];
+    }
+    if (_OPBL_>0) {
+       NumericMatrix BL(blocks.nbblocks, _OPBL_ + 1);
+       for (k=0; k<blocks.nbblocks; k++)
+          for (i=0; i<=_OPBL_; i++)
+              BL(k,i) = blocks.bl[k][i];
+       ret["blocks"] = List::create( _["cnt"] = blocks.nbblocks,
+                                     _["blpars"] = BL,
+                                     _["blocks"] = M );
+    } else
+       ret["blocks"] = List::create( _["cnt"] = blocks.nbblocks, 
+                                     _["blocks"] = M );
+
+    free_matrix(bl);
+
+    // ------- Y model ----------------------------------
+    // Note: Index translation  from range[1 - N] to range[0 - N-1]
+    NumericVector Ymodel(Y.size());
+    for (i=0; i<sp.count_max; i++) {
+         Ymodel[i]=0;
+         ppm = ppmval(&sp,i+1);
+         if (ppm>pk.wmin && ppm<pk.wmax) {
+            for (k=0;k<pk.npic;k++)
+                 if (pk.AK[k]>0.0) Ymodel[i] += pk.optim_ppm ?
+                       pk.AK[k]*lorentz(ppm, pk.ppm[k], pk.sigma[k]*sp.delta_ppm) :
+                       pk.AK[k]*lorentz(i, pk.pics[k]+pk.pfac[k]-1, pk.sigma[k]);
+         }
+    }
+    ret["model"]=Ymodel;
 
     return(ret);
+}
+
+// [[Rcpp::export]]
+SEXP C_specModel(SEXP spec, SEXP ppmrange, SEXP peaks)
+{
+    List slist(spec);
+    NumericVector W(ppmrange);
+
+    //NumericMatrix P(peaks);
+    NumericMatrix P;
+    try { P = C_DF2mat(as<DataFrame>(peaks));  }
+    catch(...) { P = as<NumericMatrix>(peaks); }
+
+    double ppm_min, delta_ppm, wmin, wmax, ppm;
+    int count_max, i, k;
+
+    NumericVector Y = as<NumericVector>(slist["int"]);
+    count_max = Y.size();
+    ppm_min = as<double>(slist["pmin"]);
+    delta_ppm = as<double>(slist["dppm"]);
+    wmin = W[0];
+    wmax = W[1];
+
+    // ------- Y model ----------------------------------
+    // Note: Index translation  from range[1 - N] to range[0 - N-1]
+    NumericVector Ymodel(count_max);
+    for (i=0; i<count_max; i++) {
+         Ymodel[i]=0;
+         ppm = ppm_min + i*delta_ppm;
+         if (ppm>wmin && ppm<wmax) {
+            for (k=0;k<P.nrow();k++)
+                 if (P(k,2)>0.0) Ymodel[i] += P(k,2)*lorentz(ppm, P(k,1), P(k,3));
+         }
+    }
+    return(Ymodel);
 }
 
 void _Ajust_LB_ (SEXP s, SEXP b, int n1, int n2)

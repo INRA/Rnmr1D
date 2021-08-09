@@ -86,9 +86,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// C_MyFuncTest
-SEXP C_MyFuncTest(SEXP spec, SEXP ppmrange, Nullable<List> filt, Nullable<List> peaks, int verbose);
-RcppExport SEXP _Rnmr1D_C_MyFuncTest(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP filtSEXP, SEXP peaksSEXP, SEXP verboseSEXP) {
+// C_peakFinder
+SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt, Nullable<List> peaks, int verbose);
+RcppExport SEXP _Rnmr1D_C_peakFinder(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP filtSEXP, SEXP peaksSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -97,7 +97,34 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Nullable<List> >::type filt(filtSEXP);
     Rcpp::traits::input_parameter< Nullable<List> >::type peaks(peaksSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_MyFuncTest(spec, ppmrange, filt, peaks, verbose));
+    rcpp_result_gen = Rcpp::wrap(C_peakFinder(spec, ppmrange, filt, peaks, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_peakOptimize
+SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose);
+RcppExport SEXP _Rnmr1D_C_peakOptimize(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP peaksSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type spec(specSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ppmrange(ppmrangeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type peaks(peaksSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_peakOptimize(spec, ppmrange, peaks, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_specModel
+SEXP C_specModel(SEXP spec, SEXP ppmrange, SEXP peaks);
+RcppExport SEXP _Rnmr1D_C_specModel(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP peaksSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type spec(specSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ppmrange(ppmrangeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type peaks(peaksSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_specModel(spec, ppmrange, peaks));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -554,7 +581,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rnmr1D_C_FilterbyThreshold", (DL_FUNC) &_Rnmr1D_C_FilterbyThreshold, 3},
     {"_Rnmr1D_C_Lorentz", (DL_FUNC) &_Rnmr1D_C_Lorentz, 4},
     {"_Rnmr1D_C_OneLorentz", (DL_FUNC) &_Rnmr1D_C_OneLorentz, 3},
-    {"_Rnmr1D_C_MyFuncTest", (DL_FUNC) &_Rnmr1D_C_MyFuncTest, 5},
+    {"_Rnmr1D_C_peakFinder", (DL_FUNC) &_Rnmr1D_C_peakFinder, 5},
+    {"_Rnmr1D_C_peakOptimize", (DL_FUNC) &_Rnmr1D_C_peakOptimize, 4},
+    {"_Rnmr1D_C_specModel", (DL_FUNC) &_Rnmr1D_C_specModel, 3},
     {"_Rnmr1D_C_MyFuncTest2", (DL_FUNC) &_Rnmr1D_C_MyFuncTest2, 3},
     {"_Rnmr1D_SDL", (DL_FUNC) &_Rnmr1D_SDL, 2},
     {"_Rnmr1D_C_write_pack", (DL_FUNC) &_Rnmr1D_C_write_pack, 4},
