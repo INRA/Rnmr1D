@@ -255,9 +255,9 @@ SEXP Smooth (SEXP v, int n)
     double Wk=V[0];
     S[0]=V[0];
     for (int k=1; k<(N-1); k++) {
-        if (k<=n)            { Wk += (V[2*k]   + V[2*k-1]);    S[k] = Wk/(2*k+1);     }
-        if (k>n && k<=(N-n)) { Wk += (V[k+n]   - V[k-n-1]);    S[k] = Wk/(2*n+1);     }
-        if (k>(N-n))         { Wk -= (V[2*k-N] - V[2*k-N-1]);  S[k] = Wk/(2*(N-k)+1); }
+        if (k<=n)              { Wk += (V[2*k]   + V[2*k-1]);    S[k] = Wk/(2*k+1);     }
+        if (k>n && k<=(N-n-1)) { Wk += (V[k+n]   - V[k-n-1]);    S[k] = Wk/(2*n+1);     }
+        if (k>(N-n-1))         { Wk -= (V[2*k-N] - V[2*k-N-1]);  S[k] = Wk/(2*(N-k)+1); }
     }
     S[N-1]=V[N-1];
     return S;

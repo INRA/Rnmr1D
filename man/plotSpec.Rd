@@ -5,8 +5,7 @@
 \title{plotSpec}
 \usage{
 plotSpec(
-  spec,
-  ppm,
+  ppmrange,
   x,
   y,
   ynames = c("Origin", "Filtered", "Model"),
@@ -16,9 +15,7 @@ plotSpec(
 )
 }
 \arguments{
-\item{spec}{a 'spec' object (see \code{readSpectrum}, \code{Spec1rDoProc})}
-
-\item{ppm}{a ppm range defining the window of the plotting}
+\item{ppmrange}{a ppm range defining the window of the plotting}
 
 \item{x}{a vector defining the x-axis (abscissa)}
 

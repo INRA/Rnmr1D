@@ -61,7 +61,6 @@ int _OPBL_    = 0;
 struct s_spectre {
      double *V;
      int    count_max;
-     int    LAYER_MAX;
      int    ppm_direct;
      double ppm_max;
      double ppm_min;
@@ -75,7 +74,7 @@ struct s_peaks {
      double  pfac[MAXPICS];
      double  AK[MAXPICS];
      double  sigma[MAXPICS];
-     int     d2spmeth;
+     int     d2meth;
      int     optim;
      int     optim_int;
      int     optim_sigma;
@@ -195,9 +194,6 @@ void Derive (double *v1, double *v2, int count_max)
     int    count;
 
     for (count=0; count<=count_max; count++) v2[count]=0.0;
-    //v2[2]=v1[2]-v1[1]; v2[1]=v2[2];
-    //for (count=3; count<=count_max-2; count++)
-    //    v2[count]=(v1[count-2]-8*v1[count-1]+8*v1[count+1]-v1[count+2])/12;
     for (count=6; count<=count_max-5; count++)
         v2[count] = (42*(v1[count+1]-v1[count-1]) +
                      48*(v1[count+2]-v1[count-2]) +
@@ -359,24 +355,21 @@ void fsavgol(double *v1, double *v2, int count_max, int m, int nl, int nr)
     free_vector(c1);
 }
 
-double WinMoy (double *v, int n1, int n2)
+/* --------------------------------------- */
+/* Smooth Filter                           */
+/* --------------------------------------- */
+void Smooth (double *v, double *s, int count_max, int n)
 {
     int k;
-    double  moy=0.0;
-    for (k=n1; k<=n2; k++) moy += v[k];
-    moy /= (double)(n2-n1+1);
-    return moy;
-}
-
-void Smooth (double *v1, double *v2, int count_max, int n)
-{
-    int count,n1,n2;
-
-    for (count=1; count<=count_max; count++) {
-        n1 = count >= n ? count - n : 0;
-        n2 = count <= count_max - n - 1 ? count + n : count_max - 1;
-        v2[count] = WinMoy(v1,n1,n2);
+    int N=count_max;
+    double wk=v[1];
+    s[1]=v[1];
+    for (int k=2; k<N; k++) {
+        if (k<=(n+1))             { wk += (v[2*k-1]   + v[2*k-2]);    s[k] = wk/(2*k+1);     }
+        if (k>(n+1) && k<=(N-n-)) { wk += (v[k+n]     - v[k-n-1]);    s[k] = wk/(2*n+1);     }
+        if (k>(N-n-))             { wk -= (v[2*k-N-1] - v[2*k-N-2]);  s[k] = wk/(2*(N-k)+1); }
     }
+    s[N-1]=v[N-1];
 }
 
 /* ------------------------------------ */
@@ -572,12 +565,12 @@ void Filtre_Power_WT(double *v1, int count_max, double threshold, std::vector<do
         for (k=n1;k<=n2;k++) P[j] += v1[k]*v1[k];
         S += P[j];
     }
-    if(_verbose_>1) Rcout << " Zeroing layers : ";
+    if(_verbose_>1) Rprintf(" Zeroing layers : ");
     for (j=1;j<=layer_max;j++) {
         n1=pow(2,j-1); n2=pow(2,j)-1;
         Pj = (100.0*P[j]/S)/(n2-n1+1);
         if (Pj<threshold/count_max) {
-            if(_verbose_>1) Rcout << j << " ";
+            if(_verbose_>1) Rprintf("%d ",j);
             for (k=n1;k<=n2;k++) v1[k]=0;
         }
     }
@@ -795,7 +788,7 @@ void find_peaks (struct s_spectre *sp, struct s_peaks *pk)
     double  d1[COUNT_MAX],d2[COUNT_MAX];
     double  vp[COUNT_MAX];
     double dy1,dy2,fac1,fac2;
-    int k,delta,count, cpm1, cpm2;
+    int k,delta,count, cpm1, cpm2, layer_max;
 
     for (count=0; count<=sp->count_max; count++) vp[count]=0.0;
 
@@ -819,17 +812,18 @@ void find_peaks (struct s_spectre *sp, struct s_peaks *pk)
     if (_verbose_>1) Rprintf("%d peaks found. OK\n",cpm1);
 
     //Minima method applied to the second derivation
-    if (pk->d2spmeth>0) {
+    if (pk->d2meth>0) {
 
         //-------- first derivative -----------------------------------
+        layer_max = (int)(round(log2(sp->count_max)));
         Derive(sp->V,d1,sp->count_max);
         if (pk->d1filt)
-           Filtre_WT(d1, sp->count_max, sp->LAYER_MAX, sp->LAYER_MAX, -1,daub8);
+           Filtre_WT(d1, sp->count_max, layer_max, layer_max, -1,daub8);
 
         //-------- second derivative ------------------------------------
         Derive(d1,d2,sp->count_max);
         if (pk->d2filt)
-           Filtre_WT(d1, sp->count_max, sp->LAYER_MAX, sp->LAYER_MAX, -1,daub8);
+           Filtre_WT(d2, sp->count_max, layer_max, layer_max, -1,daub8);
 
        if (_verbose_>1) Rprintf("\tMinimum Method on d2sp ... ");
        fac2= (pk->d2cv>0) ? pk->d2cv : 0.05;
@@ -852,6 +846,7 @@ void find_peaks (struct s_spectre *sp, struct s_peaks *pk)
 
     }
 
+    // Synthesis of both method
     if (_verbose_>1) Rprintf("\tSave peaks ... ");
     pk->npic=0;
     for (count=1; count<=sp->count_max; count++) {
@@ -909,19 +904,20 @@ void select_peaks(struct s_spectre *sp, struct s_peaks *pk)
 // Estimation of sigmas based on the second derivative
 void estime_sigma(struct s_spectre *sp,struct s_peaks *pk)
 {
-    int k,i,j,n,loop;
+    int k,i,j,n, loop, layer_max;
     double x1,x2;
     double  d1[COUNT_MAX],d2[COUNT_MAX];
 
     //-------- first derivative -----------------------------------
+    layer_max = (int)(round(log2(sp->count_max)));
     Derive(sp->V,d1,sp->count_max);
     if (pk->d1filt)
-       Filtre_WT(d1, sp->count_max, sp->LAYER_MAX, sp->LAYER_MAX, -1,daub8);
+       Filtre_WT(d1, sp->count_max, layer_max, layer_max, -1,daub8);
 
     //-------- second derivative ------------------------------------
     Derive(d1,d2,sp->count_max);
     if (pk->d2filt)
-       Filtre_WT(d1, sp->count_max, sp->LAYER_MAX, sp->LAYER_MAX, -1,daub8);
+       Filtre_WT(d2, sp->count_max, layer_max, layer_max, -1,daub8);
 
     for (k=1; k<pk->npic; k++) {
         n = pk->pics[k];
@@ -1346,15 +1342,14 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
     int k,fn;
     double  *v1, *v2, ppm;
 
-    v1=vector(COUNT_MAX);
-    v2=vector(COUNT_MAX);
+    v1=vector(COUNT_MAX); // original spectrum
+    v2=vector(COUNT_MAX); // filtered spectrum
 
     // Note: Index translation  from range[0 - N-1] to range[1 - N]
     for (k=0; k<Y.size(); k++) v1[k+1]=Y[k];
     sp.V = v1;
 
     sp.count_max = Y.size();
-    sp.LAYER_MAX = as<double>(slist["LAYER_MAX"]);
     sp.ppm_max = as<double>(slist["pmax"]);
     sp.ppm_min = as<double>(slist["pmin"]);
     sp.delta_ppm = as<double>(slist["dppm"]);
@@ -1369,30 +1364,28 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
     if (filt.isNotNull()) {
        List flist(filt);
        fn = as<int>(flist["type"]);
-       if(_verbose_>0) Rcout << "Filter = ";
        switch(fn) {
          case fNONE:
-            if(_verbose_>0) Rcout << "None";
+            if(_verbose_>0) Rprintf("Filter = none\n");
             for (k=1; k<=Y.size(); k++) v2[k]=v1[k];
             break;
          case fDAUB8:
-            if(_verbose_>0) Rcout << "daub8";
+            if(_verbose_>0) Rprintf("Filter = daub8\n");
             filtsigbywt(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),daub8);
             break;
          case fSYMLET8:
-            if(_verbose_>0) Rcout << "symlet8";
+            if(_verbose_>0) Rprintf("Filter = symlet8\n");
             filtsigbywt(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),symlet8);
             break;
          case fSAVGOL:
-            if(_verbose_>0) Rcout << "savgol";
+            if(_verbose_>0) Rprintf("Filter = savgol\n");
             fsavgol(sp.V,v2,sp.count_max, as<int>(flist["m"]), as<int>(flist["nl"]), as<int>(flist["nr"]));
             break;
          case fSMOOTH:
-            if(_verbose_>0) Rcout << "smooth";
+            if(_verbose_>0) Rprintf("Filter = smooth\n");
             Smooth(sp.V,v2,sp.count_max, as<int>(flist["m"]));
             break;
        }
-       if(_verbose_>0) Rcout << std::endl;
     } else {
        for (k=1; k<=Y.size(); k++) v2[k]=v1[k];
     }
@@ -1409,7 +1402,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 
        // Get input parameters
        pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
-       pk.d2spmeth    = plist.containsElementNamed("d2spmeth")  ? as<int>(plist["d2spmeth"]) : 0;
+       pk.d2meth    = plist.containsElementNamed("d2meth")      ? as<int>(plist["d2meth"]) : 0;
        pk.dist_fac    = plist.containsElementNamed("dist_fac")  ? as<double>(plist["dist_fac"]) : 2.0;
        pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
        pk.spcv        = plist.containsElementNamed("spcv")      ? as<double>(plist["spcv"]) : 0.02;
@@ -1419,17 +1412,16 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 
        // ------- Peaks detection --------------------------
        if(_verbose_>0) Rprintf("Peaks detection\n");
-       sp.V = v2;
+       sp.V = v2; // filtered spectrum
        find_peaks(&sp,&pk);
        if(_verbose_>0) Rprintf("\tNb detected peaks = %d\n",pk.npic);
        if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-       //sp.V = v1;
        select_peaks(&sp,&pk);
        if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
 
        // ------- Estimation of Sigmas --------
        if(_verbose_>0) Rprintf("Sigmas Estimation\n");
-       sp.V = v1;
+       sp.V = v1; // original spectrum
        estime_sigma(&sp,&pk);
        if(_verbose_>0) Rprintf("\tSigma Moy = %f\n",pk.sigma_moy*sp.delta_ppm);
 
@@ -1437,10 +1429,10 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        int estimate_int  = plist.containsElementNamed("estimate_int") ? as<int>(plist["estimate_int"]) : 0;
        if (estimate_int) {
           if(_verbose_>0) Rprintf("Amplitude Estimation\n");
-          sp.V = v2;
+          sp.V = v2; // filtered spectrum
           if (estimate_int==1 ) estime_AK(&sp,&pk);
           if (estimate_int >1 ) estime_AK2(&sp,&pk);
-          sp.V = v1;
+          sp.V = v1; // original spectrum
           if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
           select_peaks(&sp,&pk);
           if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
@@ -1453,7 +1445,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 
        // ------- Parameters -------------------------------
        ret["params"] = List::create(_["ratioSN"] = pk.RatioPN,
-                                    _["d2spmeth"] = pk.d2spmeth,
+                                    _["d2meth"] = pk.d2meth,
                                     _["spcv"] = pk.spcv,
                                     _["d2cv"] = pk.d2cv,
                                     _["d1filt"] = pk.d1filt,
@@ -1515,7 +1507,6 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     sp.V = v1;
 
     sp.count_max = Y.size();
-    sp.LAYER_MAX = as<double>(slist["LAYER_MAX"]);
     sp.ppm_max = as<double>(slist["pmax"]);
     sp.ppm_min = as<double>(slist["pmin"]);
     sp.delta_ppm = as<double>(slist["dppm"]);
@@ -1529,10 +1520,10 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
 
     // Get input parameters
     pk.optim       = plist.containsElementNamed("optim")     ? as<int>(plist["optim"]) : 1;
-    pk.optim_int   = plist.containsElementNamed("oa")        ? as<int>(plist["oa"]) : 1;
-    pk.optim_sigma = plist.containsElementNamed("os")        ? as<int>(plist["os"]) : 1;
-    pk.optim_ppm   = plist.containsElementNamed("op")        ? as<int>(plist["op"]) : 0;
-    pk.tol         = plist.containsElementNamed("tol")       ? as<int>(plist["tol"]) : 0.005;
+    pk.optim_int   = plist.containsElementNamed("oint")      ? as<int>(plist["oint"]) : 1;
+    pk.optim_sigma = plist.containsElementNamed("osigma")    ? as<int>(plist["osigma"]) : 1;
+    pk.optim_ppm   = plist.containsElementNamed("oppm")      ? as<int>(plist["oppm"]) : 0;
+    pk.tol         = plist.containsElementNamed("reltol")    ? as<int>(plist["reltol"]) : 0.005;
     pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
     pk.sigma_max   = plist.containsElementNamed("sigma_max") ? as<double>(plist["sigma_max"]) : 0.005;
     pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
@@ -1577,9 +1568,9 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
 
     // ------- Parameters -------------------------------
     ret["params"] = List::create(_["optim"] = pk.optim,
-                                 _["oa"] = pk.optim_int,
-                                 _["os"] = pk.optim_sigma,
-                                 _["op"] = pk.optim_ppm,
+                                 _["oint"] = pk.optim_int,
+                                 _["osigma"] = pk.optim_sigma,
+                                 _["oppm"] = pk.optim_ppm,
                                  _["ratioSN"] = pk.RatioPN,
                                  _["sigma_min"] = pk.sigma_min,
                                  _["sigma_max"] = pk.sigma_max,

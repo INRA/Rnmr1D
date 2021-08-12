@@ -15,8 +15,8 @@ deconvParams
   \item \code{flist} : Filter type list : 'smooth1', 'smooth2' and'smooth3' for Savitzky-Golay filter, 'daub8' and 'symlet8' for filter based on wavelet
   \item \code{criterion} : Criterion type for the optimizations : 0 => R2, 1 => 1/Std(residues) - default value = 0
   \item \code{reltol} : Criterion tolerance for the optimization - default value = 0.0001
-  \item \code{facN} : Peak/Noise Ratio factor - default value = NULL
-  \item \code{ratioPN} : Peak/Noise Ratio - default value = 1
+  \item \code{facN} :  Noise factor applied while the peak finding step - default value = NULL
+  \item \code{ratioPN} : Peak/Noise Ratio applied while the peak selection step - default value = 1
   \item \code{obl} : Optimization of a baseline (BL) for each massif. 0 means no BL, an integer greater than 0 indicates the polynomial order of the BL default value = 0
   \item \code{dist_fac} : PeakFinder : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm) - default value = 2
   \item \code{optim} : Indicates if optimisation is applied - default value = 1

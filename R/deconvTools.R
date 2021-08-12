@@ -13,7 +13,7 @@
 fnone <- list( type=0 )
 fdaub8 <- list( type=1, threshold=0.5 )
 fsymlet8 <- list( type=2, threshold=0.5 )
-fsavgol5 <- list( type=3, m=5, nl=5, nr=10 )
+fsavgol5 <- list( type=3, m=5, nl=8, nr=8 )
 fsavgol10 <- list( type=3, m=10, nl=20, nr=30 )
 fsavgol50 <- list( type=3, m=50, nl=60, nr=80 )
 fsmooth <- list( type=4, m=12 )
@@ -26,14 +26,14 @@ fsmooth <- list( type=4, m=12 )
 #'   \item \code{flist} : Filter type list : 'smooth1', 'smooth2' and'smooth3' for Savitzky-Golay filter, 'daub8' and 'symlet8' for filter based on wavelet
 #'   \item \code{criterion} : Criterion type for the optimizations : 0 => R2, 1 => 1/Std(residues) - default value = 0
 #'   \item \code{reltol} : Criterion tolerance for the optimization - default value = 0.0001
-#'   \item \code{facN} : Peak/Noise Ratio factor - default value = NULL
-#'   \item \code{ratioPN} : Peak/Noise Ratio - default value = 1
+#'   \item \code{facN} :  Noise factor applied while the peak finding step - default value = NULL
+#'   \item \code{ratioPN} : Peak/Noise Ratio applied while the peak selection step - default value = 1
 #'   \item \code{obl} : Optimization of a baseline (BL) for each massif. 0 means no BL, an integer greater than 0 indicates the polynomial order of the BL default value = 0
 #'   \item \code{dist_fac} : PeakFinder : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm) - default value = 2
 #'   \item \code{optim} : Indicates if optimisation is applied - default value = 1
 #'   \item \code{oppm} : Indicates if ppm optimisation is applied - default value = 1
 #'   \item \code{osigma} : Indicates if sigma optimisation is applied - default value = 1
-#'   \item \code{d2spmeth} : PeakFinder : Indicates if minima method to the second derivation is applied
+#'   \item \code{d2meth} : PeakFinder : Indicates if minima method to the second derivation is applied
 #'   \item \code{spcv} : PeakFinder : Maximal CV on Spectrum - default value = 0.005
 #'   \item \code{d2cv} : PeakFinder : Maximum CV on the derived spectrum - default value = 0.05
 #'   \item \code{d1filt} : Apply Filter (1) on the 1st derivate or not (0) - default value = 0
@@ -58,7 +58,17 @@ deconvParams <- list (
 
   # Peak/Noise Ratio
   facN = NULL,
-  ratioPN = 1,
+  ratioPN = 5,
+
+  # Optimization of peaks : 0 => No, 1 => Yes
+  optim=1,
+  oppm = 1,
+  osigma = 1,
+  estimate_int=0,
+
+  # Optimization by only one block or by several blocks applying a cut-off process. 
+  oneblk=0,
+  scmin=2,
 
   # Optimization of a baseline (BL) for each massif
   # 0 means no BL, an integer greater than 0 indicates the polynomial order of the BL
@@ -67,20 +77,17 @@ deconvParams <- list (
   # Peaks searching : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm)
   dist_fac = 2,
 
-  # Optimization of peaks : 0 => No, 1 => Yes
-  oppm = 1,
-  osigma = 1,
-
   # Peaks searching : Minima method applied to the second derivation
-  d2spmeth = 1,
+  d2meth = 1,
 
-  # CV on Spectrum and its second derivate
-  spcv = 0.005,
-  d2cv = 0.05,
+  # minimum values for the peak curvature : the larger the value, the narrower the peak 
+  # 1) on spectrum (sp) and 2) its second derivate (d2)
+  spcv = 0.01, # 0.005 - 0.025
+  d2cv = 0.1,  # 0.05 - 0.25
 
   # Apply Filter (1) on 1st (d1filt) and 2nd derivates (d2filt) or not (0)
   d1filt = 0,
-  d2filt = 1,
+  d2filt = 0,
 
   # Optimization of Sigmas : Fixe the limits (min and max) of sigmas
   sigma_min = 0.0005,
@@ -93,25 +100,9 @@ deconvParams <- list (
   exclude_zones = NULL
 )
 
-# Merge specific parameters values with the full deconvolution list
-
-#' getDeconvParams
-#'
-#' \code{getDeconvParams} merges some specific parameters values with the full deconvolution list and return the resulting list. With no parameter as input, it returns the default parameter list.
-#' @param params a list defining some specific parameters for deconvolution
-#' @return the resulting list of deconvolution parameters.
-getDeconvParams <- function(params=NULL)
-{
-  fullparams <- deconvParams
-  if ("list" %in% class(params)) for (p in ls(params)) fullparams[[p]] <- params[[p]]
-  fullparams
-}
-
-# get the index sequence corresponding to the ppm range
-getseq <- function(spec, ppm)
-{
-   c(which(spec$ppm>=ppm[1])[1]:length(which(spec$ppm<=ppm[2])))
-}
+#=====================================================================
+# Filtering
+#=====================================================================
 
 #' filterSavGol
 #'
@@ -123,8 +114,7 @@ getseq <- function(spec, ppm)
 #' @return a vector of the same dimension as the entry one
 filterSavGol <- function(s, m, nl, nr)
 {
-   out <- C_fSavGol(s, m, nl, nr)
-   out
+   C_fSavGol(s, m, nl, nr)
 }
 
 
@@ -137,8 +127,7 @@ filterSavGol <- function(s, m, nl, nr)
 #' @return a vector of the same dimension as the entry one
 filterByWT <- function(s, wavelet, type = 0)
 {
-   out <- C_FilterbyThreshold(s, wavelet, threshold = type)
-   out
+   C_FilterbyThreshold(s, wavelet, threshold = type)
 }
 
 
@@ -151,10 +140,31 @@ filterByWT <- function(s, wavelet, type = 0)
 #' @return a vector of the same dimension as the entry one
 filterByThreshold <- function(s, wavelet, threshold = 0.5)
 {
-   out <- C_FilterbyWT(s, type = wavelet, threshold)
-   out
+   C_FilterbyWT(s, type = wavelet, threshold)
 }
 
+#=====================================================================
+# Deconvolution - general routines
+#=====================================================================
+
+#' getDeconvParams
+#'
+#' \code{getDeconvParams} merges some specific parameters values with the full deconvolution list and return the resulting list. With no parameter as input, it returns the default parameter list.
+#' @param params a list defining some specific parameters for deconvolution
+#' @return the resulting list of deconvolution parameters.
+getDeconvParams <- function(params=NULL)
+{
+  fullparams <- deconvParams
+  if ("list" %in% class(params))
+     for (p in ls(params)) fullparams[[p]] <- params[[p]]
+  fullparams
+}
+
+# get the index sequence corresponding to the ppm range
+getseq <- function(spec, ppm)
+{
+   c(which(spec$ppm>=ppm[1])[1]:length(which(spec$ppm<=ppm[2])))
+}
 
 #' Lorentz
 #'
@@ -166,8 +176,7 @@ filterByThreshold <- function(s, wavelet, threshold = 0.5)
 #' @return a vector of the lorentzian values (same size as ppm)
 Lorentz <- function(ppm, amp, x0, sigma)
 {
-   out <- C_Lorentz(ppm, amp, x0, sigma)
-   out
+   C_Lorentz(ppm, amp, x0, sigma)
 }
 
 
@@ -180,8 +189,7 @@ Lorentz <- function(ppm, amp, x0, sigma)
 #' @return a vector of the lorentzian parameters (same size as par)
 optimOneLorentz <- function(X, Y, par)
 {
-   out <- C_OneLorentz(X, Y, par)
-   out
+   C_OneLorentz(X, Y, par)
 }
 
 
@@ -226,8 +234,7 @@ peakOptimize <- function(spec, ppmrange, peaks, verbose=1)
 #' @return a vector with the same size of the spectrum
 specModel <- function(spec, ppmrange, peaks)
 {
-   out <- C_specModel(spec, ppmrange, peaks)
-   out
+   C_specModel(spec, ppmrange, peaks)
 }
 
 #' specDeconv
@@ -243,9 +250,7 @@ specDeconv <- function(spec, ppmrange, params=NULL, filter='none', verbose=1)
 {
    model0 <- peakFinder(spec, ppmrange, params, filter, verbose = verbose)
    params$peaks <- model0$peaks
-   model <- peakOptimize(spec, ppmrange, params, verbose = verbose)
-   class(model) = "optimModel"
-   model
+   peakOptimize(spec, ppmrange, params, verbose = verbose)
 }
 
 # Estimated number of peaks
@@ -254,9 +259,8 @@ estimation_nbpeaks <- function(spec, ppmrange, params=NULL)
    g <- getDeconvParams(params)
    FacN <- ifelse(is.null(g$facN), 5, g$facN)
    spec$B <- spec$Noise/FacN
-   Fpars <- list(ratioSN=FacN*g$RationPN, spcv=g$spcv, d2cv=g$d2cv, d2spmeth=g$d2spmeth,
-                 d1filt=g$d1filt, d2filt=g$d2filt, dist_fac=g$dist_fac)
-   model0 <- peakFinder(spec, ppmrange, Fpars, 'daub8', verbose = 0)
+   g$ratioSN <- FacN*g$ratioPN
+   model0 <- peakFinder(spec, ppmrange, g, 'daub8', verbose = 0)
    model0$nbpeak
 }
 
@@ -276,8 +280,9 @@ estimation_nbpeaks <- function(spec, ppmrange, params=NULL)
 #' @param ppmnoise the ppm range containing only noise signal in order to estimate the level of the noise (S/N ratio)
 #' @param PHC the phasing values applied to the spectrum in the frequency domain thus avoiding the automatic phasing step. Only useful if the input signal is an FID (procParams$INPUT_SIGNAL)
 #' @param scaleIntensity factor applied to the intensities to establish a change of scale.
+#' @param verbose level of debug information
 #' @return spec object
-readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, scaleIntensity=1)
+readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, scaleIntensity=1, verbose=1)
 {
    if (!is.null(PHC)) {
       procParams$OPTPHC0 <<- FALSE
@@ -286,11 +291,12 @@ readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, sc
       procParams$phc1 <<- PHC[2]*pi/180
    }
    spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
-   
    Noise <- C_noise_estimation(spec$int, which(spec$ppm>=ppmnoise[1])[1], length(which(spec$ppm<=ppmnoise[2])))
-   spec$B <- spec$Noise <- Noise/scaleIntensity
-   spec$LAYER_MAX <- round(log(1024*round(length(spec$int)/1024))/log(2)+.05)
    spec$int <- spec$int/scaleIntensity
+   spec$B <- spec$Noise <- Noise/scaleIntensity
+   if (verbose) {
+      cat('Size =',length(spec$int),', Max Intensity =',round(max(spec$int),3),', Noise Level =',round(spec$Noise,3),"\n")
+   }
    spec
 }
 
@@ -302,7 +308,8 @@ readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, sc
 #' @param WS Size of the window (in number of points) from which a rolling average will be established
 #' @param NEIGH The minimum window size (in number of points) in which the signal compared to its mean can be considered as belonging to the baseline. 
 #' @return a vector of the estimated baseline
-estimateBL <- function(spec, ppmrange, WS=50, NEIGH=35) {
+estimateBL <- function(spec, ppmrange, WS=50, NEIGH=35)
+{
    set.seed(1234)
    iseq <- c(which(spec$ppm>=ppmrange[1])[1]:length(which(spec$ppm<=ppmrange[2])))
    LB0 <- rep(0,length(iseq))
@@ -349,28 +356,27 @@ getBestPeaks <- function(spec, model1, model2, crit=0)
 GSDeconv <- function(spec, ppmrange, params=NULL, filter='symlet8', scset=c(2,3,12), verbose=1)
 {
    g <- getDeconvParams(params)
+   g$oneblk <- 0;
+
    FacN <- ifelse( is.null(g$facN), 5, g$facN )
    spec$B <- spec$Noise/FacN
+   g$ratioSN <- FacN*g$ratioPN
    debug1 <- ifelse(verbose==2, 1, 0)
 
    # Peak search
-   Fpars <- list(ratioSN=FacN*g$ratioPN, spcv=g$spcv, d2cv=g$d2cv, d2spmeth=g$d2spmeth,
-                 d1filt=g$d1filt, d2filt=g$d2filt, dist_fac=g$dist_fac)
-   model0 <- peakFinder(spec, ppmrange, Fpars, filter, verbose = debug1)
+   model0 <- C_peakFinder(spec, ppmrange, g$flist[[filter]], g, verbose=0)
 
    # Peak optimization
-   Opars <- list(optim=1, os=g$osigma, op=g$oppm, obl=0, ratioSN=FacN*g$ratioPN, oneblk=0,
-                 sigma_max=g$sigma_max, tol=g$reltol)
-   Opars$peaks <- model0$peaks
+   g$peaks <- model0$peaks
 
    for (k in scset) {
       if (debug1) cat(k,':')
-      Opars$scmin <- k
+      g$scmin <- k
       if (k==min(scset)) {
-         model1 <- peakOptimize(spec, ppmrange, Opars, verbose = debug1)
+         model1 <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
       } else {
-         model2 <- peakOptimize(spec, ppmrange, Opars, verbose = debug1)
-         model1$peaks <- getBestPeaks(spec, model1, model2, crit=g$crit)
+         model2 <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+         model1$peaks <- getBestPeaks(spec, model1, model2, crit=g$criterion)
       }
    }
    Ymodel <- specModel(spec, ppmrange, model1$peaks)
@@ -395,16 +401,8 @@ GSDeconv <- function(spec, ppmrange, params=NULL, filter='symlet8', scset=c(2,3,
 # LSD - Local Spectra Deconvolution
 #=====================================================================
 
-#' computeBL
-#'
-#' \code{computeBL} computes baseline based on the model.
-#' @param spec a 'spec' object
-#' @param model a model object
-#' @return a vector of the baseline estimated during the deconvolution process
-computeBL <- function(spec, model)
+intern_computeBL <- function(spec, model)
 {
-   if ( ! sum(c('optimModel', 'LSDmodel') %in% class(model) ) )
-      stop("the input model must have an appropriate class, namely 'optimModel' or 'LSDmodel'")
   repeat {
      bl <- rep(0,length(spec$ppm))
      if (model$params$obl==0) break
@@ -433,6 +431,19 @@ computeBL <- function(spec, model)
   bl
 }
 
+#' computeBL
+#'
+#' \code{computeBL} computes baseline based on the model.
+#' @param spec a 'spec' object
+#' @param model a model object
+#' @return a vector of the baseline estimated during the deconvolution process
+computeBL <- function(spec, model)
+{
+   if ( ! sum(c('optimModel', 'LSDmodel') %in% class(model) ) )
+      stop("the input model must have an appropriate class, namely 'optimModel' or 'LSDmodel'")
+   intern_computeBL(spec, model)
+}
+
 #' LSDeconv
 #'
 #' Local Spectra Deconvolution: \code{LSDeconv} belongs to the low-level functions group for deconvolution.
@@ -446,34 +457,35 @@ computeBL <- function(spec, model)
 LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
 {
    g <- getDeconvParams(params)
+   g$oneblk <- 1;
+
+   iseq <- getseq(spec,ppmrange)
    if (is.null(g$facN))
-      FacN <- max(20,min(100,round(max(spec$int[getseq(spec,ppmrange)])*0.05/spec$Noise)))
+      FacN <- max(20,min(100,round(max(spec$int[iseq])*0.05/spec$Noise)))
    else
       FacN <- g$facN
    spec$B <- spec$Noise/FacN
-
-   Opars <- list(ratioSN=FacN*g$ratioPN, spcv=g$spcv, d2cv=g$d2cv, d2spmeth=g$d2spmeth,
-                 d1filt=g$d1filt, d2filt=g$d2filt, dist_fac=g$dist_fac, estimate_int=0,
-                 sigma_max=g$sigma_max, os=g$osigma, op=g$oppm, obl=1, oneblk=1, tol=g$reltol)
+   g$ratioSN <- FacN*g$ratioPN
 
    R2 <- NULL
    SD <- NULL
    OBL <- NULL
    debug1 <- ifelse(verbose==2, 1, 0)
-   iseq <- getseq(spec,ppmrange)
-   for (filter in filterset) {
+   for (filt in filterset) {
       R2i <- NULL
       SDi <- NULL
       for (obl in oblset) {
-         Opars$obl <- obl
-         modelF <- specDeconv(spec, ppmrange, Opars, filter, verbose = 0)
-         lb <- computeBL(spec, modelF)
-         Ymodel <- modelF$model + lb
+         g$obl <- obl
+         model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose=0)
+         g$peaks <- model0$peaks
+         model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+         lb <- intern_computeBL(spec, model)
+         Ymodel <- model$model + lb
          residus <- spec$int-Ymodel
          R2i <- c( R2i, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
          SDi <- c( SDi, stats::sd(residus[iseq]/spec$Noise) )
       }
-      idx <- ifelse ( g$crit==0, which(R2i==max(R2i)), which(SDi==min(SDi)) )
+      idx <- ifelse ( g$criterion==0, which(R2i==max(R2i)), which(SDi==min(SDi)) )
       OBL <- c( OBL, oblset[idx] )
       R2 <- c( R2, R2i[idx] )
       SD <- c( SD, SDi[idx] )
@@ -481,35 +493,39 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
    }
    gc()
 
-   idx <- ifelse ( g$crit==0, which(R2==max(R2)), which(SD==min(SD)) )
+   idx <- ifelse ( g$criterion==0, which(R2==max(R2)), which(SD==min(SD)) )
    fidx <- filterset[idx]
 
    if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",Opars$obl,"\n")
 
-   model0 <- peakFinder(spec, ppmrange, Opars, fidx, verbose = 0)
-   Opars$obl <- OBL[idx]
-   Opars$peaks <- model0$peaks
-   modelF <- peakOptimize(spec, ppmrange, Opars, verbose = 0)
+   model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose=0)
+   g$peaks <- model0$peaks
+   g$obl <- OBL[idx];
+   model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+   P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
+   model$peaks <- P1[P1$ppm<ppmrange[2],]
+   rownames(model$peaks) <- NULL
+   model$nbpeak <- dim(model$peaks)[1]
+   model$LB <- intern_computeBL(spec, model)
 
-   modelF$LB <- computeBL(spec, modelF)
-   Ymodel <- modelF$model + modelF$LB
-   modelF$residus <- spec$int-Ymodel
-   modelF$iseq <- iseq
-   modelF$ppmrange <- ppmrange
-   modelF$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-   modelF$CV <- stats::sd(modelF$residus[iseq])/mean(modelF$model[iseq])
-   modelF$filter <- fidx
-   modelF$crit <- g$crit
+   Ymodel <- model$model + model$LB
+   model$residus <- spec$int-Ymodel
+   model$iseq <- iseq
+   model$ppmrange <- ppmrange
+   model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+   model$CV <- stats::sd(model$residus[iseq])/mean(model$model[iseq])
+   model$filter <- fidx
+   model$crit <- g$crit
 
    if (verbose) {
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
-      cat("crit =",modelF$crit,", filter =", modelF$filter,", obl =",modelF$params$obl,"\n")
-      cat("Nb Peaks =", modelF$nbpeak,"\n")
-      cat("R2 =", modelF$R2,"\n")
-      cat("CV =",modelF$CV, "\n")
+      cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,"\n")
+      cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
+      cat('R2 =', model$R2,"\n")
+      cat('CV =',model$CV, "\n")
    }
-   class(modelF) = "LSDmodel"
-   modelF
+   class(model) = "LSDmodel"
+   model
 }
 
 
@@ -518,6 +534,7 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
 #' \code{cleanPeaks} cleans the peaks under a specified threshold 
 #' @param spec a 'spec' object
 #' @param model a model object
+#' @param SNthreshold Threshold for the Signal-Noise Ratio below which the peaks will be rejected
 #' @return a data.frame of the remaining peaks
 cleanPeaks <- function(spec, model, SNthreshold=5) {
    ppm <- model$ppmrange
@@ -536,7 +553,6 @@ cleanPeaks <- function(spec, model, SNthreshold=5) {
 #' plotSpec
 #'
 #' \code{plotSpec} plots all signals defined by a matrix.
-#' @param spec a 'spec' object (see \code{readSpectrum}, \code{Spec1rDoProc})
 #' @param ppmrange a ppm range defining the window of the plotting
 #' @param x a vector defining the x-axis (abscissa)
 #' @param y a vector or a matrix defining the y-axes (ordinates), each signal as a column
@@ -593,8 +609,9 @@ plotModelwithResidus <- function(spec, model, ynames=c('Origin', 'Model', 'Resid
 #' @param spec a 'spec' object (see \code{readSpectrum}, \code{Spec1rDoProc})
 #' @param model a 'model' object (see \code{specDeconv}, \code{peakOptimize}, \code{GSDeconv}, \code{LSDeconv})
 #' @param exclude_zones a list of vector defining the excluded zones for lorentzian plots
+#' @param labels choose as legend labels either 'ppm' or 'id'
 #' @param title title of the graphic
-plotModel <- function(spec, model, exclude_zones=NULL, title='')
+plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), title='')
 {
    if ( ! sum(c('peakModel', 'optimModel','GSDmodel', 'LSDmodel') %in% class(model) ) )
       stop("the input model must have an appropriate class, namely one of these: 'peakModel', 'optimModel', 'GSDmodel', 'LSDmodel'")
@@ -604,17 +621,17 @@ plotModel <- function(spec, model, exclude_zones=NULL, title='')
    P2 <- P1[P1$ppm<ppmrange[2],]
    if (! is.null(exclude_zones))
      for (k in 1:length(exclude_zones)) P2 <- rbind( P2[P2[,2]<exclude_zones[[k]][1],], P2[P2[,2]>exclude_zones[[k]][2],] )
-
    npk <- dim(P2)[1]
    npk_colors <- sample(grDevices::rainbow(npk, s=0.8, v=0.75))
    V <- simplify2array(lapply(1:npk, function(i) { Lorentz(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigma[i]) }))
    fmodel <- apply(V,1,sum)
    datamodel <- data.frame(x=spec$ppm[iseq], ymodel=fmodel)
+   labels <- match.arg(labels)
    p1 <- plotly::plot_ly(datamodel, x = ~x, y = ~ymodel, name = 'Model', type = 'scatter', mode = 'lines' )
    for (i in 1:npk){
      df <- data.frame(x=datamodel$x, y=V[,i])
-     p1 <- plotly::add_trace(p1, data=df, x = ~x, y = ~y, name=paste0("p",P2[i,2]), mode = 'lines', fill = 'tozeroy')
+     p1 <- plotly::add_trace(p1, data=df, x = ~x, y = ~y, name=ifelse(labels=='ppm', paste0("p",round(P2[i,2],5)), i), mode = 'lines', fill = 'tozeroy')
    }
-   p1 <- p1 %>% plotly::layout(title = title, xaxis = list(autorange = "reversed"), colorway = c('black', npk_colors))
+   p1 <- p1 %>% plotly::layout(title = title, xaxis = list(autorange = "reversed"), colorway = c('grey', npk_colors))
    p1
 }
