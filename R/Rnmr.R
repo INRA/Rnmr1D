@@ -1122,7 +1122,8 @@ Spec1rProcpar <- list (
 
     param$SI <- length(rawspec)
     proc <- list( phc0=0, phc1=0, crit=NULL, RMS=0, SI=length(rawspec))
-    if (!'phc0' %in% param) param$phc0 <- param$phc1 <- 0
+    #if (!'phc0' %in% param) param$phc0 <- param$phc1 <- 0
+    if (is.null(param$phc0)) param$phc0 <- param$phc1 <- 0
 
     # PPM Calibration
     m <- proc$SI
@@ -1329,18 +1330,24 @@ Spec1rProcpar <- list (
    spec
 }
 
-.computeSpec <- function(spec) {
+# Compute the final spectra based on the best optimisation
+.computeSpec <- function(spec)
+{
    if (!spec$param$OPTPHC0 && !spec$param$OPTPHC1) {
       spec$proc$phc0 <- spec$param$phc0
       spec$proc$phc1 <- spec$param$phc1
    }
-   V <- spec$data
-   new_spec1r <- C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=spec$proc$phc0, phc1=spec$proc$phc1))
+   if (spec$param$DEBUG) .v("\nPhasing: phc = (%3.6f, %3.6f)\n", spec$proc$phc0*180/pi, spec$proc$phc1*180/pi,
+                                                                  logfile=spec$param$LOGFILE)
+
+   fspec <- stats::fft(spec$fid)
+   m <- length(fspec); p <- ceiling(m/2)
+   fspec <- c( fspec[(p+1):m], fspec[1:p] )
+   if ( spec$param$REVPPM ) fspec <- fspec[rev(1:m)]
+   new_spec1r <- C_corr_spec_re(list(re=Re(fspec),im=Im(fspec), phc0=spec$proc$phc0, phc1=spec$proc$phc1))
    spec$data <- complex(real=new_spec1r$re,imaginary=new_spec1r$im)
-   if (spec$param$REVPPM) spec$data <- rev(spec$data)
    spec
 }
-
 
 
 #--------------------------------
@@ -1439,7 +1446,7 @@ Spec1rProcpar <- list (
           if(param$DEBUG) .v("Preprocessing ...\n",logfile=logfile)
           spec <- .preprocess(spec,param)
           if(param$DEBUG) .v("OK\n",logfile=logfile)
-          
+
           ## Phasing
           if(param$OPTPHC0) {
                if(param$DEBUG) .v("Optimizing the zero order phase ...",logfile=logfile)

@@ -97,7 +97,10 @@ deconvParams <- list (
   verbose = 1,
 
   # Exclude ppm zones for the criterion evaluation
-  exclude_zones = NULL
+  exclude_zones = NULL,
+  
+  # a dataframe of peaks (columns : pos, ppm, amp, sigma, pfac)
+  peaks = NULL
 )
 
 #=====================================================================
@@ -166,6 +169,32 @@ getseq <- function(spec, ppm)
    c(which(spec$ppm>=ppm[1])[1]:length(which(spec$ppm<=ppm[2])))
 }
 
+#' pos2ppm
+#'
+#' \code{pos2ppm} convert an index position to the corresponding ppm value
+#' @param spec a 'spec' object
+#' @param index an index position
+#' @return the corresponding ppm value
+pos2ppm <- function(spec, index)
+{
+   if (index<1 || index>length(spec$ppm))
+      stop("the index is out of range")
+   return( spec$pmin + (index-1)*spec$dppm )
+}
+
+#' ppm2pos
+#'
+#' \code{ppm2pos} convert a ppm value to the corresponding index position 
+#' @param spec a 'spec' object
+#' @param ppm a ppm value
+#' @return the corresponding index position 
+ppm2pos <- function(spec, ppm)
+{
+   if (ppm<spec$pmin || ppm>spec$pmax)
+      stop("the ppm is out of range")
+   return( round((ppm - spec$pmin)/spec$dppm,0) + 1)
+}
+
 #' Lorentz
 #'
 #' \code{Lorentz} belongs to the low-level functions group for deconvolution.
@@ -215,12 +244,14 @@ peakFinder <- function(spec, ppmrange, params=NULL, filter='none', verbose=1)
 #' \code{peakOptimize} belongs to the low-level functions group for deconvolution.
 #' @param spec a 'spec' object
 #' @param ppmrange a ppm range as a list in order to apply the deconvolution
-#' @param peaks a list of specific parameters for deconvolution, including the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac, integral
+#' @param params a list of specific parameters for deconvolution, including the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac
 #' @param verbose level of debug information
 #' @return a list
-peakOptimize <- function(spec, ppmrange, peaks, verbose=1)
+peakOptimize <- function(spec, ppmrange, params, verbose=1)
 {
-   model <- C_peakOptimize(spec, ppmrange, peaks, verbose)
+   if (is.null(params$peaks) || ! "data.frame" %in% class(params$peaks) || nrow(params$peaks)==0 )
+      stop("the peaks param must be a data.frame with at least one row")
+   model <- C_peakOptimize(spec, ppmrange, params, verbose)
    class(model) = "optimModel"
    model
 }
@@ -368,11 +399,11 @@ GSDeconv <- function(spec, ppmrange, params=NULL, filter='symlet8', scset=c(2,3,
 
    # Peak optimization
    g$peaks <- model0$peaks
-
-   for (k in scset) {
+   vset <- scset[order(scset)]
+   for (k in vset) {
       if (debug1) cat(k,':')
       g$scmin <- k
-      if (k==min(scset)) {
+      if (k==min(vset)) {
          model1 <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
       } else {
          model2 <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
@@ -449,16 +480,23 @@ computeBL <- function(spec, model)
 #' Local Spectra Deconvolution: \code{LSDeconv} belongs to the low-level functions group for deconvolution.
 #' @param spec a 'spec' object
 #' @param ppmrange a ppm range as a list in order to apply the deconvolution
-#' @param filterset a set of filter type for filtering the noise and  smoothing the signal
+#' @param params a list of specific parameters for deconvolution including or not (i.e equal to NULL) the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac
+#' @param filterset a set of filter type for filtering the noise and  smoothing the signal (only if the matrix defining peaks not defined in order to find peaks)
 #' @param oblset a set of baseline order for fitting
-#' @param params a list of specific parameters for deconvolution
 #' @param verbose level of debug information
 #' @return a model object
 LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
 {
-   g <- getDeconvParams(params)
-   g$oneblk <- 1;
+   if (is.null(params$peaks))
+      LSDeconv_1(spec, ppmrange, params, filterset, oblset, verbose)
+   else
+      LSDeconv_2(spec, ppmrange, params, oblset, verbose)
+ }
 
+# Local Spectra Deconvolution with no predefined peaks (g$peaks=NULL)
+LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
+{
+   g <- getDeconvParams(params)
    iseq <- getseq(spec,ppmrange)
    if (is.null(g$facN))
       FacN <- max(20,min(100,round(max(spec$int[iseq])*0.05/spec$Noise)))
@@ -476,11 +514,11 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
       SDi <- NULL
       for (obl in oblset) {
          g$obl <- obl
-         model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose=0)
+         model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = 0)
+         if (model0$nbpeak==0) next
          g$peaks <- model0$peaks
          model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
-         lb <- intern_computeBL(spec, model)
-         Ymodel <- model$model + lb
+         Ymodel <- model$model + intern_computeBL(spec, model)
          residus <- spec$int-Ymodel
          R2i <- c( R2i, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
          SDi <- c( SDi, stats::sd(residus[iseq]/spec$Noise) )
@@ -489,26 +527,29 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
       OBL <- c( OBL, oblset[idx] )
       R2 <- c( R2, R2i[idx] )
       SD <- c( SD, SDi[idx] )
-      if (debug1) cat(filter,": R2 =",R2i[idx],", SD =",SDi[idx]," OBL =",oblset[idx],"\n")
+      if (debug1) cat(filt,": R2 =",R2i[idx],", SD =",SDi[idx]," OBL =",oblset[idx],"\n")
    }
    gc()
+
+   if (is.null(R2))
+      stop("No peak found.")
 
    idx <- ifelse ( g$criterion==0, which(R2==max(R2)), which(SD==min(SD)) )
    fidx <- filterset[idx]
 
-   if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",Opars$obl,"\n")
+   if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",OBL[idx],"\n")
 
-   model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose=0)
+   model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose = debug1)
    g$peaks <- model0$peaks
    g$obl <- OBL[idx];
-   model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+   model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
    P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
    model$peaks <- P1[P1$ppm<ppmrange[2],]
    rownames(model$peaks) <- NULL
    model$nbpeak <- dim(model$peaks)[1]
    model$LB <- intern_computeBL(spec, model)
-
    Ymodel <- model$model + model$LB
+
    model$residus <- spec$int-Ymodel
    model$iseq <- iseq
    model$ppmrange <- ppmrange
@@ -528,6 +569,64 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
    model
 }
 
+# Local Spectra Deconvolution with predefined peaks in g
+LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
+{
+   g <- getDeconvParams(params)
+   iseq <- getseq(spec,ppmrange)
+   if (is.null(g$facN))
+      FacN <- max(20,min(100,round(max(spec$int[iseq])*0.05/spec$Noise)))
+   else
+      FacN <- g$facN
+   spec$B <- spec$Noise/FacN
+   g$ratioSN <- FacN*g$ratioPN
+
+   if (is.null(g$peaks) || ! "data.frame" %in% class(g$peaks) || nrow(g$peaks)==0 )
+      stop("the peaks param must be a data.frame with at least one row")
+
+   R2 <- NULL
+   SD <- NULL
+   debug1 <- ifelse(verbose==2, 1, 0)
+   for (obl in oblset) {
+      g$obl <- obl
+      model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+      Ymodel <- model$model + intern_computeBL(spec, model)
+      residus <- spec$int-Ymodel
+      R2 <- c( R2, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
+      SD <- c( SD, stats::sd(residus[iseq]/spec$Noise) )
+   }
+   gc()
+
+   idx <- ifelse ( g$criterion==0, which(R2==max(R2)), which(SD==min(SD)) )
+   if (is.null(R2) || is.na(idx)) stop("No peak found.")
+   if (debug1) cat("Best: idx =",idx,", obl =",oblset[idx],"\n")
+
+   g$obl <- oblset[idx];
+   model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+   P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
+   model$peaks <- P1[P1$ppm<ppmrange[2],]
+   rownames(model$peaks) <- NULL
+   model$nbpeak <- dim(model$peaks)[1]
+   model$LB <- intern_computeBL(spec, model)
+   Ymodel <- model$model + model$LB
+
+   model$residus <- spec$int-Ymodel
+   model$iseq <- iseq
+   model$ppmrange <- ppmrange
+   model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+   model$CV <- stats::sd(model$residus[iseq])/mean(model$model[iseq])
+   model$crit <- g$crit
+
+   if (verbose) {
+      cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
+      cat('crit =',model$crit,', obl =',model$params$obl,"\n")
+      cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
+      cat('R2 =', model$R2,"\n")
+      cat('CV =',model$CV, "\n")
+   }
+   class(model) = "LSDmodel"
+   model
+}
 
 #' cleanPeaks
 #'

@@ -360,14 +360,13 @@ void fsavgol(double *v1, double *v2, int count_max, int m, int nl, int nr)
 /* --------------------------------------- */
 void Smooth (double *v, double *s, int count_max, int n)
 {
-    int k;
     int N=count_max;
     double wk=v[1];
     s[1]=v[1];
     for (int k=2; k<N; k++) {
-        if (k<=(n+1))             { wk += (v[2*k-1]   + v[2*k-2]);    s[k] = wk/(2*k+1);     }
-        if (k>(n+1) && k<=(N-n-)) { wk += (v[k+n]     - v[k-n-1]);    s[k] = wk/(2*n+1);     }
-        if (k>(N-n-))             { wk -= (v[2*k-N-1] - v[2*k-N-2]);  s[k] = wk/(2*(N-k)+1); }
+        if (k<=(n+1))              { wk += (v[2*k-1]   + v[2*k-2]);    s[k] = wk/(2*k+1);     }
+        if (k>(n+1) && k<=(N-n-1)) { wk += (v[k+n]     - v[k-n-1]);    s[k] = wk/(2*n+1);     }
+        if (k>(N-n-1))             { wk -= (v[2*k-N-1] - v[2*k-N-2]);  s[k] = wk/(2*(N-k)+1); }
     }
     s[N-1]=v[N-1];
 }
@@ -1041,23 +1040,26 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
 // - scmin : required minimum distance (as a multiple of sigma) between two peaks to determine a cut-off point
 void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks)
 {
-    double  *Xw,*Yw,*aw,diff_n,som_s,som_p,pmin,pmax,fmin,ac, scmin;
+    double  *Xw,*Yw,*aw,diff_n,som_s,som_p,pmin,pmax,fmin,ac;
     int     *iaw;
     int i,j,k,l,n,np,na,som_np,ndata,nstart,nstop;
-
-    blocks->nbblocks=0;
-    scmin = blocks->oneblk > 0 ? 2 : blocks->scmin ;
 
     if(_verbose_>1) Rprintf("\t #:  interval ppm\t#pts\t#peaks\tIntensity\n");
     if(_verbose_>1) Rprintf("\t----------------------------------------------------\n");
 
+    blocks->nbblocks=0;
     k=nstart=nstop=np=som_p=som_np=0;
+
     while (k<pk->npic) {
-        do {
+        if (blocks->oneblk>0) {
+            nstart = cntval(sp, pk->wmin);
+            nstop  = cntval(sp, pk->wmax);
+            l = pk->npic-1;
+        } else {
             // Start of the Block
             if (k==0) {
                 fmin=sp->V[pk->pics[k]];
-                for (n=pk->pics[k]-2; n>(pk->pics[k]-8*scmin*pk->sigma[k]); n--) {
+                for (n=pk->pics[k]-2; n>(pk->pics[k]-8* blocks->scmin*pk->sigma[k]); n--) {
                     if (n==1) { nstart=1; break; }
                     if (sp->V[n]<fmin) { nstart=n; fmin=sp->V[n]; }
                 }
@@ -1073,7 +1075,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
             while ((k+l)<pk->npic) {
                 if ((k+l)==(pk->npic-1)) {
                    fmin=sp->V[pk->pics[k+l]];
-                   for (n=pk->pics[k+l]+2; n<=(pk->pics[k+l]+8*scmin*pk->sigma[k+l]); n++) {
+                   for (n=pk->pics[k+l]+2; n<=(pk->pics[k+l]+8* blocks->scmin*pk->sigma[k+l]); n++) {
                         if (n==sp->count_max) { nstop=n-1; break; }
                         if (sp->V[n]<fmin) { nstop=n; fmin=sp->V[n]; }
                    }
@@ -1081,7 +1083,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 }
                 diff_n = pk->pics[k+l+1]  - pk->pics[k+l];
                 som_s  = pk->sigma[k+l+1] + pk->sigma[k+l];
-                if (diff_n >= scmin*som_s) {
+                if (diff_n >=  blocks->scmin*som_s) {
                        fmin=dmax( sp->V[pk->pics[k+l]], sp->V[pk->pics[k+l+1]] );
                        for (n=pk->pics[k+l]+2; n<=pk->pics[k+l+1]-2; n++)
                            if (sp->V[n]<fmin) { nstop=n; fmin=sp->V[n]; }
@@ -1089,10 +1091,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 }
                 l++;
             }
-            if ( scmin>11 || (blocks->oneblk==0)  || (blocks->oneblk>0 && (l+1)>=pk->npic) )
-                break;
-            scmin = scmin + 1;
-        } while ( true );
+        }
 
         np=l+1;
         ndata=(nstop-nstart+1);
@@ -1528,8 +1527,11 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     pk.sigma_max   = plist.containsElementNamed("sigma_max") ? as<double>(plist["sigma_max"]) : 0.005;
     pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
 
+    // multi-section spectrum cut-off parameter : oneblk=1 => no cut-off, otherwise take into account scmin value
     blocks.oneblk  = plist.containsElementNamed("oneblk")    ? as<int>(plist["oneblk"]) : 0;
     blocks.scmin   = plist.containsElementNamed("scmin")     ? as<double>(plist["scmin"]) : 2;
+
+    // baseline order : O for no baseline adjustment
     _OPBL_         = plist.containsElementNamed("obl")       ? as<int>(plist["obl"]) : 0;
     if (_OPBL_ > MAXBLORD) _OPBL_ = MAXBLORD;
 
@@ -1538,14 +1540,18 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     try { P0 = C_DF2mat(as<DataFrame>(plist["peaks"]));  }
     catch(...) { P0 = as<NumericMatrix>(plist["peaks"]); }
 
-    pk.npic = P0.nrow();
+    pk.npic = 0;
     for (k=0;k<P0.nrow();k++) {
-        pk.pics[k] = (int)P0(k,0);
-        pk.ppm[k] = P0(k,1);
-        pk.AK[k] = P0(k,2);
-        pk.sigma[k] = P0(k,3)/sp.delta_ppm;
-        pk.pfac[k] = P0(k,4);
+        if (P0(k,1)<pk.wmin || P0(k,1)>pk.wmax) continue;
+        pk.pics[pk.npic] = (int)P0(k,0);
+        pk.ppm[pk.npic] = P0(k,1);
+        pk.AK[pk.npic] = P0(k,2);
+        pk.sigma[pk.npic] = P0(k,3)/sp.delta_ppm;
+        pk.pfac[pk.npic] = P0(k,4);
+        pk.npic++;
     }
+    if (pk.npic==0)
+        Rcpp::stop("Error: None of the peaks provided are within the target ppm range\n"); 
 
     // ------- Optimisation of Amplitudes & Sigmas ------
     if (_verbose_>0) {
@@ -1645,7 +1651,6 @@ SEXP C_specModel(SEXP spec, SEXP ppmrange, SEXP peaks)
     List slist(spec);
     NumericVector W(ppmrange);
 
-    //NumericMatrix P(peaks);
     NumericMatrix P;
     try { P = C_DF2mat(as<DataFrame>(peaks));  }
     catch(...) { P = as<NumericMatrix>(peaks); }
@@ -1661,7 +1666,6 @@ SEXP C_specModel(SEXP spec, SEXP ppmrange, SEXP peaks)
     wmax = W[1];
 
     // ------- Y model ----------------------------------
-    // Note: Index translation  from range[1 - N] to range[0 - N-1]
     NumericVector Ymodel(count_max);
     for (i=0; i<count_max; i++) {
          Ymodel[i]=0;
