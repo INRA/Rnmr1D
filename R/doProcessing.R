@@ -135,7 +135,6 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
         parnames <- NULL; parvals <- NULL
         for (param in procpar ) { parnames <- c( parnames, unlist(strsplit(param,"="))[1] ); parvals <- c( parvals, unlist(strsplit(param,"="))[2] ); }
         names(parvals) <- parnames;  procpar <- data.frame(t(parvals), stringsAsFactors=FALSE)
-        procParams$READ_RAW_ONLY <- FALSE
         if (! is.null(procpar$Vendor)) procParams$VENDOR <- tolower(trim(procpar$Vendor))
         if (! is.null(procpar$Type)) procParams$INPUT_SIGNAL <- trim(procpar$Type)
         if (! is.null(procpar$LB)) procParams$LB <- as.numeric(procpar$LB)
@@ -153,6 +152,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
            if (! is.null(procpar$PHC1)) procParams$OPTPHC1 <- ifelse( procpar$PHC1=="TRUE", TRUE, FALSE)
            if (! is.null(procpar$CRIT1)) procParams$CRITSTEP1 <- as.numeric(procpar$CRIT1)
         }
+        if (procParams$INPUT_SIGNAL=='fid') procParams$READ_RAW_ONLY <- FALSE
    }
 
    # Generate the 'samples.csv' & 'factors' files from the list of raw spectra
