@@ -1651,8 +1651,8 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     }
     optim_peaks(&sp,&pk,&blocks);
 
-    if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-    select_peaks(&sp,&pk);
+    //if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+    //select_peaks(&sp,&pk);
     if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
 
     free_vector(v1);
