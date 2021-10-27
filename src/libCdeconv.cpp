@@ -814,8 +814,8 @@ double ppmval(struct s_spectre *sp, double count)
 int cntval(struct s_spectre *sp, double ppm)
 {
     return (sp->ppm_direct) ?
-         (int)((ppm - sp->ppm_min)/sp->delta_ppm + 1) :
-         (int)((sp->ppm_max - ppm)/sp->delta_ppm + 1);
+         (int)(round((ppm - sp->ppm_min)/sp->delta_ppm + 1)) :
+         (int)(round((sp->ppm_max - ppm)/sp->delta_ppm + 1));
 }
 
 // Peak Finding - Maxima method applied to the spectrum + Minima method applied to the second derivation
@@ -1413,7 +1413,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
     struct s_peaks pk;
 
     int k,fn;
-    double  *v1, *v2, ppm;
+    double  *v1, *v2;
 
     v1=vector(COUNT_MAX); // original spectrum
     v2=vector(COUNT_MAX); // filtered spectrum
@@ -1515,9 +1515,6 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
           if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
        }
 
-       free_vector(v1);
-       free_vector(v2);
-
        ret["nbpeak"]= pk.npic;
 
        // ------- Parameters -------------------------------
@@ -1535,9 +1532,8 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        // ------- PeakList ----------------------------------
        NumericMatrix P(pk.npic, 8);
        for (k=0; k<pk.npic; k++) {
-          ppm = pk.optim_ppm ? pk.ppm[k] : ppmval(&sp,pk.pics[k]+pk.pfac[k]);
           P(k,0) = pk.pics[k];
-          P(k,1) = ppm;
+          P(k,1) = pk.optim_ppm ? pk.ppm[k] : ppmval(&sp,pk.pics[k]+pk.pfac[k]);
           P(k,2) = pk.AK[k];
           P(k,3) = pk.sigma[k]*sp.delta_ppm;
           P(k,4) = _OVGT_>0 ? pk.sigma2[k]*sp.delta_ppm : 0;
@@ -1555,6 +1551,8 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
                                          Named("pfac") = P(_,6),
                                          Named("integral") = P(_,7) );
     }
+    free_vector(v1);
+    free_vector(v2);
 
     return(ret);
 }
@@ -1680,9 +1678,8 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     // ------- PeakList ----------------------------------
     NumericMatrix P(pk.npic, 8);
     for (k=0; k<pk.npic; k++) {
-        ppm = pk.optim_ppm ? pk.ppm[k] : ppmval(&sp,pk.pics[k]+pk.pfac[k]);
         P(k,0) = pk.pics[k];
-        P(k,1) = ppm;
+        P(k,1) = pk.optim_ppm ? pk.ppm[k] : ppmval(&sp,pk.pics[k]+pk.pfac[k]);
         P(k,2) = pk.AK[k];
         P(k,3) = pk.sigma[k]*sp.delta_ppm;
         P(k,4) = _OVGT_>0 ? pk.sigma2[k]*sp.delta_ppm : 0;

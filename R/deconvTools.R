@@ -89,7 +89,7 @@ deconvParams <- list (
   spcv = 0.01, # 0.005 - 0.025
   d2cv = 0.1,  # 0.05 - 0.25
 
-  # Apply Filter (1) on 1st (d1filt) and 2nd derivates (d2filt) or not (0)
+  # Apply Filter (1) or not (0) on 1st (d1filt) and 2nd derivates (d2filt)
   d1filt = 0,
   d2filt = 0,
 
@@ -344,7 +344,7 @@ readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, sc
    spec$int <- spec$int/scaleIntensity
    spec$B <- spec$Noise <- Noise/scaleIntensity
    if (verbose) {
-      cat('Size =',length(spec$int),', Max Intensity =',round(max(spec$int),3),', Noise Level =',round(spec$Noise,3),"\n")
+      cat('Size =',length(spec$int),', Max Intensity =',round(max(spec$int),3),', Noise Level =',round(spec$Noise,6),"\n")
    }
    spec
 }
