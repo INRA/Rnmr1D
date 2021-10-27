@@ -62,6 +62,7 @@ deconvParams <- list (
 
   # indicates if pseudo-voigt is used instead of lorentzian
   pvoigt=0,
+  eta=0.6,
 
   # Optimization of peaks : 0 => No, 1 => Yes
   optim=1,
@@ -504,17 +505,17 @@ computeBL <- function(spec, model)
 #' @param filterset a set of filter applied before fitting
 #' @param verbose level of debug information
 #' @return a model object
-LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
+LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, etaset=NULL, verbose=1)
 {
    set.seed(1234)
    if (is.null(params$peaks))
-      LSDeconv_1(spec, ppmrange, params, filterset, oblset, verbose)
+      LSDeconv_1(spec, ppmrange, params, filterset, oblset, etaset, verbose)
    else
       LSDeconv_2(spec, ppmrange, params, oblset, verbose)
 }
 
 # Local Spectra Deconvolution with no predefined peaks (g$peaks=NULL)
-LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
+LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, etaset=NULL, verbose=1)
 {
    g <- getDeconvParams(params)
    iseq <- getIndexSeq(spec,ppmrange)
@@ -525,8 +526,9 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    spec$B <- spec$Noise/FacN
    g$ratioSN <- FacN*g$ratioPN
 
-   etaset <- c(g$eta)
-   if (g$oeta==1) etaset <-seq(0.60,0.75,0.025)
+
+   if (g$oeta==0) etaset <- c(g$eta)
+   if (g$oeta==1 && is.null(etaset)) etaset <- seq(0.60,0.75,0.025)
    g$oeta <- 0
 
    OBL <- NULL
@@ -534,10 +536,12 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    R2 <- NULL
    SD <- NULL
    debug1 <- ifelse(verbose==2, 1, 0)
+# Set of values for filter
    for (filt in filterset) {
       ETAi <- NULL
       R2i <- NULL
       SDi <- NULL
+# Set of values for order of the polynomial model of the baseline
       for (obl in oblset) {
          g$obl <- obl
          model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = 0)
@@ -547,6 +551,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
          }
          R2j <- NULL
          SDj <- NULL
+# Set of values for eta parameter
          for (eta in etaset) {
             g$obl <- obl
             g$peaks <- model0$peaks
