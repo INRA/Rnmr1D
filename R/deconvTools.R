@@ -586,10 +586,11 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL
 
    if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",OBL[idx],"\n")
 
+   g$eta <- ETA[idx]
    model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose = debug1)
    g$peaks <- model0$peaks
-   g$obl <- OBL[idx];
-   g$eta <- ETA[idx];
+   g$peaks$eta <- ETA[idx]
+   g$obl <- OBL[idx]
    model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
    P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
    model$peaks <- P1[P1$ppm<ppmrange[2],]
