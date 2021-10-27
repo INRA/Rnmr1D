@@ -13,10 +13,14 @@
 fnone <- list( type=0 )
 fdaub8 <- list( type=1, threshold=0.5 )
 fsymlet8 <- list( type=2, threshold=0.5 )
+fsavgol3 <- list( type=3, m=3, nl=5, nr=5 )
 fsavgol5 <- list( type=3, m=5, nl=8, nr=8 )
 fsavgol10 <- list( type=3, m=10, nl=20, nr=30 )
 fsavgol50 <- list( type=3, m=50, nl=60, nr=80 )
 fsmooth <- list( type=4, m=12 )
+
+# Names of Filter type
+filtnames <- list('haar'=0, 'daub2'=1, 'daub4'=2, 'daub8'=3, 'symlet2'=4, 'symlet4'=5, 'symlet8'=6)
 
 #' deconvParams
 #'
@@ -45,7 +49,7 @@ fsmooth <- list( type=4, m=12 )
 #' }
 deconvParams <- list (
   # Filter types
-  flist = list( 'smooth1'=fsavgol5, 'smooth2'=fsavgol10, 'smooth3'=fsavgol50,
+  flist = list( 'smooth0'=fsavgol3, 'smooth1'=fsavgol5, 'smooth2'=fsavgol10, 'smooth3'=fsavgol50,
                 'daub8'=fdaub8, 'symlet8'=fsymlet8, 'none'=fnone ),
 
   # Criterion type for the optimizations
@@ -130,12 +134,12 @@ filterSavGol <- function(s, m, nl, nr)
 #'
 #' \code{filterByWT} applies a filtering based on wavelet using the universal threshold
 #' @param s the spectral signal as a numerical vector
-#' @param wavelet the type of the wavelet: 0 for HAAR, 1 for DAUB2, 2 for DAUB4, 3 for DAUB8
+#' @param wavelet the name of the wavelet: haar, daub2, daub4, daub8, symlet2, symlet4, symlet8
 #' @param type the type of the threshold :  0 for Soft threshold, 1 for Hard threshold
 #' @return a vector of the same dimension as the entry one
 filterByWT <- function(s, wavelet, type = 0)
 {
-   C_FilterbyThreshold(s, wavelet, threshold = type)
+   C_FilterbyThreshold(s, filtnames[[wavelet]], threshold = type)
 }
 
 
@@ -143,12 +147,12 @@ filterByWT <- function(s, wavelet, type = 0)
 #'
 #' \code{filterByThreshold} applies a filtering based on wavelet by specifying a threshold value
 #' @param s the spectral signal as a numerical vector
-#' @param wavelet the type of the wavelet: 0 for HAAR, 1 for DAUB2, 2 for DAUB4, 3 for DAUB8
+#' @param wavelet the name of the wavelet: haar, daub2, daub4, daub8, symlet2, symlet4, symlet8
 #' @param threshold the threshold value - default value is 0.5
 #' @return a vector of the same dimension as the entry one
 filterByThreshold <- function(s, wavelet, threshold = 0.5)
 {
-   C_FilterbyWT(s, type = wavelet, threshold)
+   C_FilterbyWT(s, type = filtnames[[wavelet]], threshold)
 }
 
 #=====================================================================
@@ -525,7 +529,6 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
       FacN <- g$facN
    spec$B <- spec$Noise/FacN
    g$ratioSN <- FacN*g$ratioPN
-
 
    if (g$oeta==0) etaset <- c(g$eta)
    if (g$oeta==1 && is.null(etaset)) etaset <- seq(0.60,0.75,0.025)
