@@ -911,15 +911,16 @@ void find_peaks (struct s_spectre *sp, struct s_peaks *pk)
 }
 
 // Peak Selection
-void select_peaks(struct s_spectre *sp, struct s_peaks *pk)
+void select_peaks(struct s_spectre *sp, struct s_peaks *pk, int fzero=0)
 {
    int k,select_npic;
    select_npic=0;
+   double threshold = fzero ? 0 : pk->RatioPN*sp->B;
    for (k=0;k<pk->npic;k++) {
       if (pk->pics[k]<0 || pk->pics[k]>sp->count_max) continue;
       if (pk->AK[k] < 0.0 ) continue;
       if (pk->AK[k] != pk->AK[k]) continue; // test if NaN
-      if (pk->AK[k] < pk->RatioPN*sp->B) continue;
+      if (pk->AK[k] <= threshold) continue;
       if ((pk->pics[k+1]-pk->pics[k])<MINDISTPK) {
           if (pk->AK[k+1]>pk->AK[k]) continue;
           pk->AK[k+1]=0;
@@ -1651,8 +1652,8 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     }
     optim_peaks(&sp,&pk,&blocks);
 
-    //if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-    //select_peaks(&sp,&pk);
+    if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+    select_peaks(&sp,&pk,1);
     if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
 
     free_vector(v1);
