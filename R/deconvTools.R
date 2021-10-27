@@ -440,7 +440,7 @@ GSDeconv <- function(spec, ppmrange, params=NULL, filter='symlet8', scset=c(2,3,
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
       cat('Nb Blocks =',model1$blocks$cnt,',Nb Peaks =', model1$nbpeak,"\n")
       cat('R2 =', model1$R2,"\n")
-      cat('Residue : SD/N =',round(model1$SD,4), ', Mean/N =',round(mean(model1$residus)/spec$Noise,4), "\n")
+      cat('Residue/Noise : SD =',round(model1$SD,4), ', Mean =',round(mean(model1$residus)/spec$Noise,4), "\n")
    }
    class(model1) = "GSDmodel"
    model1
@@ -525,11 +525,17 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    spec$B <- spec$Noise/FacN
    g$ratioSN <- FacN*g$ratioPN
 
+   etaset <- c(g$eta)
+   if (g$oeta==1) etaset <-seq(0.60,0.75,0.025)
+   g$oeta <- 0
+
+   OBL <- NULL
+   ETA <- NULL
    R2 <- NULL
    SD <- NULL
-   OBL <- NULL
    debug1 <- ifelse(verbose==2, 1, 0)
    for (filt in filterset) {
+      ETAi <- NULL
       R2i <- NULL
       SDi <- NULL
       for (obl in oblset) {
@@ -539,22 +545,35 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
             R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 )
             next
          }
-         g$peaks <- model0$peaks
-         model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
-         if (model$nbpeak>0) {
-            Ymodel <- model$model + intern_computeBL(spec, model)
-            residus <- spec$int-Ymodel
-            R2i <- c( R2i, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
-            SDi <- c( SDi, stats::sd(residus[iseq]/spec$Noise) )
-         } else {
-            R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 )
+         R2j <- NULL
+         SDj <- NULL
+         for (eta in etaset) {
+            g$obl <- obl
+            g$peaks <- model0$peaks
+            g$peaks$eta <- eta
+            model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+            if (model$nbpeak>0) {
+               Ymodel <- model$model + intern_computeBL(spec, model)
+               residus <- spec$int-Ymodel
+               R2j <- c( R2j, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
+               SDj <- c( SDj, stats::sd(residus[iseq]/spec$Noise) )
+            } else {
+               R2j <- c( R2j, 0 ); SDj <- c( SDj, 1e999 )
+            }
+if (debug1) cat(filt,": R2j =",round(R2j[length(R2j)],4),", SDj =",round(SDj[length(SDj)],4)," OBL =",obl," ETA =",eta,"\n")
          }
+         idx <- ifelse ( g$criterion==0, which(R2j==max(R2j))[1], which(SDj==min(SDj))[1] )
+         ETAi <- c( ETAi, etaset[idx] )
+         R2i <- c( R2i, R2j[idx] )
+         SDi <- c( SDi, SDj[idx] )
+if (debug1) cat(filt,": R2i =",round(R2j[idx],4),", SDi =",round(SDj[idx],4)," OBL =",obl," ETA =",etaset[idx],"\n")
       }
       idx <- ifelse ( g$criterion==0, which(R2i==max(R2i))[1], which(SDi==min(SDi))[1] )
       OBL <- c( OBL, oblset[idx] )
+      ETA <- c( ETA, ETAi[idx] )
       R2 <- c( R2, R2i[idx] )
       SD <- c( SD, SDi[idx] )
-      if (debug1) cat(filt,": R2 =",R2i[idx],", SD =",SDi[idx]," OBL =",oblset[idx],"\n")
+if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL =",oblset[idx]," ETA =",ETAi[idx],"\n\n")
    }
    gc()
 
@@ -570,6 +589,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose = debug1)
    g$peaks <- model0$peaks
    g$obl <- OBL[idx];
+   g$eta <- ETA[idx];
    model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
    P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
    model$peaks <- P1[P1$ppm<ppmrange[2],]
@@ -582,18 +602,16 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    model$iseq <- iseq
    model$ppmrange <- ppmrange
    model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-   model$CV <- stats::sd(model$residus[iseq])/mean(model$model[iseq])
    model$filter <- fidx
    model$crit <- g$crit
 
    if (verbose) {
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
-      cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,"\n")
+      cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',g$eta,"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
-      cat('CV =',model$CV, "\n")
-      cat('Residue : SD/N =',round(sd(model$residus[iseq])/spec$Noise,4),
-                ', Mean/N =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
+      cat('Residue/Noise : SD =',round(sd(model$residus[iseq])/spec$Noise,4),
+                      ', Mean =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
    }
    class(model) = "LSDmodel"
    model
@@ -651,7 +669,6 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
    model$iseq <- iseq
    model$ppmrange <- ppmrange
    model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-   model$CV <- stats::sd(model$residus[iseq])/mean(model$model[iseq])
    model$crit <- g$crit
 
    if (verbose) {
@@ -659,9 +676,8 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
       cat('crit =',model$crit,', obl =',model$params$obl,"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
-      cat('CV =',model$CV, "\n")
-      cat('Residue : SD/N =',round(sd(model$residus[iseq])/spec$Noise,4),
-                ', Mean/N =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
+      cat('Residue/Noise : SD =',round(sd(model$residus[iseq])/spec$Noise,4),
+                      ', Mean =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
    }
    class(model) = "LSDmodel"
    model
