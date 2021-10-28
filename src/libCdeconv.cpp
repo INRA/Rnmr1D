@@ -913,9 +913,11 @@ void find_peaks (struct s_spectre *sp, struct s_peaks *pk)
 // Peak Selection
 void select_peaks(struct s_spectre *sp, struct s_peaks *pk, int fzero=0)
 {
-   int k,select_npic;
-   select_npic=0;
+   int k,i,select_npic;
    double threshold = fzero ? 0 : pk->RatioPN*sp->B;
+   double  v1[MAXPICS];
+
+   select_npic=0;
    for (k=0;k<pk->npic;k++) {
       if (pk->pics[k]<0 || pk->pics[k]>sp->count_max) continue;
       if (pk->AK[k] < 0.0 ) continue;
@@ -928,16 +930,17 @@ void select_peaks(struct s_spectre *sp, struct s_peaks *pk, int fzero=0)
       if (_OVGT_==0) {
           pk->sigma2[k]=0; pk->eta[k]=1;
       }
-      if (select_npic < k) {
-         pk->AK[select_npic]=dmin(pk->AK[k],sp->V[pk->pics[k]]);
-         pk->sigma[select_npic]=pk->sigma[k];
-         pk->sigma2[select_npic]=pk->sigma2[k];
-         pk->eta[select_npic]= pk->eta[k];
-         pk->pics[select_npic]=pk->pics[k];
-         pk->ppm[select_npic]=pk->ppm[k];
-         pk->pfac[select_npic]=pk->pfac[k];
-      }
-      select_npic++;
+      v1[select_npic++] = k;
+   }
+   for (i=0;i<select_npic;i++) {
+      k=v1[i];
+      pk->AK[i]=dmin(pk->AK[k],sp->V[pk->pics[k]]);
+      pk->sigma[i]=pk->sigma[k];
+      pk->sigma2[i]=pk->sigma2[k];
+      pk->eta[i]= pk->eta[k];
+      pk->pics[i]=pk->pics[k];
+      pk->ppm[i]=pk->ppm[k];
+      pk->pfac[i]=pk->pfac[k];
    }
    pk->npic = select_npic;
 }
