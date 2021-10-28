@@ -539,6 +539,8 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    R2 <- NULL
    SD <- NULL
    debug1 <- ifelse(verbose==2, 1, 0)
+   g0 <- g
+
 # Set of values for filter
    for (filt in filterset) {
       ETAi <- NULL
@@ -589,17 +591,18 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL
    if (is.null(R2) || sum(R2)==0)
       stop("No peak found.")
 
+   g <- g0
    idx <- ifelse ( g$criterion==0, which(R2==max(R2)), which(SD==min(SD)) )
    fidx <- filterset[idx]
-
-   if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",OBL[idx],"\n")
+   if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",OBL[idx],", eta =",ETA[idx],"\n")
 
    g$eta <- ETA[idx]
    model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose = debug1)
+   g$obl <- OBL[idx]
    g$peaks <- model0$peaks
    g$peaks$eta <- ETA[idx]
-   g$obl <- OBL[idx]
    model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+   if (debug1) cat("----\n")
    P1 <- model$peaks[model$peaks$amp>0, ]
    P2 <- P1[P1$ppm>ppmrange[1], ]
    model$peaks <- P2[P2$ppm<ppmrange[2],]
