@@ -576,7 +576,7 @@ if (debug1) cat(filt,": R2j =",round(R2j[length(R2j)],4),", SDj =",round(SDj[len
          ETAi <- c( ETAi, etaset[idx] )
          R2i <- c( R2i, R2j[idx] )
          SDi <- c( SDi, SDj[idx] )
-if (debug1) cat(filt,": R2i =",round(R2j[idx],4),", SDi =",round(SDj[idx],4),", PKi =",model0$nbpeak," OBL =",obl," ETA =",etaset[idx],"\n")
+if (debug1) cat(filt,": R2i =",round(R2j[idx],4),", SDi =",round(SDj[idx],4),", PKi =",model0$nbpeak," OBL =",obl," ETA =",etaset[idx],"\n----\n")
       }
       idx <- ifelse ( g$criterion==0, which(R2i==max(R2i))[1], which(SDi==min(SDi))[1] )
       OBL <- c( OBL, oblset[idx] )
@@ -598,6 +598,7 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL
 
    g$eta <- ETA[idx]
    model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose = debug1)
+   if (debug1) cat("----\n")
    g$obl <- OBL[idx]
    g$peaks <- model0$peaks
    g$peaks$eta <- ETA[idx]
