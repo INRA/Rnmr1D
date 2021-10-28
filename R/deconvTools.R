@@ -551,7 +551,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
          g$obl <- obl
          model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = 0)
          if (model0$nbpeak==0) {
-            R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 )
+            R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 ); PKi <- c( PKi, 0 )
             next
          }
          R2j <- NULL
@@ -576,7 +576,7 @@ if (debug1) cat(filt,": R2j =",round(R2j[length(R2j)],4),", SDj =",round(SDj[len
          ETAi <- c( ETAi, etaset[idx] )
          R2i <- c( R2i, R2j[idx] )
          SDi <- c( SDi, SDj[idx] )
-if (debug1) cat(filt,": R2i =",round(R2j[idx],4),", SDi =",round(SDj[idx],4)," OBL =",obl," ETA =",etaset[idx],"\n")
+if (debug1) cat(filt,": R2i =",round(R2j[idx],4),", SDi =",round(SDj[idx],4),", PKi =",model0$nbpeak," OBL =",obl," ETA =",etaset[idx],"\n")
       }
       idx <- ifelse ( g$criterion==0, which(R2i==max(R2i))[1], which(SDi==min(SDi))[1] )
       OBL <- c( OBL, oblset[idx] )
