@@ -600,11 +600,11 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL
    g$peaks$eta <- ETA[idx]
    g$obl <- OBL[idx]
    model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
-   P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
-   P1[ P1$amp==0 ] <- NULL
-   model$peaks <- P1[P1$ppm<ppmrange[2],]
+   P1 <- model$peaks[model$peaks$amp>0, ]
+   P2 <- P1[P1$ppm>ppmrange[1], ]
+   model$peaks <- P2[P2$ppm<ppmrange[2],]
    rownames(model$peaks) <- NULL
-   model$nbpeak <- dim(model$peaks)[1]
+   model$nbpeak <- nrow(model$peaks)
    model$LB <- intern_computeBL(spec, model)
    Ymodel <- model$model + model$LB
 
