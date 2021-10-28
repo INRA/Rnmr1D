@@ -1495,9 +1495,9 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        sp.V = v2; // filtered spectrum
        find_peaks(&sp,&pk);
        if(_verbose_>0) Rprintf("\tNb detected peaks = %d\n",pk.npic);
-       if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-       select_peaks(&sp,&pk);
-       if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+       //if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+       //select_peaks(&sp,&pk);
+       //if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
 
        // ------- Estimation of Sigmas --------
        if(_verbose_>0) Rprintf("Sigmas Estimation\n");

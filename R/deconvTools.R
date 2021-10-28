@@ -409,6 +409,8 @@ getBestPeaks <- function(spec, model1, model2, crit=0)
 #' @return a model object
 GSDeconv <- function(spec, ppmrange, params=NULL, filter='symlet8', scset=c(2,3,12), verbose=1)
 {
+   if ( ! 'Spectrum' %in% class(spec) )
+      stop("the input spec must belong to the 'Spectrum' class")
    g <- getDeconvParams(params)
    g$oneblk <- 0;
 
@@ -493,6 +495,8 @@ intern_computeBL <- function(spec, model)
 #' @return a vector of the baseline estimated during the deconvolution process
 computeBL <- function(spec, model)
 {
+   if ( ! 'Spectrum' %in% class(spec) )
+      stop("the input spec must belong to the 'Spectrum' class")
    if ( ! sum(c('optimModel', 'LSDmodel') %in% class(model) ) )
       stop("the input model must have an appropriate class, namely 'optimModel' or 'LSDmodel'")
    intern_computeBL(spec, model)
@@ -511,6 +515,8 @@ computeBL <- function(spec, model)
 #' @return a model object
 LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, etaset=NULL, verbose=1)
 {
+   if ( ! 'Spectrum' %in% class(spec) )
+      stop("the input spec must belong to the 'Spectrum' class")
    set.seed(1234)
    if (is.null(params$peaks))
       LSDeconv_1(spec, ppmrange, params, filterset, oblset, etaset, verbose)
@@ -548,6 +554,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
       SDi <- NULL
 # Set of values for order of the polynomial model of the baseline
       for (obl in oblset) {
+         g <- g0
          g$obl <- obl
          model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = 0)
          if (model0$nbpeak==0) {
@@ -558,6 +565,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
          SDj <- NULL
 # Set of values for eta parameter
          for (eta in etaset) {
+            g <- g0
             g$obl <- obl
             g$peaks <- model0$peaks
             g$peaks$eta <- eta
