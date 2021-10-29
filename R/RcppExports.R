@@ -9,8 +9,8 @@ gauss <- function(x, x0, s) {
     .Call('_Rnmr1D_gauss', PACKAGE = 'Rnmr1D', x, x0, s)
 }
 
-pvoigt <- function(x, x0, s1, s2, eta = 0.5) {
-    .Call('_Rnmr1D_pvoigt', PACKAGE = 'Rnmr1D', x, x0, s1, s2, eta)
+pvoigt <- function(x, x0, s, eta = 0.5) {
+    .Call('_Rnmr1D_pvoigt', PACKAGE = 'Rnmr1D', x, x0, s, eta)
 }
 
 C_fSavGol <- function(s, m, nl, nr) {
@@ -29,8 +29,8 @@ C_Lorentz <- function(ppm, amp, x0, sigma) {
     .Call('_Rnmr1D_C_Lorentz', PACKAGE = 'Rnmr1D', ppm, amp, x0, sigma)
 }
 
-C_PVoigt <- function(ppm, amp, x0, sigma, sigma2, eta = 0.5) {
-    .Call('_Rnmr1D_C_PVoigt', PACKAGE = 'Rnmr1D', ppm, amp, x0, sigma, sigma2, eta)
+C_PVoigt <- function(ppm, amp, x0, sigma, eta = 0.5) {
+    .Call('_Rnmr1D_C_PVoigt', PACKAGE = 'Rnmr1D', ppm, amp, x0, sigma, eta)
 }
 
 C_OneVoigt <- function(X, Y, par) {

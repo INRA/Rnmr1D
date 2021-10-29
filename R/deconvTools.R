@@ -108,7 +108,7 @@ deconvParams <- list (
   # Exclude ppm zones for the criterion evaluation
   exclude_zones = NULL,
   
-  # a dataframe of peaks (columns : pos, ppm, amp, sigma, pfac)
+  # a dataframe of peaks (columns : pos, ppm, amp, sigma, eta, integral)
   peaks = NULL
 )
 
@@ -223,13 +223,12 @@ Lorentz <- function(ppm, amp, x0, sigma)
 #' @param ppm a vector of ppm values
 #' @param amp amplitude of the lorentzian
 #' @param x0 central value of the lorentzian
-#' @param sigma half-width of the lorentzian
-#' @param sigma2 half-width of the gaussian
+#' @param sigma half-width of both lorentzian and gaussian
 #' @param eta mixing coefficient for the pseudo-voigt function (between 0 and 1)
 #' @return a vector of the lorentzian values (same size as ppm)
-PVoigt <- function(ppm, amp, x0, sigma, sigma2, eta)
+PVoigt <- function(ppm, amp, x0, sigma, eta)
 {
-   C_PVoigt(ppm, amp, x0, sigma, sigma2, eta)
+   C_PVoigt(ppm, amp, x0, sigma, eta)
 }
 
 #' optimOneVoigt
@@ -267,7 +266,7 @@ peakFinder <- function(spec, ppmrange, params=NULL, filter='none', verbose=1)
 #' \code{peakOptimize} belongs to the low-level functions group for deconvolution.
 #' @param spec a 'spec' object
 #' @param ppmrange a ppm range as a list in order to apply the deconvolution
-#' @param params a list of specific parameters for deconvolution, including the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac
+#' @param params a list of specific parameters for deconvolution, including the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta
 #' @param verbose level of debug information
 #' @return a list
 peakOptimize <- function(spec, ppmrange, params, verbose=1)
@@ -284,7 +283,7 @@ peakOptimize <- function(spec, ppmrange, params, verbose=1)
 #' \code{specModel} belongs to the low-level functions group for deconvolution.
 #' @param spec a 'spec' object
 #' @param ppmrange a ppm range as a list in order to apply the deconvolution
-#' @param peaks a matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac, integral
+#' @param peaks a matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta, integral
 #' @return a vector with the same size of the spectrum
 specModel <- function(spec, ppmrange, peaks)
 {
@@ -507,25 +506,25 @@ computeBL <- function(spec, model)
 #' Local Spectra Deconvolution: \code{LSDeconv} belongs to the low-level functions group for deconvolution.
 #' @param spec a 'spec' object
 #' @param ppmrange a ppm range as a list in order to apply the deconvolution
-#' @param params a list of specific parameters for deconvolution including or not (i.e equal to NULL) the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac
+#' @param params a list of specific parameters for deconvolution including or not (i.e equal to NULL) the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta
 #' @param filterset a set of filter type for filtering the noise and  smoothing the signal (only if the matrix defining peaks not defined in order to find peaks)
 #' @param oblset a set of baseline order for fitting
 #' @param filterset a set of filter applied before fitting
 #' @param verbose level of debug information
 #' @return a model object
-LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, etaset=NULL, verbose=1)
+LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
 {
    if ( ! 'Spectrum' %in% class(spec) )
       stop("the input spec must belong to the 'Spectrum' class")
    set.seed(1234)
    if (is.null(params$peaks))
-      LSDeconv_1(spec, ppmrange, params, filterset, oblset, etaset, verbose)
+      LSDeconv_1(spec, ppmrange, params, filterset, oblset, verbose)
    else
       LSDeconv_2(spec, ppmrange, params, oblset, verbose)
 }
 
 # Local Spectra Deconvolution with no predefined peaks (g$peaks=NULL)
-LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, etaset=NULL, verbose=1)
+LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
 {
    g <- getDeconvParams(params)
    iseq <- getIndexSeq(spec,ppmrange)
@@ -536,62 +535,43 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    spec$B <- spec$Noise/FacN
    g$ratioSN <- FacN*g$ratioPN
 
-   if (g$oeta==0) etaset <- c(g$eta)
-   if (g$oeta==1 && is.null(etaset)) etaset <- seq(0.60,0.75,0.025)
-   g$oeta <- 0
-
    OBL <- NULL
-   ETA <- NULL
    R2 <- NULL
    SD <- NULL
    debug1 <- ifelse(verbose==2, 1, 0)
-   g0 <- g
 
 # Set of values for filter
    for (filt in filterset) {
-      ETAi <- NULL
       R2i <- NULL
       SDi <- NULL
 # Set of values for order of the polynomial model of the baseline
       for (obl in oblset) {
-         g <- g0
          g$obl <- obl
          model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = 0)
+         model0$peaks <- model0$peaks[model0$peaks$amp>0, ]
+         model0$nbpeak <- ifelse('data.frame' %in% class(model0$peaks), nrow(model0$peaks), 0)
          if (model0$nbpeak==0) {
-            R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 ); PKi <- c( PKi, 0 )
+            R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 );
             next
          }
-         R2j <- NULL
-         SDj <- NULL
-# Set of values for eta parameter
-         for (eta in etaset) {
-            g <- g0
-            g$obl <- obl
-            g$peaks <- model0$peaks
-            g$peaks$eta <- eta
-            model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
-            if (model$nbpeak>0) {
-               Ymodel <- model$model + intern_computeBL(spec, model)
-               residus <- spec$int-Ymodel
-               R2j <- c( R2j, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
-               SDj <- c( SDj, stats::sd(residus[iseq]/spec$Noise) )
-            } else {
-               R2j <- c( R2j, 0 ); SDj <- c( SDj, 1e999 )
-            }
-if (debug1) cat(filt,": R2j =",round(R2j[length(R2j)],4),", SDj =",round(SDj[length(SDj)],4)," OBL =",obl," ETA =",eta,"\n")
+         g$peaks <- model0$peaks
+         model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+         if (model$nbpeak>0) {
+            Ymodel <- model$model + intern_computeBL(spec, model)
+            R2i <- c( R2i, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
+            SDi <- c( SDi, model$blocks$blocks[1,6] )
+         } else {
+            R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 )
          }
-         idx <- ifelse ( g$criterion==0, which(R2j==max(R2j))[1], which(SDj==min(SDj))[1] )
-         ETAi <- c( ETAi, etaset[idx] )
-         R2i <- c( R2i, R2j[idx] )
-         SDi <- c( SDi, SDj[idx] )
-if (debug1) cat(filt,": R2i =",round(R2j[idx],4),", SDi =",round(SDj[idx],4),", PKi =",model0$nbpeak," - ",round(mean(model0$peaks$sigma),6)," OBL =",obl," ETA =",etaset[idx],"\n----\n")
+         idx <- length(R2i)
+if (debug1) cat(filt,": R2i =",round(R2i[idx],4),", RMSEi =",round(SDi[idx],6),", PKi =",model0$nbpeak," - ",round(mean(model0$peaks$sigma),6),
+                     " OBL =",obl," ETA =",model$peaks$eta[1],"\n")
       }
       idx <- ifelse ( g$criterion==0, which(R2i==max(R2i))[1], which(SDi==min(SDi))[1] )
       OBL <- c( OBL, oblset[idx] )
-      ETA <- c( ETA, ETAi[idx] )
       R2 <- c( R2, R2i[idx] )
       SD <- c( SD, SDi[idx] )
-if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL =",oblset[idx]," ETA =",ETAi[idx],"\n\n")
+if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],4)," OBL =",oblset[idx],"\n\n")
    }
    gc()
 
@@ -599,17 +579,14 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL
    if (is.null(R2) || sum(R2)==0)
       stop("No peak found.")
 
-   g <- g0
    idx <- ifelse ( g$criterion==0, which(R2==max(R2)), which(SD==min(SD)) )
    fidx <- filterset[idx]
-   if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",OBL[idx],", eta =",ETA[idx],"\n")
+   if (debug1) cat("Best: idx =",idx,", filter =",fidx,", obl =",OBL[idx],"\n")
 
-   g$eta <- ETA[idx]
    model0 <- C_peakFinder(spec, ppmrange, g$flist[[fidx]], g, verbose = debug1)
    if (debug1) cat("----\n")
    g$obl <- OBL[idx]
    g$peaks <- model0$peaks
-   g$peaks$eta <- ETA[idx]
    model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
    if (debug1) cat("----\n")
    P1 <- model$peaks[model$peaks$amp>0, ]
@@ -629,7 +606,7 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", SD =",round(SDi[idx],4)," OBL
 
    if (verbose) {
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
-      cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',g$eta,"\n")
+      cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',model$peaks$eta[1],"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
       cat('Residue/Noise : SD =',round(sd(model$residus[iseq])/spec$Noise,4),
@@ -800,7 +777,7 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), tag
      for (k in 1:length(exclude_zones)) P2 <- rbind( P2[P2[,2]<exclude_zones[[k]][1],], P2[P2[,2]>exclude_zones[[k]][2],] )
    npk <- dim(P2)[1]
    npk_colors <- sample(grDevices::rainbow(npk, s=0.8, v=0.75))
-   V <- simplify2array(lapply(1:npk, function(i) { PVoigt(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigma[i], P2$sigma2[i], P2$eta[i]) }))
+   V <- simplify2array(lapply(1:npk, function(i) { PVoigt(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigma[i], P2$eta[i]) }))
    fmodel <- apply(V,1,sum)
    datamodel <- data.frame(x=spec$ppm[iseq], ymodel=fmodel)
    labels <- match.arg(labels)

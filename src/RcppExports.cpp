@@ -32,17 +32,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // pvoigt
-double pvoigt(double x, double x0, double s1, double s2, double eta);
-RcppExport SEXP _Rnmr1D_pvoigt(SEXP xSEXP, SEXP x0SEXP, SEXP s1SEXP, SEXP s2SEXP, SEXP etaSEXP) {
+double pvoigt(double x, double x0, double s, double eta);
+RcppExport SEXP _Rnmr1D_pvoigt(SEXP xSEXP, SEXP x0SEXP, SEXP sSEXP, SEXP etaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< double >::type x(xSEXP);
     Rcpp::traits::input_parameter< double >::type x0(x0SEXP);
-    Rcpp::traits::input_parameter< double >::type s1(s1SEXP);
-    Rcpp::traits::input_parameter< double >::type s2(s2SEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
     Rcpp::traits::input_parameter< double >::type eta(etaSEXP);
-    rcpp_result_gen = Rcpp::wrap(pvoigt(x, x0, s1, s2, eta));
+    rcpp_result_gen = Rcpp::wrap(pvoigt(x, x0, s, eta));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -102,8 +101,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_PVoigt
-SEXP C_PVoigt(SEXP ppm, double amp, double x0, double sigma, double sigma2, double eta);
-RcppExport SEXP _Rnmr1D_C_PVoigt(SEXP ppmSEXP, SEXP ampSEXP, SEXP x0SEXP, SEXP sigmaSEXP, SEXP sigma2SEXP, SEXP etaSEXP) {
+SEXP C_PVoigt(SEXP ppm, double amp, double x0, double sigma, double eta);
+RcppExport SEXP _Rnmr1D_C_PVoigt(SEXP ppmSEXP, SEXP ampSEXP, SEXP x0SEXP, SEXP sigmaSEXP, SEXP etaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -111,9 +110,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type amp(ampSEXP);
     Rcpp::traits::input_parameter< double >::type x0(x0SEXP);
     Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
-    Rcpp::traits::input_parameter< double >::type sigma2(sigma2SEXP);
     Rcpp::traits::input_parameter< double >::type eta(etaSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_PVoigt(ppm, amp, x0, sigma, sigma2, eta));
+    rcpp_result_gen = Rcpp::wrap(C_PVoigt(ppm, amp, x0, sigma, eta));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -621,12 +619,12 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_Rnmr1D_lorentz", (DL_FUNC) &_Rnmr1D_lorentz, 3},
     {"_Rnmr1D_gauss", (DL_FUNC) &_Rnmr1D_gauss, 3},
-    {"_Rnmr1D_pvoigt", (DL_FUNC) &_Rnmr1D_pvoigt, 5},
+    {"_Rnmr1D_pvoigt", (DL_FUNC) &_Rnmr1D_pvoigt, 4},
     {"_Rnmr1D_C_fSavGol", (DL_FUNC) &_Rnmr1D_C_fSavGol, 4},
     {"_Rnmr1D_C_FilterbyWT", (DL_FUNC) &_Rnmr1D_C_FilterbyWT, 4},
     {"_Rnmr1D_C_FilterbyThreshold", (DL_FUNC) &_Rnmr1D_C_FilterbyThreshold, 3},
     {"_Rnmr1D_C_Lorentz", (DL_FUNC) &_Rnmr1D_C_Lorentz, 4},
-    {"_Rnmr1D_C_PVoigt", (DL_FUNC) &_Rnmr1D_C_PVoigt, 6},
+    {"_Rnmr1D_C_PVoigt", (DL_FUNC) &_Rnmr1D_C_PVoigt, 5},
     {"_Rnmr1D_C_OneVoigt", (DL_FUNC) &_Rnmr1D_C_OneVoigt, 3},
     {"_Rnmr1D_C_peakFinder", (DL_FUNC) &_Rnmr1D_C_peakFinder, 5},
     {"_Rnmr1D_C_peakOptimize", (DL_FUNC) &_Rnmr1D_C_peakOptimize, 4},
