@@ -102,6 +102,9 @@ deconvParams <- list (
   sigma_min = 0.0005,
   sigma_max = 0.005,
 
+  # Indicate if peaks are selected based on the threshold ratio Signal-Noise
+  selectpk = 0,
+
   # Indicates if we want information messages
   verbose = 1,
 
@@ -571,7 +574,7 @@ if (debug1) cat(filt,": R2i =",round(R2i[idx],4),", RMSEi =",round(SDi[idx],6),"
       OBL <- c( OBL, oblset[idx] )
       R2 <- c( R2, R2i[idx] )
       SD <- c( SD, SDi[idx] )
-if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],4)," OBL =",oblset[idx],"\n\n")
+if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," OBL =",oblset[idx],"\n\n")
    }
    gc()
 

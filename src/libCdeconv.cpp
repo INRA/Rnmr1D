@@ -98,6 +98,7 @@ struct s_peaks {
      int     dist_fac;
      double  sigma_min;
      double  sigma_max;
+     int     selectpk;
      double  wmin;
      double  wmax;
      double  sigma_moy;
@@ -1068,6 +1069,7 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
 /* Optimization of Amplitudes & Sigmas  */
 /* ------------------------------------ */
 
+// Compute Root Square Error of the model defined in the block 'block': pkstart = 1st peak, pkstop = last peak
 double compute_RSE(struct s_spectre *sp, struct s_peaks *pk,struct s_blocks *blocks, int block, int pkstart, int pkstop)
 {
     int k, i, p;
@@ -1113,7 +1115,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
     blocks->nbblocks=0;
     k=nstart=nstop=np=som_p=som_np=0;
     p=4;
-    eta=eta_min=0.6; eta_max=0.85; eta_step=0.025;
+    eta_min=0.6; eta_max=0.85; eta_step=0.025;
 
     while (k<pk->npic) {
         if (blocks->oneblk>0) {
@@ -1164,6 +1166,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
         blocks->nstart[blocks->nbblocks]=nstart;
         blocks->nstop[blocks->nbblocks]=nstop;
         som_p=0;
+        eta=eta_min;
 
         if (pk->optim) {
             // Data extraction Y=f(X) between nstart and nstop
@@ -1235,7 +1238,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                     for(i=0; i<=_OPBL_; i++)
                         blocks->bl[blocks->nbblocks][i] = aw[p*np + i + 2];
 
-                // Compute RSE corresponfing to the block
+                // Compute RSE of the corresponding block
                 blocks->rse[blocks->nbblocks] = compute_RSE(sp,pk,blocks, blocks->nbblocks, k, k+l);
 
                 outloop = 1;
@@ -1526,6 +1529,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        pk.d2meth      = plist.containsElementNamed("d2meth")    ? as<int>(plist["d2meth"]) : 0;
        pk.d1filt      = plist.containsElementNamed("d1filt")    ? as<int>(plist["d1filt"]) : 0;
        pk.d2filt      = plist.containsElementNamed("d2filt")    ? as<int>(plist["d2filt"]) : 1;
+       pk.selectpk    = plist.containsElementNamed("selectpk")  ? as<int>(plist["selectpk"]) : 0;
 
        // function modelling the resonances : 0=> lorentzian, 1 => pseudo voigt
        _OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : 0;
@@ -1536,9 +1540,11 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        sp.V = v2; // filtered spectrum
        find_peaks(&sp,&pk);
        if(_verbose_>0) Rprintf("\tNb detected peaks = %d\n",pk.npic);
-       //if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-       //select_peaks(&sp,&pk);
-       //if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+       if (pk.selectpk) {
+           if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+           select_peaks(&sp,&pk);
+          if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+       }
 
        // ------- Estimation of Sigmas --------
        if(_verbose_>0) Rprintf("Sigmas Estimation\n");
@@ -1554,9 +1560,11 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
           if (estimate_int==1 ) estime_AK(&sp,&pk);
           if (estimate_int >1 ) estime_AK2(&sp,&pk);
           sp.V = v1; // original spectrum
-          if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-          select_peaks(&sp,&pk);
-          if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+          if (pk.selectpk) {
+              if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+              select_peaks(&sp,&pk);
+              if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+          }
        }
 
        ret["nbpeak"]= pk.npic;
@@ -1567,6 +1575,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
                                     _["spcv"] = pk.spcv,
                                     _["d2cv"] = pk.d2cv,
                                     _["d1filt"] = pk.d1filt,
+                                    _["selectpk"] = pk.selectpk,
                                     _["dist_fac"] = pk.dist_fac,
                                     _["sigma_min"] = pk.sigma_min,
                                     _["estimate_int"] = estimate_int,
@@ -1648,6 +1657,7 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
     pk.sigma_max   = plist.containsElementNamed("sigma_max") ? as<double>(plist["sigma_max"]) : 0.005;
     pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
+    pk.selectpk    = plist.containsElementNamed("selectpk")  ? as<int>(plist["selectpk"]) : 0;
 
     // multi-section spectrum cut-off parameter : oneblk=1 => no cut-off, otherwise take into account scmin value
     blocks.oneblk  = plist.containsElementNamed("oneblk")    ? as<int>(plist["oneblk"]) : 0;
@@ -1688,9 +1698,11 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     }
     optim_peaks(&sp,&pk,&blocks);
 
-    //if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
-    //select_peaks(&sp,&pk,1);
-    //if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+    if (pk.selectpk) {
+        if(_verbose_>0) Rprintf("Peaks selection/ajustment\n");
+        select_peaks(&sp,&pk,1);
+        if(_verbose_>0) Rprintf("\tNb selected peaks = %d\n",pk.npic);
+    }
 
     free_vector(v1);
 
@@ -1706,6 +1718,7 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
                                  _["ratioSN"] = pk.RatioPN,
                                  _["sigma_min"] = pk.sigma_min,
                                  _["sigma_max"] = pk.sigma_max,
+                                 _["selectpk"] = pk.selectpk,
                                  _["scmin"] = blocks.scmin,
                                  _["oneblk"] = blocks.oneblk,
                                  _["obl"] = _OPBL_,
