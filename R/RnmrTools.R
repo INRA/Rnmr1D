@@ -23,7 +23,9 @@ EOL <- 'EOL'
 .N <- function(x) { as.numeric(as.vector(x)) }
 .C <- function(x) { as.vector(x) }
 
-Write.LOG <- function(logfile=stdout(), ...) cat(sprintf(...), sep='', file=logfile, append=TRUE)
+Write.LOG <- function(logfile=stdout(), ...) {
+   cat(sprintf(...), sep='', file=logfile, append=TRUE)
+}
 
 fitdistr <- function(...) {
    MASS::fitdistr(...)
@@ -581,7 +583,6 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
 {
    # Limit size of buckets
    MAXBUCKETS<-2000
-   NOISE_FAC <- 3
    LOGMSG <- ""
 
    if (Algo != 'vsb') {
@@ -591,7 +592,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
       Vref <- spec_ref(specMat$int)
       ynoise <- C_noise_estimation(Vref,idx_Noise[1],idx_Noise[2])
       Vnoise <- abs( C_noise_estimate(specMat$int, idx_Noise[1],idx_Noise[2], 1) )
-      
+
       bdata <- list()
       bdata$ynoise <- ynoise
       bdata$vnoise <- NULL
@@ -599,11 +600,19 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
       bdata$inoise_end <- idx_Noise[2]
       bdata$R <- resol
       bdata$dppm <- specMat$dppm
-      bdata$noise_fac <- NOISE_FAC
-      bdata$bin_fac <- 0.5
-      bdata$peaknoise_rate <- 15
-      bdata$BUCMIN <- 0.003
       bdata$VREF <- 1
+
+      if (specMat$nuc == "1H") {
+         bdata$noise_fac <- 3
+         bdata$bin_fac <- 0.5
+         bdata$peaknoise_rate <- 15
+         bdata$BUCMIN <- 0.003
+      } else {
+         bdata$noise_fac <- 2
+         bdata$bin_fac <- 0.1
+         bdata$peaknoise_rate <- 5
+         bdata$BUCMIN <- 0.05
+      }
    }
 
    # For each PPM range
@@ -798,11 +807,14 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
  # Samples
    samples <- specObj$samples
 
+ # Macro-commands
    CMDTEXT <- cmdstr[ grep( "^[^ ]", cmdstr ) ]
    CMD <- CMDTEXT[ grep( "^[^#]", CMDTEXT ) ]
    CMD <- gsub("^ ", "", gsub(" $", "", gsub(" +", ";", CMD)))
 
+   specMat$nuc <- specObj$nuc
    specMat$fWriteSpec <- FALSE
+   LOGFILE <- globvars$LOGFILE
 
    cl <- parallel::makeCluster(ncpu)
    doParallel::registerDoParallel(cl)

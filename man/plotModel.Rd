@@ -4,7 +4,14 @@
 \alias{plotModel}
 \title{plotModel}
 \usage{
-plotModel(spec, model, exclude_zones = NULL, title = "")
+plotModel(
+  spec,
+  model,
+  exclude_zones = NULL,
+  labels = c("ppm", "id"),
+  tags = FALSE,
+  title = ""
+)
 }
 \arguments{
 \item{spec}{a 'spec' object (see \code{readSpectrum}, \code{Spec1rDoProc})}
@@ -13,8 +20,12 @@ plotModel(spec, model, exclude_zones = NULL, title = "")
 
 \item{exclude_zones}{a list of vector defining the excluded zones for lorentzian plots}
 
+\item{labels}{choose as legend labels either 'ppm' or 'id'}
+
+\item{tags}{boolean allowing you to put identification tags at the top of each peak}
+
 \item{title}{title of the graphic}
 }
 \description{
-\code{plotModel} plots the model along with the resulting lorentzians from deconvolution
+\code{plotModel} plots the model along with the resulting voigt functions from deconvolution
 }

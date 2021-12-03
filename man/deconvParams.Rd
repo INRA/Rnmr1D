@@ -5,7 +5,7 @@
 \alias{deconvParams}
 \title{deconvParams}
 \format{
-An object of class \code{list} of length 18.
+An object of class \code{list} of length 27.
 }
 \usage{
 deconvParams
@@ -22,7 +22,7 @@ deconvParams
   \item \code{optim} : Indicates if optimisation is applied - default value = 1
   \item \code{oppm} : Indicates if ppm optimisation is applied - default value = 1
   \item \code{osigma} : Indicates if sigma optimisation is applied - default value = 1
-  \item \code{d2spmeth} : PeakFinder : Indicates if minima method to the second derivation is applied
+  \item \code{d2meth} : PeakFinder : Indicates if minima method to the second derivation is applied
   \item \code{spcv} : PeakFinder : Maximal CV on Spectrum - default value = 0.005
   \item \code{d2cv} : PeakFinder : Maximum CV on the derived spectrum - default value = 0.05
   \item \code{d1filt} : Apply Filter (1) on the 1st derivate or not (0) - default value = 0

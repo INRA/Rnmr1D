@@ -11,7 +11,7 @@ specModel(spec, ppmrange, peaks)
 
 \item{ppmrange}{a ppm range as a list in order to apply the deconvolution}
 
-\item{peaks}{a matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac, integral}
+\item{peaks}{a matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta, integral}
 }
 \value{
 a vector with the same size of the spectrum

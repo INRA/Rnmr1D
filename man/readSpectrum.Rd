@@ -9,7 +9,8 @@ readSpectrum(
   procParams,
   ppmnoise = c(10.2, 10.5),
   PHC = NULL,
-  scaleIntensity = 1
+  scaleIntensity = 1,
+  verbose = 1
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ readSpectrum(
 \item{PHC}{the phasing values applied to the spectrum in the frequency domain thus avoiding the automatic phasing step. Only useful if the input signal is an FID (procParams$INPUT_SIGNAL)}
 
 \item{scaleIntensity}{factor applied to the intensities to establish a change of scale.}
+
+\item{verbose}{level of debug information}
 }
 \value{
 spec object

@@ -4,14 +4,14 @@
 \alias{peakOptimize}
 \title{peakOptimize}
 \usage{
-peakOptimize(spec, ppmrange, peaks, verbose = 1)
+peakOptimize(spec, ppmrange, params, verbose = 1)
 }
 \arguments{
 \item{spec}{a 'spec' object}
 
 \item{ppmrange}{a ppm range as a list in order to apply the deconvolution}
 
-\item{peaks}{a list of specific parameters for deconvolution, including the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, pfac, integral}
+\item{params}{a list of specific parameters for deconvolution, including the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta}
 
 \item{verbose}{level of debug information}
 }

@@ -33,7 +33,7 @@ detectCores <- function(...) {
 #'  }
 setLogFile <- function(con=stdout())
 {
-   if ("connection" %in% class(con) ) assign('LOGFILE', con)
+   if ("connection" %in% class(con) ) globvars$LOGFILE <- con
 }
 
 #' setPPMbounds
@@ -44,10 +44,10 @@ setLogFile <- function(con=stdout())
 #' @param carbon Minimal and Maximal ppm value for 13C NMR
 setPPMbounds <- function(proton=c(-0.5,11), carbon=c(0,200))
 {
-   assign('PPM_MIN', proton[1])
-   assign('PPM_MAX', proton[2])
-   assign('PPM_MIN_13C', carbon[1])
-   assign('PPM_MAX_13C', carbon[2])
+   globvars$PPM_MIN <-  proton[1]
+   globvars$PPM_MAX <-  proton[2]
+   globvars$PPM_MIN_13C <- carbon[1]
+   globvars$PPM_MAX_13C <- carbon[2]
 }
    
 #' doProcessing 
@@ -118,8 +118,9 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
        stop(paste0("ERROR: ",cmdfile," seems to include errors\n"), call.=FALSE)
 
    trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+   LOGFILE <- globvars$LOGFILE
 
-   Write.LOG(LOGFILE, "Rnmr1D:  --- READING and CONVERTING ---\n", mode="at")
+   Write.LOG(LOGFILE, "Rnmr1D:  --- READING and CONVERTING ---\n")
 
    # Initialize the list of processing parameters
    procParams <- Spec1rProcpar
@@ -188,7 +189,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
             NAMEDIR <- ifelse( procParams$VENDOR=='bruker', basename(dirname(ACQDIR)), basename(ACQDIR) )
             PDATA_DIR <- ifelse( procParams$VENDOR=='rs2d', 'Proc', 'pdata' )
             # Init the log filename
-            procParams$LOGFILE <- LOGFILE
+            procParams$LOGFILE <- globvars$LOGFILE
             procParams$PDATA_DIR <- file.path(PDATA_DIR,LIST[x,3])
             spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
             if (procParams$INPUT_SIGNAL=='1r') Sys.sleep(0.3)
@@ -218,7 +219,8 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
 
        for(i in 1:N) {
            if (N>1) { spec <- specList[,i]; } else { spec <- specList; }
-           if (spec$acq$NUC == "13C") { PPM_MIN <- PPM_MIN_13C; PPM_MAX <- PPM_MAX_13C; }
+           PPM_MIN <- globvars$PPM_MIN; PPM_MAX <- globvars$PPM_MAX;
+           if (spec$acq$NUC == "13C") { PPM_MIN <- globvars$PPM_MIN_13C; PPM_MAX <- globvars$PPM_MAX_13C; }
            P <- spec$ppm>PPM_MIN & spec$ppm<=PPM_MAX
            V <- spec$int[P]
            vppm <- spec$ppm[P]

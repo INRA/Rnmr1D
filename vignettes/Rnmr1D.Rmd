@@ -29,7 +29,7 @@ body { max-width:1200px; line-height: 18px; }
 
 ## Preamble
 
-This document is an [R](https://www.r-project.org/) vignette available under the [CC BY-SA 4.0](http://creativecommons.org/licenses/by-sa/4.0/) license.
+This document is an [R](https://www.r-project.org/) vignette available under the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) license.
 It is part of the R package [`Rnmr1D`](https://github.com/INRA/Rnmr1D), a free software available under the GPL version 3 or later, with copyright from the Institut National de la Recherche Agronomique (INRA).
 
 A development version of the `Rnmr1D` package can be downloaded from [GitHub](https://github.com/INRA/Rnmr1D).
@@ -368,11 +368,11 @@ You can also see the small application online at the URL https://pmb-bordeaux.fr
 
 ### References
 
-<a name="ref1"></a>[1] Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. https://www.ncbi.nlm.nih.gov/pubmed/28261014
+<a name="ref1"></a>[1] Jacob, D., Deborde, C., Lefebvre, M., Maucourt, M. and Moing, A. (2017) NMRProcFlow: A graphical and interactive tool dedicated to 1D spectra processing for NMR-based metabolomics, Metabolomics 13:36. https://pubmed.ncbi.nlm.nih.gov/28261014/
 
-<a name="ref2"></a>[2] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), https://www.ncbi.nlm.nih.gov/pubmed/18419139
+<a name="ref2"></a>[2] De Meyer, T., Sinnaeve, D., Van Gasse, B., Tsiporkova, E., Rietzschel, E. R., De Buyzere, M. L., et al. (2008). NMR-based characterization of metabolic alterations in hypertension using an adaptive, intelligent binning algorithm. Analytical Chemistry, 80(10), https://pubmed.ncbi.nlm.nih.gov/18419139/
 
-<a name="ref3"></a>[3] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), https://www.ncbi.nlm.nih.gov/pubmed/23525538
+<a name="ref3"></a>[3] Jacob D., Deborde C. and Moing A. (2013). An efficient spectra processing method for metabolite identification from 1H-NMR metabolomics data. Analytical and Bioanalytical Chemistry 405(15), https://pubmed.ncbi.nlm.nih.gov/23525538/
 
-<a name="ref4"></a>[4] Schober D, Jacob D, Wilson M, Cruz JA, Marcu A, Grant JR, Moing A, Deborde C, de Figueiredo LF, Haug K, Rocca-Serra P, Easton J, Ebbels TMD, Hao J, Ludwig C, Günther UL, Rosato A, Klein MS, Lewis IA, Luchinat C, Jones AR, Grauslys A, Larralde M, Yokochi M, Kobayashi N, Porzel A, Griffin JL, Viant MR, Wishart DS, Steinbeck C, Salek RM, Neumann S. (2018) Anal Chem https://www.ncbi.nlm.nih.gov/pubmed/29035042
+<a name="ref4"></a>[4] Schober D, Jacob D, Wilson M, Cruz JA, Marcu A, Grant JR, Moing A, Deborde C, de Figueiredo LF, Haug K, Rocca-Serra P, Easton J, Ebbels TMD, Hao J, Ludwig C, Günther UL, Rosato A, Klein MS, Lewis IA, Luchinat C, Jones AR, Grauslys A, Larralde M, Yokochi M, Kobayashi N, Porzel A, Griffin JL, Viant MR, Wishart DS, Steinbeck C, Salek RM, Neumann S. (2018) Anal Chem https://pubmed.ncbi.nlm.nih.gov/29035042/
 

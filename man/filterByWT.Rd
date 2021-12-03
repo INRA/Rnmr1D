@@ -9,7 +9,7 @@ filterByWT(s, wavelet, type = 0)
 \arguments{
 \item{s}{the spectral signal as a numerical vector}
 
-\item{wavelet}{the type of the wavelet: 0 for HAAR, 1 for DAUB2, 2 for DAUB4, 3 for DAUB8}
+\item{wavelet}{the name of the wavelet: haar, daub2, daub4, daub8, symlet2, symlet4, symlet8}
 
 \item{type}{the type of the threshold :  0 for Soft threshold, 1 for Hard threshold}
 }

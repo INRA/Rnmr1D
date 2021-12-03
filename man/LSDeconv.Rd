@@ -18,9 +18,9 @@ LSDeconv(
 
 \item{ppmrange}{a ppm range as a list in order to apply the deconvolution}
 
-\item{params}{a list of specific parameters for deconvolution}
+\item{params}{a list of specific parameters for deconvolution including or not (i.e equal to NULL) the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta}
 
-\item{filterset}{a set of filter type for filtering the noise and  smoothing the signal}
+\item{filterset}{a set of filter applied before fitting}
 
 \item{oblset}{a set of baseline order for fitting}
 

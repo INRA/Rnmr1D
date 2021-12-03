@@ -612,7 +612,7 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
       cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',model$peaks$eta[1],"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
-      cat('Residue/Noise : SD =',round(sd(model$residus[iseq])/spec$Noise,4),
+      cat('Residue/Noise : SD =',round(stats::sd(model$residus[iseq])/spec$Noise,4),
                       ', Mean =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
    }
    class(model) = "LSDmodel"
@@ -678,7 +678,7 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
       cat('crit =',model$crit,', obl =',model$params$obl,"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
-      cat('Residue/Noise : SD =',round(sd(model$residus[iseq])/spec$Noise,4),
+      cat('Residue/Noise : SD =',round(stats::sd(model$residus[iseq])/spec$Noise,4),
                       ', Mean =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
    }
    class(model) = "LSDmodel"
@@ -792,7 +792,7 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), tag
    p1 <- p1 %>% plotly::layout(title = title, xaxis = list(autorange = "reversed"), colorway = c('grey', npk_colors))
    if (tags) {
      data <- data.frame(lab=rownames(model$peaks), x=model$peaks$ppm, y=1.05*model$peaks$amp)
-     p1 <- p1 %>% add_annotations(x = data$x, y = data$y, text = data$lab, showarrow = TRUE, arrowcolor='red', 
+     p1 <- p1 %>% plotly::add_annotations(x = data$x, y = data$y, text = data$lab, showarrow = TRUE, arrowcolor='red', 
                            font = list(color = 'black', family = 'sans serif', size = 18))
    }
    p1
