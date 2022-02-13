@@ -33,7 +33,7 @@ filtnames <- list('haar'=0, 'daub2'=1, 'daub4'=2, 'daub8'=3, 'symlet2'=4, 'symle
 #'   \item \code{facN} :  Noise factor applied while the peak finding step - default value = NULL
 #'   \item \code{ratioPN} : Peak/Noise Ratio applied while the peak selection step - default value = 1
 #'   \item \code{obl} : Optimization of a baseline (BL) for each massif. 0 means no BL, an integer greater than 0 indicates the polynomial order of the BL default value = 0
-#'   \item \code{dist_fac} : PeakFinder : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm) - default value = 2
+#'   \item \code{distPeaks} : PeakFinder : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm) - default value = 2
 #'   \item \code{optim} : Indicates if optimisation is applied - default value = 1
 #'   \item \code{oppm} : Indicates if ppm optimisation is applied - default value = 1
 #'   \item \code{osigma} : Indicates if sigma optimisation is applied - default value = 1
@@ -63,7 +63,8 @@ deconvParams <- list (
   # Peak/Noise Ratio
   facN = NULL,
   ratioPN = 5,
-
+  lowPeaks = 1,
+  
   # indicates if pseudo-voigt is used instead of lorentzian
   pvoigt=0,
   eta=0.6,
@@ -84,7 +85,7 @@ deconvParams <- list (
   obl = 0,
 
   # Peaks searching : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm)
-  dist_fac = 2,
+  distPeaks = 2,
 
   # Peaks searching : Minima method applied to the second derivation
   d2meth = 1,
@@ -281,6 +282,20 @@ peakOptimize <- function(spec, ppmrange, params, verbose=1)
    model
 }
 
+#' peakFiltering
+#'
+#' \code{peakFiltering} belongs to the low-level functions group for deconvolution.
+#' @param spec a 'spec' object
+#' @param peaks the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta
+#' @param ratioPN the ratio Peaks/Noise for filtering
+#' @return a dataframe
+peakFiltering <- function(spec, peaks, ratioPN)
+{
+   if (is.null(peaks) || ! "data.frame" %in% class(peaks) || nrow(peaks)==0 )
+      stop("the peaks param must be a data.frame with at least one row")
+   C_peakFiltering(spec, peaks, ratioPN)
+}
+
 #' specModel
 #'
 #' \code{specModel} belongs to the low-level functions group for deconvolution.
@@ -315,7 +330,7 @@ estimation_nbpeaks <- function(spec, ppmrange, params=NULL)
    g <- getDeconvParams(params)
    FacN <- ifelse(is.null(g$facN), 5, g$facN)
    spec$B <- spec$Noise/FacN
-   g$ratioSN <- FacN*g$ratioPN
+   g$ratioSN <- ifelse(g$lowPeaks==0, FacN*g$ratioPN, FacN/10)
    model0 <- peakFinder(spec, ppmrange, g, 'daub8', verbose = 0)
    model0$nbpeak
 }
@@ -418,7 +433,7 @@ GSDeconv <- function(spec, ppmrange, params=NULL, filter='symlet8', scset=c(2,3,
 
    FacN <- ifelse( is.null(g$facN), 5, g$facN )
    spec$B <- spec$Noise/FacN
-   g$ratioSN <- FacN*g$ratioPN
+   g$ratioSN <- ifelse(g$lowPeaks==0, FacN*g$ratioPN, FacN/10)
    debug1 <- ifelse(verbose==2, 1, 0)
 
    # Peak search
@@ -536,7 +551,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
    else
       FacN <- g$facN
    spec$B <- spec$Noise/FacN
-   g$ratioSN <- FacN*g$ratioPN
+   g$ratioSN <- ifelse(g$lowPeaks==0, FacN*g$ratioPN, FacN/10)
 
    OBL <- NULL
    R2 <- NULL
@@ -551,7 +566,8 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
       for (obl in oblset) {
          g$obl <- obl
          model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = 0)
-         model0$peaks <- model0$peaks[model0$peaks$amp>0, ]
+         model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSN)
+         #model0$peaks <- model0$peaks[model0$peaks$amp>0, ]
          model0$nbpeak <- ifelse('data.frame' %in% class(model0$peaks), nrow(model0$peaks), 0)
          if (model0$nbpeak==0) {
             R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 );
@@ -559,6 +575,8 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
          }
          g$peaks <- model0$peaks
          model <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+         model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*FacN)
+         model$model <- Rnmr1D::specModel(spec, ppmrange, model$peaks)
          if (model$nbpeak>0) {
             Ymodel <- model$model + intern_computeBL(spec, model)
             R2i <- c( R2i, stats::cor(spec$int[iseq],Ymodel[iseq])^2 )
@@ -591,6 +609,9 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
    g$obl <- OBL[idx]
    g$peaks <- model0$peaks
    model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+   model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*FacN)
+   model$model <- Rnmr1D::specModel(spec, ppmrange, model$peaks)
+
    if (debug1) cat("----\n")
    P1 <- model$peaks[model$peaks$amp>0, ]
    P2 <- P1[P1$ppm>ppmrange[1], ]
@@ -608,7 +629,7 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
    model$crit <- g$crit
 
    if (verbose) {
-      cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
+      cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioSN,"\n")
       cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',model$peaks$eta[1],"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
@@ -629,7 +650,7 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
    else
       FacN <- g$facN
    spec$B <- spec$Noise/FacN
-   g$ratioSN <- FacN*g$ratioPN
+   g$ratioSN <- ifelse(g$lowPeaks==0, FacN*g$ratioPN, FacN/10)
 
    if (is.null(g$peaks) || ! "data.frame" %in% class(g$peaks) || nrow(g$peaks)==0 )
       stop("the peaks param must be a data.frame with at least one row")

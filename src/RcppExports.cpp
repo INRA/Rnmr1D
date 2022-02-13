@@ -5,6 +5,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // lorentz
 double lorentz(double x, double x0, double s);
 RcppExport SEXP _Rnmr1D_lorentz(SEXP xSEXP, SEXP x0SEXP, SEXP sSEXP) {
@@ -154,6 +159,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type peaks(peaksSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
     rcpp_result_gen = Rcpp::wrap(C_peakOptimize(spec, ppmrange, peaks, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_peakFiltering
+SEXP C_peakFiltering(SEXP spec, SEXP peaks, double ratioPN);
+RcppExport SEXP _Rnmr1D_C_peakFiltering(SEXP specSEXP, SEXP peaksSEXP, SEXP ratioPNSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type spec(specSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type peaks(peaksSEXP);
+    Rcpp::traits::input_parameter< double >::type ratioPN(ratioPNSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_peakFiltering(spec, peaks, ratioPN));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -628,6 +646,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rnmr1D_C_OneVoigt", (DL_FUNC) &_Rnmr1D_C_OneVoigt, 3},
     {"_Rnmr1D_C_peakFinder", (DL_FUNC) &_Rnmr1D_C_peakFinder, 5},
     {"_Rnmr1D_C_peakOptimize", (DL_FUNC) &_Rnmr1D_C_peakOptimize, 4},
+    {"_Rnmr1D_C_peakFiltering", (DL_FUNC) &_Rnmr1D_C_peakFiltering, 3},
     {"_Rnmr1D_C_specModel", (DL_FUNC) &_Rnmr1D_C_specModel, 3},
     {"_Rnmr1D_C_MyFuncTest2", (DL_FUNC) &_Rnmr1D_C_MyFuncTest2, 3},
     {"_Rnmr1D_SDL", (DL_FUNC) &_Rnmr1D_SDL, 2},

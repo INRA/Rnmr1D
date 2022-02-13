@@ -87,6 +87,7 @@ struct s_peaks {
      int     optim;
      int     optim_int;
      int     optim_sigma;
+     int     optim_asym;
      int     optim_eta;
      int     optim_ppm;
      double  tol;
@@ -636,22 +637,22 @@ void wt2fn(double *a, unsigned long n, int isign, int wavelet)
 void fgradient(double x, double a[], double *y, double dyda[], int na)
 {
     int i, np;
-    double U, S, U2, S2, S3, V, V2, E;
+    double U, S, U2, S2, S3, V, V2, G;
 
     *y=0.0;
     np=(_OPBL_ >0) ? na - _OPBL_ - 2 : na;
-    for (i=1;i<=np-3;i+=4) {
-        U=x-a[i+1]; S=a[i+2]; U2=U*U; S2=S*S; V=U2+S2; V2=V*V;
+    for (i=1;i<=np;i+=4) {
+        U=x-a[i+1]; U2=U*U; S=a[i+2]; S2=S*S; V=U2+S2; V2=V*V;
         dyda[i]=S2/V;
         dyda[i+1]= 2*a[i]*U*S2/V2;
         dyda[i+2]= 2*a[i]*U2*S/V2;
         dyda[i+3]= 0;
         if (_OVGT_>0) {
-           S3=S2*S; E=exp(-0.5*U2/S2);
-           dyda[i]  = a[i+3]*dyda[i]   + (1-a[i+3])*E;
-           dyda[i+1]= a[i+3]*dyda[i+1] + (1-a[i+3])*a[i]*U*E/S2;
-           dyda[i+2]= a[i+3]*dyda[i+2] + (1-a[i+3])*a[i]*U2*E/S3;
-           dyda[i+3]= a[i]*(dyda[i]-E);
+           S3=S2*S; G=exp(-0.5*U2/S2);
+           dyda[i]  = a[i+3]*dyda[i]   + (1-a[i+3])*G;
+           dyda[i+1]= a[i+3]*dyda[i+1] + (1-a[i+3])*a[i]*U*G/S2;
+           dyda[i+2]= a[i+3]*dyda[i+2] + (1-a[i+3])*a[i]*U2*G/S3;
+           dyda[i+3]= a[i]*(dyda[i]-G);
         }
         *y += a[i]*dyda[i];
     }
@@ -1246,18 +1247,16 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                     if(eta==eta_min || blocks->rse[blocks->nbblocks] < blksvg.rse[blksvg.nbblocks]) {
                         pksvg=*pk; blksvg=*blocks;
                     }
-                    // Restaure initial values of peak parameters
-                    *pk=pk0;
                     // Next eta value
                     eta += eta_step;
-                    // If end then quit loop
                     outloop = (eta<=eta_max) ? 0 : 1;
+                    // If end then get the best optimized peak parameters & quit loop
+                    if (outloop) { *pk=pksvg; *blocks=blksvg; }
+                    // Else restaure initial values of peak parameters
+                    else { *pk=pk0; }
                 }
 
             } while(outloop==0);
-
-            // If needed, get the best optimized peak parameters
-            if (_OVGT_>0 && pk->optim_eta>0) { *pk=pksvg; *blocks=blksvg; }
 
             // Sum of peak numbers
             som_np += np;
@@ -1393,13 +1392,16 @@ SEXP C_FilterbyThreshold (SEXP s, int wavelet, int threshold=0)
 SEXP C_Lorentz(SEXP ppm, double amp, double x0, double sigma)
 {
     int k;
+    double dx;
     NumericVector VecIn(ppm);
     NumericVector VecOut(VecIn.size());
-    for (k=0; k<VecIn.size(); k++)
-        if (dabs(VecIn[k]-x0)<100)
-           VecOut[k]=amp*sigma*sigma/(sigma*sigma+(VecIn[k]-x0)*(VecIn[k]-x0));
+    for (k=0; k<VecIn.size(); k++) {
+        dx = VecIn[k]-x0;
+        if (dabs(dx)<100)
+           VecOut[k]=amp*sigma*sigma/(sigma*sigma+dx*dx);
         else
            VecOut[k]=0.0;
+    }
     return(VecOut);
 }
 
@@ -1407,15 +1409,18 @@ SEXP C_Lorentz(SEXP ppm, double amp, double x0, double sigma)
 SEXP C_PVoigt(SEXP ppm, double amp, double x0, double sigma, double eta=0.5)
 {
     int k;
+    double dx, L, G;
     NumericVector VecIn(ppm);
     NumericVector VecOut(VecIn.size());
-    for (k=0; k<VecIn.size(); k++)
-        if (dabs(VecIn[k]-x0)<100)
-           VecOut[k] = (eta == 1) ? 
-              amp*sigma*sigma/(sigma*sigma+(VecIn[k]-x0)*(VecIn[k]-x0)) :
-              amp*( eta*sigma*sigma/(sigma*sigma+(VecIn[k]-x0)*(VecIn[k]-x0)) + (1-eta)*exp( -0.5*(VecIn[k]-x0)*(VecIn[k]-x0)/(sigma*sigma) ) ) ;
-        else
+    for (k=0; k<VecIn.size(); k++) {
+        dx = VecIn[k]-x0;
+        if (dabs(dx)<100) {
+           L = sigma*sigma/(sigma*sigma+dx*dx);
+           G = exp(-0.5*(dx*dx)/(sigma*sigma));
+           VecOut[k] = (eta == 1) ? amp*L : amp*( eta*L + (1-eta)*G );
+        } else
            VecOut[k]=0.0;
+    }
     return(VecOut);
 }
 
@@ -1522,7 +1527,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 
        // Get input parameters
        pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
-       pk.dist_fac    = plist.containsElementNamed("dist_fac")  ? as<double>(plist["dist_fac"]) : 2.0;
+       pk.dist_fac    = plist.containsElementNamed("dist_fac")  ? as<double>(plist["distPeaks"]) : 2.0;
        pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
        pk.spcv        = plist.containsElementNamed("spcv")      ? as<double>(plist["spcv"]) : 0.02;
        pk.d2cv        = plist.containsElementNamed("d2cv")      ? as<double>(plist["d2cv"]) : 0.1*pk.spcv;
@@ -1781,6 +1786,55 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     }
     ret["model"]=Ymodel;
 
+    return(ret);
+}
+
+// [[Rcpp::export]]
+SEXP C_peakFiltering(SEXP spec, SEXP peaks, double ratioPN)
+{
+    List slist(spec);
+    NumericMatrix P0;
+
+    try { P0 = C_DF2mat(as<DataFrame>(peaks));  }
+    catch(...) { P0 = as<NumericMatrix>(peaks); }
+
+    int k;
+    double B = as<double>(slist["B"]);
+    struct s_peaks pk;
+
+    DataFrame ret = R_NilValue;
+
+    // ------- PeakList ----------------------------------
+    pk.npic=0;
+    for (k=0;k<P0.nrow();k++) {
+        if (P0(k,2)> ratioPN*B) {
+           pk.pics[pk.npic] = (int)P0(k,0);
+           pk.ppm[pk.npic] = P0(k,1);
+           pk.AK[pk.npic] = P0(k,2);
+           pk.sigma[pk.npic] = P0(k,3);
+           pk.eta[pk.npic] = P0(k,4);
+           pk.npic++;
+        }
+    }
+    if (pk.npic>0) {
+        NumericMatrix P(pk.npic, 6);
+        for (k=0; k<pk.npic; k++) {
+            P(k,0) = pk.pics[k];
+            P(k,1) = pk.ppm[k];
+            P(k,2) = pk.AK[k];
+            P(k,3) = pk.sigma[k];
+            P(k,4) = pk.eta[k];
+            P(k,5) = pk.eta[k]>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigma[k] + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigma[k]) :
+                                   M_PI*pk.AK[k]*pk.sigma[k];
+        }
+
+        ret = DataFrame::create( Named("pos") = P(_,0),
+                                 Named("ppm") = P(_,1),
+                                 Named("amp") = P(_,2),
+                                 Named("sigma") = P(_,3),
+                                 Named("eta") = P(_,4),
+                                 Named("integral") = P(_,5) );
+    }
     return(ret);
 }
 

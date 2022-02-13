@@ -45,6 +45,10 @@ C_peakOptimize <- function(spec, ppmrange, peaks, verbose = 1L) {
     .Call('_Rnmr1D_C_peakOptimize', PACKAGE = 'Rnmr1D', spec, ppmrange, peaks, verbose)
 }
 
+C_peakFiltering <- function(spec, peaks, ratioPN) {
+    .Call('_Rnmr1D_C_peakFiltering', PACKAGE = 'Rnmr1D', spec, peaks, ratioPN)
+}
+
 C_specModel <- function(spec, ppmrange, peaks) {
     .Call('_Rnmr1D_C_specModel', PACKAGE = 'Rnmr1D', spec, ppmrange, peaks)
 }
