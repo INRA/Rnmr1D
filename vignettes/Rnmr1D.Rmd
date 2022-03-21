@@ -3,6 +3,8 @@ title: "Rnmr1D package"
 author: "Daniel Jacob"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
   html_document:
     number_sections: no
     toc: yes
@@ -12,10 +14,8 @@ output:
 always_allow_html: yes
 colorlinks: yes
 urlcolor: blue
-vignette: |
-  %\VignetteIndexEntry{Features illustration of the Rnmr1D package}
-  %\VignetteEncoding{UTF-8} 
-  %\VignetteEngine{knitr::knitr}
+vignette: "%\\VignetteIndexEntry{Features illustration of the Rnmr1D package}\n%\\VignetteEncoding{UTF-8}
+  \n%\\VignetteEngine{knitr::knitr}\n"
 ---
 
 ```{r setup, include=FALSE}

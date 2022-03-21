@@ -5,7 +5,7 @@
 \alias{deconvParams}
 \title{deconvParams}
 \format{
-An object of class \code{list} of length 27.
+An object of class \code{list} of length 28.
 }
 \usage{
 deconvParams
@@ -18,7 +18,7 @@ deconvParams
   \item \code{facN} :  Noise factor applied while the peak finding step - default value = NULL
   \item \code{ratioPN} : Peak/Noise Ratio applied while the peak selection step - default value = 1
   \item \code{obl} : Optimization of a baseline (BL) for each massif. 0 means no BL, an integer greater than 0 indicates the polynomial order of the BL default value = 0
-  \item \code{dist_fac} : PeakFinder : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm) - default value = 2
+  \item \code{distPeaks} : PeakFinder : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm) - default value = 2
   \item \code{optim} : Indicates if optimisation is applied - default value = 1
   \item \code{oppm} : Indicates if ppm optimisation is applied - default value = 1
   \item \code{osigma} : Indicates if sigma optimisation is applied - default value = 1
