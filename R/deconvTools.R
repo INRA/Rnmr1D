@@ -627,10 +627,12 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
    model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
    model$filter <- fidx
    model$crit <- g$crit
+   model$FacN <- FacN
+   model$eta <- model$peaks$eta[1]
 
    if (verbose) {
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioSN,"\n")
-      cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',model$peaks$eta[1],"\n")
+      cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',model$eta,"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
       cat('Residue/Noise : SD =',round(stats::sd(model$residus[iseq])/spec$Noise,4),
@@ -693,10 +695,11 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
    model$ppmrange <- ppmrange
    model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
    model$crit <- g$crit
+   model$FacN <- FacN
 
    if (verbose) {
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
-      cat('crit =',model$crit,', obl =',model$params$obl,"\n")
+      cat('crit =',model$crit,', obl =',model$params$obl,', eta =',model$peaks$eta[1],"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('R2 =', model$R2,"\n")
       cat('Residue/Noise : SD =',round(stats::sd(model$residus[iseq])/spec$Noise,4),

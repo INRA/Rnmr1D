@@ -129,8 +129,8 @@ C_segment_shifts <- function(x, idx_vref, decal_max, istart, iend, v) {
     .Call('_Rnmr1D_C_segment_shifts', PACKAGE = 'Rnmr1D', x, idx_vref, decal_max, istart, iend, v)
 }
 
-C_align_segment <- function(x, s, istart, iend, v) {
-    .Call('_Rnmr1D_C_align_segment', PACKAGE = 'Rnmr1D', x, s, istart, iend, v)
+C_align_segment <- function(x, s, istart, iend, apodize, v) {
+    .Call('_Rnmr1D_C_align_segment', PACKAGE = 'Rnmr1D', x, s, istart, iend, apodize, v)
 }
 
 C_noise_estimation <- function(x, n1, n2) {
@@ -139,6 +139,14 @@ C_noise_estimation <- function(x, n1, n2) {
 
 C_aibin_buckets <- function(x, b, v, l, n1, n2) {
     .Call('_Rnmr1D_C_aibin_buckets', PACKAGE = 'Rnmr1D', x, b, v, l, n1, n2)
+}
+
+C_SDL_convolution <- function(x, y, sigma) {
+    .Call('_Rnmr1D_C_SDL_convolution', PACKAGE = 'Rnmr1D', x, y, sigma)
+}
+
+C_erva_buckets <- function(x, b, v, l, n1, n2) {
+    .Call('_Rnmr1D_C_erva_buckets', PACKAGE = 'Rnmr1D', x, b, v, l, n1, n2)
 }
 
 C_spectra_integrate <- function(x, istart, iend) {
@@ -183,9 +191,5 @@ Fmin <- function(par, re, im, blphc, B, flg = 0L) {
 
 Fentropy <- function(par, re, im, blphc, neigh, B, Gamma) {
     .Call('_Rnmr1D_Fentropy', PACKAGE = 'Rnmr1D', par, re, im, blphc, neigh, B, Gamma)
-}
-
-C_SDL_convolution <- function(x, y, sigma) {
-    .Call('_Rnmr1D_C_SDL_convolution', PACKAGE = 'Rnmr1D', x, y, sigma)
 }
 

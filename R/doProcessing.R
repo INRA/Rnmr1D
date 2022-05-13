@@ -143,17 +143,37 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
         if (! is.null(procpar$ZNEG)) procParams$RABOT <- ifelse( procpar$ZNEG=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$TSP)) procParams$TSP <- ifelse( procpar$TSP=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$O1RATIO)) procParams$O1RATIO <- as.numeric(procpar$O1RATIO)
-        if (! is.null(procpar$ZF)) procParams$ZEROFILLING <- as.numeric(procpar$ZF)
+        if (! is.null(procpar$ZF)) procParams$ZEROFILLING <- ifelse (as.numeric(procpar$ZF)>0, TRUE, FALSE)
+        if (! is.null(procpar$ZF)) procParams$ZFFAC <- as.numeric(procpar$ZF)
         if (! is.null(procpar$USRPHC) && procpar$USRPHC=="TRUE") {
            procParams$OPTPHC0 <- procParams$OPTPHC1 <- FALSE
            if (! is.null(procpar$PHC0)) procParams$phc0 <- as.numeric(procpar$PHC0)
            if (! is.null(procpar$PHC1)) procParams$phc1 <- as.numeric(procpar$PHC1)
         } else {
-           if (! is.null(procpar$PHC0)) procParams$OPTPHC0 <- ifelse( procpar$PHC0=="TRUE", TRUE, FALSE)
+           if (! is.null(procpar$PHC1)) procParams$OPTPHC0 <- ifelse( procpar$PHC1=="TRUE", FALSE, TRUE)
            if (! is.null(procpar$PHC1)) procParams$OPTPHC1 <- ifelse( procpar$PHC1=="TRUE", TRUE, FALSE)
            if (! is.null(procpar$CRIT1)) procParams$CRITSTEP1 <- as.numeric(procpar$CRIT1)
+           # additional parameters with default values
+           #procParams$BLPHC <- 50
+           #procParams$KSIG <- 2
+           #procParams$GAMMA <- 0.005
+           #procParams$RATIOPOSNEGMIN <- 0.45
+           #procParams$CLEANUP_OUTPUT <- TRUE
+           #procParams$LINEBROADENING <- TRUE
+           #procParams$O1RATIO <- 1
+           #procParams$REMLFREQ <- 0
+           #procParams$CPMG <- FALSE
+           #procParams$KZERO <- 0.3
+           #procParams$OPTSTEP <- TRUE
+           #procParams$OPTCRIT0 <- 0
+           #procParams$OPTCRIT1 <- 2
+           #procParams$CRITSTEP2 <- 2
+           #procParams$JGD_INNER <- TRUE
+           #procParams$RMS <- 0
+           #procParams$OC <- FALSE
         }
         if (procParams$INPUT_SIGNAL=='fid') procParams$READ_RAW_ONLY <- FALSE
+        procParams$REVPPM <- ifelse(procParams$VENDOR == 'varian' || procParams$VENDOR == 'jeol', TRUE, FALSE)
    }
 
    # Generate the 'samples.csv' & 'factors' files from the list of raw spectra
@@ -211,6 +231,30 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
           specList <- L
        }
 
+       # Get all spectra that are correcly processed
+       N <- dim(LIST)[1]
+       idsOK <- NULL
+       PPM_MIN <- -1000
+       PPM_MAX <- 1000
+       for(i in 1:N) {
+          if (N>1) { spec <- specList[,i]; } else { spec <- specList; }
+          if (! is.null(spec$acq) ) {
+              idsOK <- c( idsOK, i )
+              PPM_MIN <- max(PPM_MIN, spec$pmin)
+              PPM_MAX <- min(PPM_MAX, spec$pmax)
+          }
+       }
+       Write.LOG(LOGFILE, paste0('Rnmr1D:  PPM range = [',round(PPM_MIN,4)," , ",round(PPM_MAX,4),"]\n"))
+       Write.LOG(LOGFILE,"\n")
+
+       if (length(idsOK)<N) {
+          specList <- specList[,idsOK]
+          LIST <- LIST[idsOK, ]
+          metadata$samples <- metadata$samples[idsOK, ]
+          metadata$rawids <- metadata$rawids[idsOK, ]
+          Write.LOG(LOGFILE, paste0("Rnmr1D:  ", N-length(idsOK)," ERRORS FOUND! \n"))
+       }
+
        Write.LOG(LOGFILE, "Rnmr1D:  Generate the final matrix of spectra...\n")
 
        M <- NULL
@@ -219,8 +263,8 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
 
        for(i in 1:N) {
            if (N>1) { spec <- specList[,i]; } else { spec <- specList; }
-           PPM_MIN <- globvars$PPM_MIN; PPM_MAX <- globvars$PPM_MAX;
-           if (spec$acq$NUC == "13C") { PPM_MIN <- globvars$PPM_MIN_13C; PPM_MAX <- globvars$PPM_MAX_13C; }
+           #PPM_MIN <- globvars$PPM_MIN; PPM_MAX <- globvars$PPM_MAX;
+           #if (spec$acq$NUC == "13C") { PPM_MIN <- globvars$PPM_MIN_13C; PPM_MAX <- globvars$PPM_MAX_13C; }
            P <- spec$ppm>PPM_MIN & spec$ppm<=PPM_MAX
            V <- spec$int[P]
            vppm <- spec$ppm[P]
@@ -256,6 +300,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
        specMat$fWriteSpec <- FALSE
 
        specObj <- metadata
+       specObj$procParams <- procParams
        specObj$specMat <- specMat
 
        samples <- metadata$samples

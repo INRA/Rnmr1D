@@ -1122,8 +1122,9 @@ Spec1rProcpar <- list (
 
     param$SI <- length(rawspec)
     proc <- list( phc0=0, phc1=0, crit=NULL, RMS=0, SI=length(rawspec))
-    #if (!'phc0' %in% param) param$phc0 <- param$phc1 <- 0
-    if (is.null(param$phc0)) param$phc0 <- param$phc1 <- 0
+    attach(param)
+    if (!exists("phc0") || is.null(phc0)) param$phc0 <- param$phc1 <- 0
+    detach(param)
 
     # PPM Calibration
     m <- proc$SI
@@ -1348,6 +1349,7 @@ Spec1rProcpar <- list (
    spec$data <- complex(real=new_spec1r$re,imaginary=new_spec1r$im)
    spec
 }
+
 
 
 #--------------------------------
@@ -1689,11 +1691,11 @@ segment_shifts = function (specMat, idx_vref, decal_max, istart, iend, selected=
 }
 
 #' @export align_segment
-align_segment = function (specMat, shifts, istart, iend, selected=NULL)
+align_segment = function (specMat, shifts, istart, iend, apodize=0, selected=NULL)
 {
    if (is.null(selected)) {
-       C_align_segment (specMat, shifts, istart, iend, numeric(0))
+       C_align_segment (specMat, shifts, istart, iend, apodize, numeric(0))
    } else {
-       C_align_segment (specMat, shifts, istart, iend, selected)
+       C_align_segment (specMat, shifts, istart, iend, apodize, selected)
    }
 }

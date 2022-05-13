@@ -475,16 +475,16 @@ RZero1D <- function(specMat, zones, DEBUG=FALSE)
 #------------------------------
 # LS : Alignment of the selected PPM ranges
 #------------------------------
-RAlign1D <- function(specMat, zone, RELDECAL=0.35, idxSref=0, Selected=NULL)
+RAlign1D <- function(specMat, zone, RELDECAL=0.35, idxSref=0, Selected=NULL, fapodize=FALSE)
 {
    # Alignment of each PPM range
    NBPASS <- 3
    i1 <- ifelse( max(zone)>=specMat$ppm_max, 1, length(which(specMat$ppm>max(zone))) )
    i2 <- ifelse( min(zone)<=specMat$ppm_min, specMat$size - 1, which(specMat$ppm<=min(zone))[1] )
-   
+   apodize <- ifelse(fapodize,1,0)
    decal <- round((i2-i1)*RELDECAL)
    for( n in 1:NBPASS) {
-       ret <- align_segment(specMat$int, segment_shifts( specMat$int, idxSref, decal, i1-1, i2-1, Selected-1), i1-1, i2-1, Selected-1)
+       ret <- align_segment(specMat$int, segment_shifts( specMat$int, idxSref, decal, i1-1, i2-1, Selected-1), i1-1, i2-1, apodize, Selected-1)
    }
 
    return(specMat)
@@ -585,14 +585,20 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
    MAXBUCKETS<-2000
    LOGMSG <- ""
 
-   if (Algo != 'vsb') {
+   if (Algo %in% c('aibin','erva','unif')) {
       # Noise estimation
-      PPM_NOISE_AREA <- c(min(zonenoise), max(zonenoise))
+      if (is.na(zonenoise)) {
+          PPM_NOISE_AREA <- c(10.2, 10.5)
+      } else {
+         PPM_NOISE_AREA <- c(min(zonenoise), max(zonenoise))
+      }
       idx_Noise <- c( length(which(specMat$ppm>PPM_NOISE_AREA[2])),(which(specMat$ppm<=PPM_NOISE_AREA[1])[1]) )
       Vref <- spec_ref(specMat$int)
       ynoise <- C_noise_estimation(Vref,idx_Noise[1],idx_Noise[2])
       Vnoise <- abs( C_noise_estimate(specMat$int, idx_Noise[1],idx_Noise[2], 1) )
+   }
 
+   if (Algo %in% c('aibin')) {
       bdata <- list()
       bdata$ynoise <- ynoise
       bdata$vnoise <- NULL
@@ -615,6 +621,16 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
       }
    }
 
+   if (Algo %in% c('erva')) {
+      bdata <- list()
+      bdata$bucketsize <- resol
+      bdata$noise_fac <- 1
+      bdata$dppm <- specMat$dppm
+      bdata$ppm_min <- specMat$ppm_min
+      bdata$BUCMIN <- 0.001
+   }
+
+
    # For each PPM range
    buckets_zones <- NULL
    N <- dim(zones)[1]
@@ -627,19 +643,26 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
           Mbuc[] <- 0
           buckets_m <- C_aibin_buckets(specMat$int, Mbuc, Vref, bdata, i1, i2)
        }
+       if (Algo=='erva') {
+          Mbuc <- matrix(, nrow = MAXBUCKETS, ncol = 2)
+          Mbuc[] <- 0
+          buckets_m <- C_erva_buckets(specMat$int, Mbuc, Vref, bdata, i1, i2)
+       }
        if (Algo=='unif') {
           seq_buc <- seq(i1, i2, round(resol/specMat$dppm))
           n_bucs <- length(seq_buc) - 1
           buckets_m <- cbind ( seq_buc[1:n_bucs], seq_buc[2:(n_bucs+1)])
-          # Keep only the buckets for which the SNR average is greater than 'snr'
-          MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
-          buckets_m <- buckets_m[ which( apply(t(MaxVals/(2*Vnoise)),1,stats::quantile)[4,]>snr), ]
        }
        if (Algo=='vsb') {
           buckets_m <- matrix( c( i1, i2 ), nrow=1, ncol=2, byrow=T )
        }
-
        LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),"), Nb Buckets =",dim(buckets_m)[1],"\n")
+       if (dim(buckets_m)[1]>1) {
+          # Keep only the buckets for which the SNR average is greater than 'snr'
+          MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
+          buckets_m <- buckets_m[ which( apply(t(MaxVals/(2*Vnoise)),1,stats::quantile)[4,]>snr), ]
+       }
+
        cbind( specMat$ppm[buckets_m[,1]], specMat$ppm[buckets_m[,2]], LOGMSG )
    }
    if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste(unique(buckets_zones[,3]), collapse=""))
@@ -949,7 +972,7 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
                  idxSref=params[4]
                  Write.LOG(LOGFILE,paste0("Rnmr1D:  Alignment: PPM Range = ( ",min(PPMRANGE)," , ",max(PPMRANGE)," )\n"))
                  Write.LOG(LOGFILE,paste0("Rnmr1D:     Rel. Shift Max.=",RELDECAL," - Reference=",idxSref,"\n"))
-                 specMat <- RWrapperCMD1D(cmdName,specMat, PPMRANGE, RELDECAL, idxSref, Selected=Selected)
+                 specMat <- RWrapperCMD1D(cmdName,specMat, PPMRANGE, RELDECAL, idxSref, Selected=Selected, fapodize=FALSE)
                  specMat$fWriteSpec <- TRUE
                  CMD <- CMD[-1]
               }
@@ -1029,7 +1052,7 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
               break
           }
           if (cmdName == lbBUCKET) {
-              if ( !( length(cmdPars) >= 6 && cmdPars[2] %in% c('aibin','unif') ) &&
+              if ( !( length(cmdPars) >= 6 && cmdPars[2] %in% c('aibin','erva','unif') ) &&
                    !( length(cmdPars) <= 3 && cmdPars[2] %in% c('vsb') ) ) {
                  CMD <- CMD[-1]
                  break;
@@ -1041,7 +1064,7 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
                   CMD <- CMD[-1]
               }
               fappend <- 0
-              if ( cmdPars[2] %in% c('aibin','unif') ) {
+              if ( cmdPars[2] %in% c('aibin','erva','unif') ) {
                   params <- as.numeric(cmdPars[-c(1:2)])
                   PPM_NOISE <- c( min(params[1:2]), max(params[1:2]) )
                   resol <- params[3]; snr <- params[4];
