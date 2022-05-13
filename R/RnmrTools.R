@@ -587,7 +587,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
 
    if (Algo %in% c('aibin','erva','unif')) {
       # Noise estimation
-      if (is.na(zonenoise)) {
+      if (sum(is.na(zonenoise))) {
           PPM_NOISE_AREA <- c(10.2, 10.5)
       } else {
          PPM_NOISE_AREA <- c(min(zonenoise), max(zonenoise))
