@@ -1,9 +1,7 @@
-#------------------------------------------------
-# Rnmr1D package: ID deconvTools.R
-# Project: NMRProcFlow
-# (C) 2015-2021 - D. JACOB - IMRAE UMR1332 BAP
-#------------------------------------------------
-
+# ID deconvTools.R
+# Copyright (C) 2017-2022 INRAE
+# Authors: D. Jacob
+#
 #=====================================================================
 # Deconvolution parameters
 #=====================================================================
@@ -67,7 +65,7 @@ deconvParams <- list (
   
   # indicates if pseudo-voigt is used instead of lorentzian
   pvoigt=0,
-  eta=0.6,
+  eta=0.7,
 
   # Optimization of peaks : 0 => No, 1 => Yes
   optim=1,
@@ -113,7 +111,13 @@ deconvParams <- list (
   exclude_zones = NULL,
   
   # a dataframe of peaks (columns : pos, ppm, amp, sigma, eta, integral)
-  peaks = NULL
+  peaks = NULL,
+
+  # slicing: the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone
+  flatwidth = 0.004,
+
+  # slicing: the minimum width of a cutting zone (default 0.01 ppm)
+  minrange = 0.01
 )
 
 #=====================================================================
@@ -849,6 +853,96 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
                       ', Mean =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
    }
    class(model) = "LSDmodel"
+   model
+}
+
+#' MultiLSDeconv
+#'
+#' Multiple Local Spectra Deconvolution: \code{MultiLSDeconv} belongs to the low-level functions group for deconvolution.
+#' @param spec a 'spec' object
+#' @param ppmranges ppm ranges as a matrix in order to apply the deconvolution, each row specifying a zone
+#' @param params a list of specific parameters for deconvolution 
+#' @param filterset a set of filter type for filtering the noise and  smoothing the signal (only if the matrix defining peaks not defined in order to find peaks)
+#' @param oblset a set of baseline order for fitting
+#' @param ncpu number of CPU for parallel computing
+#' @param verbose level of debug information
+#' @return a model object
+MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filter='symlet8', ncpu=4, verbose=0)
+{
+   g <- getDeconvParams(params)
+   if (is.null(ppmranges)) {
+       slices <- Rnmr1D::sliceSpectrum(spec, flatwidth=g$flatwidth, minrange=g$minrange, excludezones=g$exclude_zones)
+   } else {
+       slices <- getSlices(spec, ppmranges, flatwidth=g$flatwidth)
+   }
+   if (verbose) cat("Nb slices =",nrow(slices),", minsize =",min(slices[,2]-slices[,1]),", maxsize =",max(slices[,2]-slices[,1]),"\n")
+
+   combine_list <- function(LL1, LL2) {
+      getList <- function(L) { list(id=L$id, peaks=L$peaks, infos=L$infos ) }
+      mylist <- list()
+      for ( i in 1:length(LL1) ) mylist[[LL1[[i]]$id]] <- getList(LL1[[i]])
+      for ( i in 1:length(LL2) ) mylist[[LL2[[i]]$id]] <- getList(LL2[[i]])
+      return(mylist)
+   }
+
+   # Activate the cluster
+   cl <- parallel::makeCluster(ncpu)
+   doParallel::registerDoParallel(cl)
+
+   M <- foreach( k = 1:nrow(slices), .combine = combine_list, .packages=c('Rnmr1D'), .export=c('getIndexSeq') ) %dopar% {
+      iseq <- getIndexSeq(spec,slices[k,])
+      facN <- max(20,min(100,round(max(spec$int[iseq])*0.05/spec$Noise)))
+      spec$B <- spec$Noise/facN
+      g$ratioSN <- facN*g$ratioPN
+      t<-system.time({
+         model <- tryCatch({
+             LSDeconv(spec, slices[k,], g, filter, 0, verbose = verbose)
+         },
+         error=function(e) {
+             model <- list(peaks=NULL, nbpeak=0)
+         })
+      })
+      infos <- c(slices[k,1], slices[k,2],round(slices[k,2]-slices[k,1],4), model$nbpeak, model$eta, model$FacN, round(t[3],2))
+      id <- paste0('S',sprintf("%03d",k))
+      mylist <- list()
+      mylist[[id]] <- list(id=id, peaks=model$peaks, infos=infos)
+      return(mylist)
+   }
+
+   # Stop the cluster
+   parallel::stopCluster(cl)
+
+   peaks <- NULL
+   infos <- NULL
+   for (k in 1:nrow(slices)) {
+      id <- paste0('S',sprintf("%03d",k))
+      peaks <- rbind(peaks, M[[id]]$peaks)
+      infos <- rbind(infos, M[[id]]$infos)
+   }
+   colnames(infos) <- c("ppm1","ppm2","width","peaks","eta","facN","time")
+   rownames(infos) <- 1:nrow(slices)
+
+   ppmrange <- c(spec$pmin, spec$pmax)
+   Ymodel <- specModel(spec, ppmrange, peaks)
+   if (is.null(ppmranges)) {
+      yorig <- rep(0, length(spec$int))
+      iseq <- getIndexSeq(spec,ppmrange)
+      yorig[iseq] <- spec$int[iseq]
+      if (! is.null(excludezones) && nrow(excludezones)>0) {
+         for (z in 1:nrow(excludezones))
+            yorig[getIndexSeq(spec,excludezones[z,])] <- 0
+      }
+   } else {
+      yorig <- rep(0, length(spec$int))
+      for (k in 1:nrow(slices)) {
+          iseq <- getIndexSeq(spec,slices[k,])
+          yorig[iseq] <- spec$int[iseq]
+      }
+   }
+   residus <- yorig - Ymodel
+   RMSE <- sqrt(mean(residus^2))
+   R2 <- stats::cor(yorig,Ymodel)^2
+   model <- list(peaks=peaks, infos=infos, model=Ymodel, residus=residus, R2=R2, RMSE=RMSE, filter=filter, params=g)
    model
 }
 

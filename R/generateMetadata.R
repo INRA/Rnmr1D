@@ -1,5 +1,5 @@
 # ID generateMetadata.R
-# Copyright (C) 2017-2019 INRA
+# Copyright (C) 2017-2022 INRAE
 # Authors: D. Jacob
 #
 
