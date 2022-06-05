@@ -394,6 +394,149 @@ estimateBL <- function(spec, ppmrange, WS=50, NEIGH=35)
 # GSD - Global Spectra Deconvolution
 #=====================================================================
 
+#' sliceSpectrum
+#'
+#' Slice the spectrum in order to define ranges for Local Deconvolution (LSDeconv)
+#' @param spec a 'spec' object
+#' @param ppmrange a ppm range as a list in order to apply the deconvolution
+#' @param flatwidth specifies the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone (default 0.003 ppm)
+#' @param minrange specifies the minimum width of a cutting zone (default 0.01 ppm)
+#' @param excludezones specifies the exclusion zones as a matrix (Nx2), each row specifying a zone with 2 columns (ppm min and ppm max) (default NULL)
+#' @return a list of ppm range
+sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.003, minrange=0.01, excludezones=NULL)
+{
+
+   # Parameters
+   NEIGHSIZE <- flatwidth
+   PPMSIZE <- minrange
+   PPMRANGE <- ppmrange
+   EXCLZONES <- excludezones
+   NP <- length(spec$int)
+   NSIZE <- round(NEIGHSIZE/spec$dppm)
+
+   V <- Rnmr1D:::Smooth(spec$int,10)
+   D <- Rnmr1D:::C_Derive1(V)
+   SD <- 3*Rnmr1D:::C_estime_sd(D,64)
+
+   cutlist <- NULL
+   flg <- n1 <- n2 <- 0
+   for (k in 1:NP) {
+      ppm <- spec$ppm[k]
+      if (ppm<PPMRANGE[1]) next
+      if (ppm>PPMRANGE[2]) {
+        if (flg==1) cutlist <- c(cutlist, k-1)
+        break
+      }
+      # init
+      if (n1==0) {
+        n1 <- k
+        if (abs(D[n1])>SD) flg <- 1
+        next
+      }
+      # No change
+      if ( (flg==0 && abs(D[k])<=SD) || (flg==1 && abs(D[k])>SD) ) next
+      # Start of a flat zone
+      if (flg==1 && abs(D[k])<=SD) {
+        n1 <- k
+        flg <- 0
+        next
+      }
+      # End of the flat zone
+      if (flg==0 && abs(D[k])>SD) {
+        if ((k-n1)>=NSIZE) cutlist <- c(cutlist, round(0.5*(k+n1)) )
+        n1 <- k
+        flg <- 1
+        next
+      }
+   }
+
+   pcut <- spec$ppm[cutlist]
+
+   # Range list
+   rangelist <- NULL
+   p0 <- pcut[1]
+   for (k in 2:length(pcut)) {
+       pk <- pcut[k]
+       if (! is.null(EXCLZONES) && nrow(EXCLZONES)>0) {
+          for (z in 1:nrow(EXCLZONES)) {
+               if (pk<EXCLZONES[z,1] || p0>EXCLZONES[z,2]) next
+               if (p0>EXCLZONES[z,1] && pk<EXCLZONES[z,2]) { p0 <- EXCLZONES[z,2]; break }
+               if (p0<EXCLZONES[z,1] && pk<EXCLZONES[z,2]) { rangelist <- rbind(rangelist, c(p0,EXCLZONES[z,1])); p0 <- EXCLZONES[z,2]; break }
+               if (p0>EXCLZONES[z,1] && pk>EXCLZONES[z,2]) { p0 <- EXCLZONES[z,2]; break }
+          }
+       }
+       if ((pk-p0)>PPMSIZE || k==length(pcut)) {
+          rangelist <- rbind(rangelist, c(p0,pk));
+          p0 <- pk
+       }
+   }
+   rangelist
+}
+
+#' getSlices
+#'
+#' Slice the spectrum in order to define ranges for Local Deconvolution (LSDeconv) and return only those include the provided ppmranges
+#' @param spec a 'spec' object
+#' @param ppmranges  ppm ranges as a matrix in order to apply the deconvolution, each row specifying a zone
+#' @param flatwidth specifies the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone (default 0.003 ppm)
+#' @return a list of ppm range
+getSlices <- function(spec, ppmranges, flatwidth=0.003)
+{
+
+   # Parameters
+   NEIGHSIZE <- flatwidth
+   PPMRANGE <- c(-0.5,10)
+   NP <- length(spec$int)
+   NSIZE <- round(NEIGHSIZE/spec$dppm)
+
+   V <- Rnmr1D:::Smooth(spec$int,10)
+   D <- Rnmr1D:::C_Derive1(V)
+   SD <- 3*Rnmr1D:::C_estime_sd(D,64)
+
+   cutlist <- NULL
+   flg <- n1 <- n2 <- 0
+   for (k in 1:NP) {
+      ppm <- spec$ppm[k]
+      if (ppm<PPMRANGE[1]) next
+      if (ppm>PPMRANGE[2]) {
+        if (flg==1) cutlist <- c(cutlist, k-1)
+        break
+      }
+      # init
+      if (n1==0) {
+        n1 <- k
+        if (abs(D[n1])>SD) flg <- 1
+        next
+      }
+      # No change
+      if ( (flg==0 && abs(D[k])<=SD) || (flg==1 && abs(D[k])>SD) ) next
+      # Start of a flat zone
+      if (flg==1 && abs(D[k])<=SD) {
+        n1 <- k
+        flg <- 0
+        next
+      }
+      # End of the flat zone
+      if (flg==0 && abs(D[k])>SD) {
+        if ((k-n1)>=NSIZE) cutlist <- c(cutlist, round(0.5*(k+n1)) )
+        n1 <- k
+        flg <- 1
+        next
+      }
+   }
+   pcut <- spec$ppm[cutlist]
+
+   # Range list
+   V <- NULL
+   for (k in 1:nrow(ppmranges)) {
+       NS <- 1; while(pcut[NS+1]<ppmranges[k,1]) NS <- NS+1
+       NE <- NS+1
+       while(pcut[NE]<ppmranges[k,2]) NE <- NE+1
+       V <- rbind(V, c(pcut[NS],pcut[NE]));
+   }
+   unique(V[ order(V[,1]), ])
+}
+
 getBestPeaks <- function(spec, model1, model2, crit=0)
 {
    Peaks <- NULL
