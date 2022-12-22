@@ -49,7 +49,7 @@ setPPMbounds <- function(proton=c(-0.5,11), carbon=c(0,200))
    globvars$PPM_MIN_13C <- carbon[1]
    globvars$PPM_MAX_13C <- carbon[2]
 }
-   
+
 #' doProcessing 
 #'
 #' \code{doProcessing} is the main function of this package. Indeed, this function performs 
@@ -63,6 +63,7 @@ setPPMbounds <- function(proton=c(-0.5,11), carbon=c(0,200))
 #' @param cmdfile The full path name of the Macro-commands file for processing (text format)
 #' @param samplefile The full path name of the Sample file (tabular format)
 #' @param bucketfile The full path name of the file of bucket's zones (tabular format)
+#' @param phcfile The full path name of the phasing file for samples if required (tabular format)
 #' @param ncpu The number of cores [default: 1]
 #' @return
 #' \code{doProcessing} returns a list containing the following components:
@@ -104,7 +105,7 @@ setPPMbounds <- function(proton=c(-0.5,11), carbon=c(0,200))
 #' @seealso the NMRProcFlow online documentation \url{https://nmrprocflow.org/} and especially 
 #' the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
 #'
-doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=1 )
+doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfile=NULL, ncpu=1 )
 {
    if( ! file.exists(path))
        stop(paste0("ERROR: ",path," does NOT exist\n"), call.=FALSE)
@@ -127,6 +128,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
    procParams$VENDOR <- "bruker"
    procParams$INPUT_SIGNAL <- "1r"
    procParams$READ_RAW_ONLY <- TRUE
+   procParams$PHCFILE <- FALSE
 
    # Rnmr1D macrocommand file: Get the preprocessing parameter line if exists
    CMDTEXT <- gsub("\t", "", readLines(cmdfile))
@@ -145,10 +147,18 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
         if (! is.null(procpar$O1RATIO)) procParams$O1RATIO <- as.numeric(procpar$O1RATIO)
         if (! is.null(procpar$ZF)) procParams$ZEROFILLING <- ifelse (as.numeric(procpar$ZF)>0, TRUE, FALSE)
         if (! is.null(procpar$ZF)) procParams$ZFFAC <- as.numeric(procpar$ZF)
+        if (! is.null(procpar$FILEPHC) && procpar$FILEPHC=="TRUE" && !is.null(phcfile)) {
+            procpar$USRPHC <- "TRUE"; procpar$PHCFILE <- TRUE
+        }
         if (! is.null(procpar$USRPHC) && procpar$USRPHC=="TRUE") {
            procParams$OPTPHC0 <- procParams$OPTPHC1 <- FALSE
-           if (! is.null(procpar$PHC0)) procParams$phc0 <- as.numeric(procpar$PHC0)
-           if (! is.null(procpar$PHC1)) procParams$phc1 <- as.numeric(procpar$PHC1)
+           if (procpar$PHCFILE) {
+               if (! is.null(procpar$PHC0)) procParams$phc0 <- 0
+               if (! is.null(procpar$PHC1)) procParams$phc1 <- 0
+           } else {
+               if (! is.null(procpar$PHC0)) procParams$phc0 <- as.numeric(procpar$PHC0)
+               if (! is.null(procpar$PHC1)) procParams$phc1 <- as.numeric(procpar$PHC1)
+           }
         } else {
            if (! is.null(procpar$PHC1)) procParams$OPTPHC0 <- ifelse( procpar$PHC1=="TRUE", FALSE, TRUE)
            if (! is.null(procpar$PHC1)) procParams$OPTPHC1 <- ifelse( procpar$PHC1=="TRUE", TRUE, FALSE)
@@ -184,6 +194,10 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
    if (!is.null(samplefile) && file.exists(samplefile))
       samples <- utils::read.table(samplefile, sep="\t", header=T,stringsAsFactors=FALSE)
 
+   # Read the phasing file for samples if specified
+   if (!is.null(phpfile) && procpar$PHCFILE)
+       PHC <- read.table(phcfile, sep="\t", header=T, stringsAsFactors=F)
+
    metadata <- generateMetadata(path, procParams, samples)
 
    # If ERROR occurs ...
@@ -208,6 +222,12 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, ncpu=
             ACQDIR <- LIST[x,1]
             NAMEDIR <- ifelse( procParams$VENDOR=='bruker', basename(dirname(ACQDIR)), basename(ACQDIR) )
             PDATA_DIR <- ifelse( procParams$VENDOR=='rs2d', 'Proc', 'pdata' )
+            if (procParams$INPUT_SIGNAL=='fid' && procParams$PHCFILE) {
+                n <- which(PHC[,1]==NAMEDIR)
+                procParams$phc0 <- as.numeric(PHC[n,2])*pi/180
+                procParams$phc1 <- as.numeric(PHC[n,3])*pi/180
+                procParams$OPTPHC0 <- procParams$OPTPHC1 <- FALSE
+            }
             # Init the log filename
             procParams$LOGFILE <- globvars$LOGFILE
             procParams$PDATA_DIR <- file.path(PDATA_DIR,LIST[x,3])

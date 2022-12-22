@@ -39,7 +39,7 @@ filtnames <- list('haar'=0, 'daub2'=1, 'daub4'=2, 'daub8'=3, 'symlet2'=4, 'symle
 #'   \item \code{spcv} : PeakFinder : Maximal CV on Spectrum - default value = 0.005
 #'   \item \code{d2cv} : PeakFinder : Maximum CV on the derived spectrum - default value = 0.05
 #'   \item \code{d1filt} : Apply Filter (1) on the 1st derivate or not (0) - default value = 0
-#'   \item \code{d2filt} : Apply Filter (1) on the 2nd derivate or not (0) - default value = 1
+#'   \item \code{d2filt} : Apply Filter (1) on the 2nd derivate or not (0) - default value = 0
 #'   \item \code{sigma_min} : Optimization of Sigmas : Fixe the minimum limit of sigmas - default value = 0.0005
 #'   \item \code{sigma_max} : Optimization of Sigmas : Fixe the maximum limit of sigmas - default value = 0.005
 #'   \item \code{verbose} : Indicates if we want information messages - default value = 1
@@ -57,6 +57,7 @@ deconvParams <- list (
 
   # Criterion tolerance for the optimization
   reltol = 0.0001,
+  maxstep = 50,
 
   # Peak/Noise Ratio
   facN = NULL,
@@ -64,18 +65,21 @@ deconvParams <- list (
   lowPeaks = 1,
   
   # indicates if pseudo-voigt is used instead of lorentzian
-  pvoigt=0,
+  pvoigt=1,
   eta=0.7,
+  asym=0,
+  asymmax=50,
 
   # Optimization of peaks : 0 => No, 1 => Yes
   optim=1,
   oppm = 1,
   osigma = 1,
-  oeta=0,
+  oasym = 0,
+  oeta=1,
   estimate_int=0,
 
   # Optimization by only one block or by several blocks applying a cut-off process. 
-  oneblk=0,
+  oneblk=1,
   scmin=2,
 
   # Optimization of a baseline (BL) for each massif
@@ -116,8 +120,11 @@ deconvParams <- list (
   # slicing: the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone
   flatwidth = 0.004,
 
-  # slicing: the minimum width of a cutting zone (default 0.01 ppm)
-  minrange = 0.01
+  # slicing: the factor applied on the Std Dev. of the noise used as threshold for first derivate intensities
+  snrfactor = 4,
+
+  # slicing: the maximum width of a cutting zone (default 0.3 ppm)
+  maxrange = 0.3
 )
 
 #=====================================================================
@@ -219,10 +226,11 @@ ppm2pos <- function(spec, ppm)
 #' @param amp amplitude of the lorentzian
 #' @param x0 central value of the lorentzian
 #' @param sigma half-width of the lorentzian
+#' @param asym asymetric parameter
 #' @return a vector of the lorentzian values (same size as ppm)
-Lorentz <- function(ppm, amp, x0, sigma)
+Lorentz <- function(ppm, amp, x0, sigma, asym)
 {
-   C_Lorentz(ppm, amp, x0, sigma)
+   C_Lorentz(ppm, amp, x0, sigma, asym)
 }
 
 #' PVoigt
@@ -232,11 +240,12 @@ Lorentz <- function(ppm, amp, x0, sigma)
 #' @param amp amplitude of the lorentzian
 #' @param x0 central value of the lorentzian
 #' @param sigma half-width of both lorentzian and gaussian
+#' @param asym asymetric parameter
 #' @param eta mixing coefficient for the pseudo-voigt function (between 0 and 1)
 #' @return a vector of the lorentzian values (same size as ppm)
-PVoigt <- function(ppm, amp, x0, sigma, eta)
+PVoigt <- function(ppm, amp, x0, sigma, asym, eta)
 {
-   C_PVoigt(ppm, amp, x0, sigma, eta)
+   C_PVoigt(ppm, amp, x0, sigma, asym, eta)
 }
 
 #' optimOneVoigt
@@ -347,7 +356,7 @@ estimation_nbpeaks <- function(spec, ppmrange, params=NULL)
 
 # directory containing the FID
 
-#' read_spectrum
+#' readSpectrum
 #'
 #' \code{read_spectrum} belongs to the low-level functions group - it processes only one raw spectrum at time.
 #' @param ACQDIR Full directory path of the raw spectrum, i.e the directory containing the FID
@@ -365,14 +374,58 @@ readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, sc
       procParams$phc0 <<- PHC[1]*pi/180
       procParams$phc1 <<- PHC[2]*pi/180
    }
-   spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
+
+   procParams$DEBUG <- ifelse(verbose, TRUE, FALSE)
+   spec <- Rnmr1D::Spec1rDoProc(Input=ACQDIR,param=procParams)
+   spec <- Rnmr1D:::.ppm_calibration(spec)
    Noise <- C_noise_estimation(spec$int, which(spec$ppm>=ppmnoise[1])[1], length(which(spec$ppm<=ppmnoise[2])))
    spec$int <- spec$int/scaleIntensity
    spec$B <- spec$Noise <- Noise/scaleIntensity
+   spec$size <- length(spec$int)
    if (verbose) {
       cat('Size =',length(spec$int),', Max Intensity =',round(max(spec$int),3),', Noise Level =',round(spec$Noise,6),"\n")
    }
    spec
+}
+
+# PPM calibration of the spectrum
+
+#' calibSpectrum
+#'
+#' \code{calibSpectrum} belongs to the low-level functions group - it processes only one raw spectrum at time.
+#' @param spec a spectrum object returned by the readSpectrum function
+#' @param zoneref the ppm range containing the TSP/DSS signal
+#' @param ppmref the ppm reference value 
+#' @return spec object
+calibSpectrum <- function(spec, zoneref, ppmref)
+{
+   i1<-length(which(spec$ppm>max(zoneref)))
+   i2<-which(spec$ppm<=min(zoneref))[1]
+
+   i0 <- i1 + which(spec$int[i1:i2]==max(spec$int[i1:i2])) - 1
+   ppm0 <- spec$pmax - (i0-1)*spec$dppm
+   dppmref <- ppm0 - ppmref
+   decal <- 0
+   sig <- C_estime_sd(spec$int[1:spec$size],128)
+   if (abs(dppmref) > spec$dppm) {
+       decal <- trunc(dppmref/spec$dppm)
+       dppmref <- dppmref - decal*spec$dppm
+   }
+   if (abs(dppmref) > 0.5*spec$dppm) {
+       decal <- decal + trunc(2*dppmref/spec$dppm)
+       dppmref <- dppmref - trunc(2*dppmref/spec$dppm)*spec$dppm
+   }
+   if (decal==0) next
+
+   if (decal<0) {
+      spec$int[1:(spec$size-abs(decal))] <- spec$int[(1+abs(decal)):spec$size]
+      spec$int[(spec$size-abs(decal)+1):spec$size] <- stats::rnorm(length((spec$size-abs(decal)+1):spec$size), mean=spec$int[spec$size-abs(decal)-1], sd=sig)
+   }
+   if (decal>0) {
+      spec$int[(1+abs(decal)):spec$size] <- spec$int[1:(spec$size-abs(decal))]
+      spec$int[1:abs(decal)] <- stats::rnorm(length(1:abs(decal)), mean=spec$int[abs(decal)+1], sd=sig)
+   }
+   return(spec)
 }
 
 #' estimateBL
@@ -404,77 +457,169 @@ estimateBL <- function(spec, ppmrange, WS=50, NEIGH=35)
 #' @param spec a 'spec' object
 #' @param ppmrange a ppm range as a list in order to apply the deconvolution
 #' @param flatwidth specifies the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone (default 0.003 ppm)
-#' @param minrange specifies the minimum width of a cutting zone (default 0.01 ppm)
+#' @param snrfactor specifies factor applied on the Std Dev. of the noise used as threshold for first derivate intensities (default=4)
+#' @param maxrange specifies the maximum width of a cutting zone (default 0.3 ppm)
 #' @param excludezones specifies the exclusion zones as a matrix (Nx2), each row specifying a zone with 2 columns (ppm min and ppm max) (default NULL)
 #' @return a list of ppm range
-sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.003, minrange=0.01, excludezones=NULL)
+sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.004, snrfactor=4, maxrange=0.3, excludezones=NULL)
 {
-
-   # Parameters
-   NEIGHSIZE <- flatwidth
-   PPMSIZE <- minrange
-   PPMRANGE <- ppmrange
-   EXCLZONES <- excludezones
-   NP <- length(spec$int)
-   NSIZE <- round(NEIGHSIZE/spec$dppm)
-
-   V <- Rnmr1D:::Smooth(spec$int,10)
-   D <- Rnmr1D:::C_Derive1(V)
-   SD <- 3*Rnmr1D:::C_estime_sd(D,64)
-
-   cutlist <- NULL
-   flg <- n1 <- n2 <- 0
-   for (k in 1:NP) {
-      ppm <- spec$ppm[k]
-      if (ppm<PPMRANGE[1]) next
-      if (ppm>PPMRANGE[2]) {
-        if (flg==1) cutlist <- c(cutlist, k-1)
-        break
+   # cut the ppmrange based on first derivate
+   # sfac  : factor applied on the Std Dev. of the noise used as threshold for first derivate intensities
+   # vfac1 : factor applied on the Std Dev. of the noise used as threshold for spectrum intensities
+   # vfac2 : factor applied on the Std Dev. of the noise used as threshold for spectrum intensities
+   # delta : min ppm width for flat zones
+   cutspectrum <- function(spec, ppmrange, sfac=3, vfac1=20, vfac2=50, delta=0.004) {
+      # Parameters
+      V <- Rnmr1D:::Smooth(spec$int,10)
+      D <- Rnmr1D:::C_Derive1(V)
+      SD <- sfac*Rnmr1D:::C_estime_sd(D,64)
+      SV <- vfac1*SD
+      Vthreshold <- vfac2*SD
+      NSIZE <- round(delta/spec$dppm)
+      VCUT <- rep(500*SD, length(spec$int))
+   
+      # Find flat zones
+      flg <- nc <- 0
+      n1 <- round((ppmrange[1]-spec$pmin)/spec$dppm)
+      n2 <- round((ppmrange[2]-spec$pmin)/spec$dppm)
+      for (k in n1:n2) {
+        if (k==n2) {
+          break
+        }
+        # init
+        if (nc==0) {
+          nc <- k
+          if (abs(D[nc])>SD) flg <- 1
+          next
+        }
+        # No change
+        if ( (flg==0 && abs(D[k])<=SD && abs(V[k])<=SV) || (flg==1 && abs(D[k])>SD) ) next
+        # Start of a flat zone
+        if (flg==1 && abs(D[k])<=SD) {
+          nc <- k
+          flg <- 0
+          next
+        }
+        # End of the flat zone
+        if (flg==0 && (abs(D[k])>SD || abs(V[k])>SV)) {
+          if ((k-nc)>=NSIZE) VCUT[nc:(k-1)] <- 0
+          nc <- k
+          flg <- 1
+          next
+        }
       }
-      # init
-      if (n1==0) {
-        n1 <- k
-        if (abs(D[n1])>SD) flg <- 1
-        next
-      }
-      # No change
-      if ( (flg==0 && abs(D[k])<=SD) || (flg==1 && abs(D[k])>SD) ) next
-      # Start of a flat zone
-      if (flg==1 && abs(D[k])<=SD) {
-        n1 <- k
+   
+      # Remove false peak zones
+      flg <- nc <- 0
+      for (k in n1:n2) {
+        if ((VCUT[k]>0 & flg==1) || (VCUT[k]==0 & flg==0))
+          next
+        if (VCUT[k]>0 & flg==0) {
+          nc <- k; flg <- 1;
+          next
+        }
+        if ((k-1-nc)<NSIZE || max(V[nc:k-1])<Vthreshold) VCUT[nc:k] <- 0
         flg <- 0
-        next
       }
-      # End of the flat zone
-      if (flg==0 && abs(D[k])>SD) {
-        if ((k-n1)>=NSIZE) cutlist <- c(cutlist, round(0.5*(k+n1)) )
-        n1 <- k
-        flg <- 1
-        next
-      }
-   }
-
-   pcut <- spec$ppm[cutlist]
-
-   # Range list
-   rangelist <- NULL
-   p0 <- pcut[1]
-   for (k in 2:length(pcut)) {
-       pk <- pcut[k]
-       if (! is.null(EXCLZONES) && nrow(EXCLZONES)>0) {
-          for (z in 1:nrow(EXCLZONES)) {
-               if (pk<EXCLZONES[z,1] || p0>EXCLZONES[z,2]) next
-               if (p0>EXCLZONES[z,1] && pk<EXCLZONES[z,2]) { p0 <- EXCLZONES[z,2]; break }
-               if (p0<EXCLZONES[z,1] && pk<EXCLZONES[z,2]) { rangelist <- rbind(rangelist, c(p0,EXCLZONES[z,1])); p0 <- EXCLZONES[z,2]; break }
-               if (p0>EXCLZONES[z,1] && pk>EXCLZONES[z,2]) { p0 <- EXCLZONES[z,2]; break }
+   
+      # Get the ppm range of the peaGet the ppm range of the peak zones 
+      # by withdrawing the exclude zonesk zones minus the exclude zones
+      DN <- round(0.008/spec$dppm)
+      flg <- 0
+      p0 <- p1 <- NULL
+      rangelist <- NULL
+      for (k in n1:n2) {
+        # No change
+        if ((VCUT[k]>0 & flg==1) || (VCUT[k]==0 & flg==0)) next
+        # Down to Up
+        if (VCUT[k]>0 & flg==0) {
+          nup <- k; flg <- 1;
+          ncut <- nup - DN
+          if (is.null(p0)) {
+            p0 <- max(spec$pmin, spec$ppm[ncut])
+          } else {
+            pcut <- spec$ppm[ncut+which(V[ncut:nup]==min(V[ncut:nup]))-1]
+            p0 <- max(spec$pmin, pcut)
           }
-       }
-       if ((pk-p0)>PPMSIZE || k==length(pcut)) {
-          rangelist <- rbind(rangelist, c(p0,pk));
-          p0 <- pk
-       }
+          next
+        }
+        # Up to Down: (VCUT[k]==0 & flg==1)
+        ndwn <- k;  flg <- 0
+        ncut <- ndwn + DN
+        pcut <- spec$ppm[ndwn+which(V[ndwn:ncut]==min(V[ndwn:ncut])) - 1]
+        p1 <- min(spec$pmax, pcut)
+        fok <- 1
+        if (!is.null(excludezones)) {
+           for (i in 1:nrow(excludezones)) {
+             EZ1 <- excludezones[i,1]; EZ2 <- excludezones[i,2]
+             if (p1<EZ1 || p0>EZ2) next
+             if (p0<EZ1 && p1>EZ1) {
+               if (round((EZ1-p0)/spec$dppm)>NSIZE) {
+                 iseq <- getseq(spec,c(p0,EZ1))
+                 nm <- which(V[iseq]==max(V[iseq]))
+                 if (nm>0.33*length(iseq) && nm <0.66*length(iseq)) rangelist <- rbind(rangelist, c(p0,EZ1))
+               }
+               p0 <- EZ1
+             }
+             if (p0<EZ2 && p1>EZ2) {
+               if (round((p1-EZ2)/spec$dppm)>NSIZE) {
+                 iseq <- getseq(spec,c(EZ2,p1))
+                 nm <- which(V[iseq]==max(V[iseq]))
+                 if (nm>0.33*length(iseq) && nm <0.66*length(iseq)) rangelist <- rbind(rangelist, c(EZ2,p1))
+               }
+               p1 <- EZ2
+             }
+             if (p0>=EZ1 && p1<=EZ2) { fok <- 0; break }
+           }
+        }
+        if (fok)
+          rangelist <- rbind(rangelist, c(p0,p1))
+      }
+      rangelist
    }
-   rangelist
+
+   # cut the ppmrange based on the minimum intensities of the spectrum in the ppmrange
+   # rangelist : list of ppm ranges to be completed (may be NULL)
+   # ppm : ppm range to cut
+   # max_ppm_width : max size of ppm ranges as output
+   # alpha : proportion of the ppm range to be removed at both ends of the range before searching for the minimums.(0<=alpha<0.5)
+   cutrange <- function(spec, rangelist, ppm, max_ppm_width=0.3, alpha=0.25) {
+      if (alpha>0.5) alpha <- 1- alpha
+      ppmrange <- c( (1-alpha)*ppm[1]+alpha*ppm[2], (1-alpha)*ppm[2]+alpha*ppm[1] )
+      iseq <- getseq(spec,ppmrange)
+      n <- which(spec$int[iseq]==min(spec$int[iseq]))
+      pcut <- spec$ppm[iseq[1]+n-1]
+      if ((pcut-ppm[1])<max_ppm_width) {
+        rangelist <- rbind( rangelist, c(ppm[1], pcut) )
+      }
+      else {
+        rangelist <- cutrange(spec, rangelist, c(ppm[1], pcut), max_ppm_width)
+      }
+      if ((ppm[2]-pcut)<max_ppm_width) {
+        rangelist <- rbind( rangelist, c(pcut, ppm[2]) )
+      }
+      else {
+        rangelist <- cutrange(spec, rangelist, c(pcut, ppm[2]), max_ppm_width)
+      }
+      rangelist
+   }
+
+   # First cutting 
+   rangelist <- cutspectrum(spec, ppmrange, sfac=snrfactor, delta=flatwidth)
+
+   # Second cutting for ppm range greater the specified max ppm range
+   rangelist2 <- NULL
+   if ("numeric" %in% class(rangelist)) rangelist <- t(as.matrix(rangelist))
+   for (k in 1:nrow(rangelist)) {
+     ppm <- rangelist[k,]
+     if ((ppm[2]-ppm[1])>maxrange) {
+       rangelist2 <- cutrange(spec, rangelist2, ppm, maxrange)
+     } else {
+       rangelist2 <- rbind(rangelist2, ppm)
+     }
+   }
+   rownames(rangelist2) <- NULL
+   rangelist2
 }
 
 #' getSlices
@@ -483,62 +628,42 @@ sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.003, minrange=0
 #' @param spec a 'spec' object
 #' @param ppmranges  ppm ranges as a matrix in order to apply the deconvolution, each row specifying a zone
 #' @param flatwidth specifies the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone (default 0.003 ppm)
+#' @param snrfactor specifies factor applied on the Std Dev. of the noise used as threshold for first derivate intensities (default=4)
+#' @param maxrange specifies the maximum width of a cutting zone (default 0.3 ppm)
 #' @return a list of ppm range
-getSlices <- function(spec, ppmranges, flatwidth=0.003)
+getSlices <- function(spec, ppmranges, flatwidth=0.004, snrfactor=4, maxrange=0.3)
 {
+  # Parameters
+  PPMRANGE <- 0.9*c(spec$pmin, spec$pmax)
+  
+  # get the ppm slice list
+  rangelist <- Rnmr1D::sliceSpectrum(spec, PPMRANGE, flatwidth=flatwidth, snrfactor=snrfactor, maxrange=maxrange)
+  if ("numeric" %in% class(rangelist)) rangelist <- t(as.matrix(rangelist))
 
-   # Parameters
-   NEIGHSIZE <- flatwidth
-   PPMRANGE <- c(-0.5,10)
-   NP <- length(spec$int)
-   NSIZE <- round(NEIGHSIZE/spec$dppm)
-
-   V <- Rnmr1D:::Smooth(spec$int,10)
-   D <- Rnmr1D:::C_Derive1(V)
-   SD <- 3*Rnmr1D:::C_estime_sd(D,64)
-
-   cutlist <- NULL
-   flg <- n1 <- n2 <- 0
-   for (k in 1:NP) {
-      ppm <- spec$ppm[k]
-      if (ppm<PPMRANGE[1]) next
-      if (ppm>PPMRANGE[2]) {
-        if (flg==1) cutlist <- c(cutlist, k-1)
-        break
-      }
-      # init
-      if (n1==0) {
-        n1 <- k
-        if (abs(D[n1])>SD) flg <- 1
-        next
-      }
-      # No change
-      if ( (flg==0 && abs(D[k])<=SD) || (flg==1 && abs(D[k])>SD) ) next
-      # Start of a flat zone
-      if (flg==1 && abs(D[k])<=SD) {
-        n1 <- k
-        flg <- 0
-        next
-      }
-      # End of the flat zone
-      if (flg==0 && abs(D[k])>SD) {
-        if ((k-n1)>=NSIZE) cutlist <- c(cutlist, round(0.5*(k+n1)) )
-        n1 <- k
-        flg <- 1
-        next
-      }
-   }
-   pcut <- spec$ppm[cutlist]
-
-   # Range list
-   V <- NULL
-   for (k in 1:nrow(ppmranges)) {
-       NS <- 1; while(pcut[NS+1]<ppmranges[k,1]) NS <- NS+1
-       NE <- NS+1
-       while(pcut[NE]<ppmranges[k,2]) NE <- NE+1
-       V <- rbind(V, c(pcut[NS],pcut[NE]));
-   }
-   unique(V[ order(V[,1]), ])
+  # Range list selection
+  V <- NULL
+  if ("numeric" %in% class(ppmranges)) ppmranges <- t(as.matrix(ppmranges))
+  V <- NULL
+  for (p in 1:nrow(ppmranges)) {
+    for (r in 1:nrow(rangelist)) {
+      P1 <- ppmranges[p,1]; P2 <- ppmranges[p,2]; 
+      R1 <- rangelist[r,1]; R2 <- rangelist[r,2];
+      if (R1>P2 || R2<P1) next
+      R1 <- min(R1,P1)
+      R2 <- max(R2,P2)
+      V <- rbind(V, c(R1,R2))
+      break
+    }
+  }
+  # Overlapping
+  for (k in 2:nrow(V)) {
+    if (V[k,1]>V[k-1,2]) next
+    n1 <- round((V[k,1]-spec$pmin)/spec$dppm)
+    n2 <- round((V[k-1,2]-spec$pmin)/spec$dppm)
+    vm <- ifelse( spec$int[n1] < spec$int[n2], V[k,1], V[k-1,2] )
+    V[k,1] <- V[k-1,2] <- vm
+  }
+  unique(V[order(V[,1]), ])
 }
 
 getBestPeaks <- function(spec, model1, model2, crit=0)
@@ -573,6 +698,7 @@ getBestPeaks <- function(spec, model1, model2, crit=0)
 #' @return a model object
 GSDeconv <- function(spec, ppmrange, params=NULL, filter='symlet8', scset=c(2,3,12), verbose=1)
 {
+
    if ( ! 'Spectrum' %in% class(spec) )
       stop("the input spec must belong to the 'Spectrum' class")
    g <- getDeconvParams(params)
@@ -634,17 +760,12 @@ intern_computeBL <- function(spec, model)
      blpars <- model$blocks$blpars
 
      for (k in 1:nblk) {
-        a <- blpars[k, ]
+        iseq <- blocks[k,1]:blocks[k,2]
         pm <- (blocks[k,3]+blocks[k,4])/2
+        a <- blpars[k, ]
+        p <- spec$ppm[iseq]
         xp <- 1;
-        if (nblk==1) {
-            p <- spec$ppm
-            for (k in 1:length(a)) { bl <- bl + a[k]*xp; xp <- xp*(p - pm); }
-        } else {
-            iseq <- blocks[k,1]:blocks[k,2]
-            p <- spec$ppm[iseq]
-            for (k in 1:length(a)) { bl[iseq] <- bl[iseq] + a[k]*xp; xp <- xp*(p - pm); }
-        }
+        for (k in 1:length(a)) { bl[iseq] <- bl[iseq] + a[k]*xp; xp <- xp*(p - pm); }
      }
      break
   }
@@ -674,7 +795,6 @@ computeBL <- function(spec, model)
 #' @param params a list of specific parameters for deconvolution including or not (i.e equal to NULL) the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta
 #' @param filterset a set of filter type for filtering the noise and  smoothing the signal (only if the matrix defining peaks not defined in order to find peaks)
 #' @param oblset a set of baseline order for fitting
-#' @param filterset a set of filter applied before fitting
 #' @param verbose level of debug information
 #' @return a model object
 LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
@@ -692,6 +812,7 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
 LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, verbose=1)
 {
    g <- getDeconvParams(params)
+   #g$oneblk <- 1;
    iseq <- getIndexSeq(spec,ppmrange)
    if (is.null(g$facN))
       FacN <- max(20,min(100,round(max(spec$int[iseq])*0.05/spec$Noise)))
@@ -714,7 +835,6 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
          g$obl <- obl
          model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = 0)
          model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSN)
-         #model0$peaks <- model0$peaks[model0$peaks$amp>0, ]
          model0$nbpeak <- ifelse('data.frame' %in% class(model0$peaks), nrow(model0$peaks), 0)
          if (model0$nbpeak==0) {
             R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 );
@@ -775,15 +895,17 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
    model$filter <- fidx
    model$crit <- g$crit
    model$FacN <- FacN
-   model$eta <- model$peaks$eta[1]
+   model$eta <- mean(model$peaks$eta)
+   model$RMSE <- sqrt(mean((model$residus[iseq])^2))
 
    if (verbose) {
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioSN,"\n")
       cat('crit =',model$crit,', filter =', model$filter,', obl =',model$params$obl,', eta =',model$eta,"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
+      cat('RMSE =', model$RMSE,"\n")
       cat('R2 =', model$R2,"\n")
-      cat('Residue/Noise : SD =',round(stats::sd(model$residus[iseq])/spec$Noise,4),
-                      ', Mean =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
+      cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),
+                ', Mean =',round(mean(model$residus[iseq]),4), "\n")
    }
    class(model) = "LSDmodel"
    model
@@ -793,6 +915,7 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
 LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
 {
    g <- getDeconvParams(params)
+   #g$oneblk <- 1;
    iseq <- getIndexSeq(spec,ppmrange)
    if (is.null(g$facN))
       FacN <- max(20,min(100,round(max(spec$int[iseq])*0.05/spec$Noise)))
@@ -843,14 +966,16 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
    model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
    model$crit <- g$crit
    model$FacN <- FacN
+   model$RMSE <- sqrt(mean(model$residus^2))
 
    if (verbose) {
       cat('FacN =',FacN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*FacN,"\n")
       cat('crit =',model$crit,', obl =',model$params$obl,', eta =',model$peaks$eta[1],"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
+      cat('RMSE =', model$RMSE,"\n")
       cat('R2 =', model$R2,"\n")
-      cat('Residue/Noise : SD =',round(stats::sd(model$residus[iseq])/spec$Noise,4),
-                      ', Mean =',round(mean(model$residus[iseq])/spec$Noise,4), "\n")
+      cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),
+                ', Mean =',round(mean(model$residus[iseq]),4), "\n")
    }
    class(model) = "LSDmodel"
    model
@@ -867,18 +992,19 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
 #' @param ncpu number of CPU for parallel computing
 #' @param verbose level of debug information
 #' @return a model object
-MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filter='symlet8', ncpu=4, verbose=0)
+MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filter='symlet8', oblset=0, ncpu=4, verbose=0)
 {
    g <- getDeconvParams(params)
+   excludezones <- g$exclude_zones
    if (is.null(ppmranges)) {
-       slices <- Rnmr1D::sliceSpectrum(spec, flatwidth=g$flatwidth, minrange=g$minrange, excludezones=g$exclude_zones)
+       slices <- sliceSpectrum(spec, flatwidth=g$flatwidth, snrfactor=g$snrfactor, maxrange=g$maxrange, excludezones=excludezones)
    } else {
-       slices <- getSlices(spec, ppmranges, flatwidth=g$flatwidth)
+       slices <- getSlices(spec, ppmranges, flatwidth=g$flatwidth, snrfactor=g$snrfactor, maxrange=g$maxrange)
    }
    if (verbose) cat("Nb slices =",nrow(slices),", minsize =",min(slices[,2]-slices[,1]),", maxsize =",max(slices[,2]-slices[,1]),"\n")
 
    combine_list <- function(LL1, LL2) {
-      getList <- function(L) { list(id=L$id, peaks=L$peaks, infos=L$infos ) }
+      getList <- function(L) { list(id=L$id, peaks=L$peaks, infos=L$infos, LB=L$LB ) }
       mylist <- list()
       for ( i in 1:length(LL1) ) mylist[[LL1[[i]]$id]] <- getList(LL1[[i]])
       for ( i in 1:length(LL2) ) mylist[[LL2[[i]]$id]] <- getList(LL2[[i]])
@@ -894,33 +1020,42 @@ MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filter='symlet8', n
       facN <- max(20,min(100,round(max(spec$int[iseq])*0.05/spec$Noise)))
       spec$B <- spec$Noise/facN
       g$ratioSN <- facN*g$ratioPN
+      debug1 <- ifelse(verbose>1, 1, 0)
       t<-system.time({
          model <- tryCatch({
-             LSDeconv(spec, slices[k,], g, filter, 0, verbose = verbose)
+             LSDeconv(spec, slices[k,], g, filter, oblset, verbose = debug1)
          },
          error=function(e) {
-             model <- list(peaks=NULL, nbpeak=0)
+             model <- list(peaks=NULL, LB=NULL)
          })
       })
-      infos <- c(slices[k,1], slices[k,2],round(slices[k,2]-slices[k,1],4), model$nbpeak, model$eta, model$FacN, round(t[3],2))
+      infos <- NULL
+      if (!is.null(model$peaks)) {
+         infos <- c(round(slices[k,1],4), round(slices[k,2],4),round(slices[k,2]-slices[k,1],4), model$nbpeak, 
+                    round(model$eta,4), model$filter, model$params$obl, round(model$R2,5), round(t[3],2))
+      }
       id <- paste0('S',sprintf("%03d",k))
       mylist <- list()
-      mylist[[id]] <- list(id=id, peaks=model$peaks, infos=infos)
+      mylist[[id]] <- list(id=id, peaks=model$peaks, infos=infos, LB=model$LB)
       return(mylist)
    }
 
    # Stop the cluster
    parallel::stopCluster(cl)
 
-   peaks <- NULL
-   infos <- NULL
+   peaks <- infos <- NULL
+   LB <- rep(0,length(spec$ppm))
    for (k in 1:nrow(slices)) {
       id <- paste0('S',sprintf("%03d",k))
-      peaks <- rbind(peaks, M[[id]]$peaks)
-      infos <- rbind(infos, M[[id]]$infos)
+      if (!is.null(M[[id]]$peaks)) {
+         peaks <- rbind(peaks, M[[id]]$peaks)
+         infos <- rbind(infos, M[[id]]$infos)
+         iseq <- getIndexSeq(spec,slices[k,])
+         LB[iseq] <- M[[id]]$LB[iseq]
+      }
    }
-   colnames(infos) <- c("ppm1","ppm2","width","peaks","eta","facN","time")
-   rownames(infos) <- 1:nrow(slices)
+   colnames(infos) <- c("ppm1","ppm2","width","peaks","eta","filter","obl","R2","time")
+   rownames(infos) <- 1:nrow(infos)
 
    ppmrange <- c(spec$pmin, spec$pmax)
    Ymodel <- specModel(spec, ppmrange, peaks)
@@ -935,14 +1070,16 @@ MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filter='symlet8', n
    } else {
       yorig <- rep(0, length(spec$int))
       for (k in 1:nrow(slices)) {
-          iseq <- getIndexSeq(spec,slices[k,])
-          yorig[iseq] <- spec$int[iseq]
+          if (!is.null(M[[id]]$peaks)) {
+             iseq <- getIndexSeq(spec,slices[k,])
+             yorig[iseq] <- spec$int[iseq]
+          }
       }
    }
-   residus <- yorig - Ymodel
+   residus <- yorig - Ymodel - LB
    RMSE <- sqrt(mean(residus^2))
-   R2 <- stats::cor(yorig,Ymodel)^2
-   model <- list(peaks=peaks, infos=infos, model=Ymodel, residus=residus, R2=R2, RMSE=RMSE, filter=filter, params=g)
+   R2 <- stats::cor(yorig,Ymodel+LB)^2
+   model <- list(peaks=peaks, infos=infos, slices=slices, model=Ymodel, LB=LB, residus=residus, R2=R2, RMSE=RMSE, filter=filter, params=g)
    model
 }
 
@@ -954,8 +1091,8 @@ MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filter='symlet8', n
 #' @param SNthreshold Threshold for the Signal-Noise Ratio below which the peaks will be rejected
 #' @return a data.frame of the remaining peaks
 cleanPeaks <- function(spec, model, SNthreshold=5) {
-   ppm <- model$ppmrange
    cmodel <- model$peaks[model$peaks$amp/spec$Noise > SNthreshold, -5 ]
+   ppm <- model$ppmrange
    cmodel <- cmodel[cmodel$ppm>ppm[1],]; cmodel <- cmodel[cmodel$ppm<ppm[2],]
    cmodel$PNratio<- cmodel$amp/spec$Noise
    rownames(cmodel) <- c(1:length(cmodel$ppm))
@@ -975,9 +1112,10 @@ cleanPeaks <- function(spec, model, SNthreshold=5) {
 #' @param y a vector or a matrix defining the y-axes (ordinates), each signal as a column
 #' @param ynames a vector defining the y names (same order as the y matrix)
 #' @param ycolors a vector defining the y colors (same order as the y matrix)
+#' @param ysel a vector defining the visibility of each y element (same order as the y matrix)
 #' @param title title of the graphic
 plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'), 
-                     ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), title='')
+                     ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), ysel=NULL, title='')
 {
    iseq <- c(which(x>=ppmrange[1])[1]:length(which(x<=ppmrange[2])))
    if ("numeric" %in% class(y)) {
@@ -985,12 +1123,15 @@ plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'),
       p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines')
    }
    else {
+      if (is.null(ysel)) ysel <- rep(TRUE,ncol(y))
       y1 <- y[,1]
       data <- data.frame(x=x[iseq], y=y1[iseq])
-      p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines')
-      for (k in 2:dim(y)[2]) {
+      visible <- ifelse(ysel[1],  TRUE , "legendonly" )
+      p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines', visible=visible)
+      for (k in 2:ncol(y)) {
          df <- data.frame(x=x[iseq], y=y[iseq,k])
-         p <- p %>% plotly::add_trace(data=df, x = ~x, y = ~y, name=ynames[k], mode = 'lines')
+         visible <- ifelse(ysel[k],  TRUE , "legendonly" )
+         p <- p %>% plotly::add_trace(data=df, x = ~x, y = ~y, name=ynames[k], mode = 'lines', visible=visible)
       }
    }
    p <- p %>% plotly::layout(title=title, xaxis = list(autorange = "reversed"), colorway = ycolors)
@@ -1039,9 +1180,9 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), tag
    P2 <- P1[P1$ppm<ppmrange[2],]
    if (! is.null(exclude_zones))
      for (k in 1:length(exclude_zones)) P2 <- rbind( P2[P2[,2]<exclude_zones[[k]][1],], P2[P2[,2]>exclude_zones[[k]][2],] )
-   npk <- dim(P2)[1]
+   npk <- nrow(P2)
    npk_colors <- sample(grDevices::rainbow(npk, s=0.8, v=0.75))
-   V <- simplify2array(lapply(1:npk, function(i) { PVoigt(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigma[i], P2$eta[i]) }))
+   V <- simplify2array(lapply(1:npk, function(i) { PVoigt(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigma[i], P2$asym[i], P2$eta[i]) }))
    fmodel <- apply(V,1,sum)
    datamodel <- data.frame(x=spec$ppm[iseq], ymodel=fmodel)
    labels <- match.arg(labels)
