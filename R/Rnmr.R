@@ -981,6 +981,116 @@ Spec1rProcpar <- list (
 
 
 
+#--------------------------------
+# Magritek : 1R only
+#--------------------------------
+
+#### Retrieve a parameter value from Magritek acquisition parameters
+#--  internal routine
+#--  ACQ: list of acquisition parameters of the acqu.par file
+#--  paramStr: name of the parameter
+.magritek.get_param <- function (ACQ,paramStr,type="numeric")
+{
+   regexpStr <- paste("^",paramStr," +=",sep="")
+   acqval <-  gsub("^[^=]+= ?","",ACQ[which(simplify2array(regexpr(regexpStr,ACQ))>0)])
+   if (type=="numeric") {
+     acqval <- as.numeric(acqval)
+   } else {
+     acqval <- gsub("\\\"","", acqval)
+   }
+   acqval
+}
+
+# Read Header
+.magritek.read_header <- function(con)
+{
+   revstr <- function(s) paste(rev(strsplit(s,'')[[1]]), collapse='')
+   Header <- list(
+      owner=revstr(readChar(con, 4)),
+      format=revstr(readChar(con, 4)),
+      version=revstr(readChar(con, 4)),
+      dataType=readBin(con, what="int", n=1, size=4, signed=TRUE),
+      xDim=readBin(con, what="int", n=1, size=4, signed=TRUE),
+      yDim=readBin(con, what="int", n=1, size=4, signed=TRUE),
+      zDim=readBin(con, what="int", n=1, size=4, signed=TRUE),
+      qDim=readBin(con, what="int", n=1, size=4, signed=TRUE)
+   )
+   Header
+}
+
+# Read Data
+.magritek.read_data <- function(con, Header) {
+   readpoints <- Header$xDim*12
+   rawR <- readBin(con, what="numeric", n=readpoints, size=4, signed=TRUE, endian = "little")
+   xDim <- Header$xDim
+   X <- rawR[1:xDim]
+   Y <- rawR[ c(rep(FALSE,xDim),((xDim+1):(3*xDim) %% 2)==1) ]
+   Z <- rawR[ c(rep(FALSE,xDim),((xDim+1):(3*xDim) %% 2)==0) ]
+   list( X=X, Y=Y, Z=Z )
+}
+
+#### Read 1r data and the main parameters
+#--  internal routine
+#-- DIR: rs2d directory containing the experience
+.read.1r.magritek <- function(DIR)
+{
+   cur_dir <- getwd()
+   setwd(DIR)
+   
+   # Spectrum filename
+   DATAFILE <- "spectrum.1d"
+   if (!file.exists(DATAFILE)) 
+       stop("DATA File ", DATAFILE, " does not exist\n")
+   # Acquisition parameters filename
+   ACQFILE <- "acqu.par"
+   if (!file.exists(ACQFILE)) 
+       stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
+
+   # Read Spectrum
+   to.read = file(DATAFILE,"rb")
+   Header <- .magritek.read_header(to.read)
+   rawR <- .magritek.read_data(to.read, Header)
+   close(to.read)
+
+   # ACQ parameters
+   ACQ  <- readLines(ACQFILE)
+   setwd(cur_dir)
+
+   INSTRUMENT <- paste(.magritek.get_param(ACQ,"Spectrometer",type="string"),.magritek.get_param(ACQ,"InstrumentType",type="string"))
+   SFO1 <- .magritek.get_param(ACQ,"b1Freq")
+   PULSEWIDTH <- .magritek.get_param(ACQ,"pulseAmplitude90")
+   TEMP <- .magritek.get_param(ACQ,"CurrentTemperatureMagnet") + 273.15
+   SOLVENT <- .magritek.get_param(ACQ,"Solvent",type="string")
+   NUC <- .magritek.get_param(ACQ,"rxChannel",type="string")
+   NUMBEROFSCANS = .magritek.get_param(ACQ,"nrScans")
+   SOFTWARE <- .magritek.get_param(ACQ,"Software",type="string")
+
+   SW = max(rawR$X) - min(rawR$X)
+   SWH <- SW*SFO1
+   SI <- TD <- length(rawR$X)
+   PULSE <- "zg30"
+   PHC0 <- PHC1 <- 0
+   AQ <- RELAXDELAY <- SPINNINGRATE <- O1 <- GRPDLY <- 0
+   ORIGIN <- PROBE <- ""
+   ORIGPATH <- DIR
+
+   acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
+                   PROBE=PROBE, PULSE=PULSE, NUC=NUC, SOLVENT=SOLVENT, TEMP=TEMP, 
+                   RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
+                   TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+   
+   proc <- list( phc0=PHC0*pi/180, phc1=PHC1*pi/180, SI=SI )
+   
+   dppm <- SW/(SI-1)
+   pmin <- min(rawR$X)
+   pmax <- max(rawR$X)
+   ppm <- rawR$X
+   
+   spec <- list( path=getwd(), param=NULL, acq=acq, proc=proc, fid=NULL, int=rawR$Y, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
+   spec
+}
+
+
 
 #--------------------------------
 # Pre-Processing
@@ -1434,6 +1544,10 @@ Spec1rProcpar <- list (
          spec <- .read.FID.jeol(Input)
          break
       }
+      if (param$VENDOR == "magritek" && param$INPUT_SIGNAL == "1r") {
+         spec <- .read.1r.magritek(Input)
+         break
+      }
       break
    }
 
@@ -1572,7 +1686,7 @@ printSpectrum = function(obj)
 plotSpectrum = function(obj, ppm = c(obj$ppm[1], obj$ppm[obj$proc$SI]), ratio=1, title="", 
                          reverse=TRUE, active=FALSE, col="blue", overlay=FALSE, ovlCol="green" )
 {
-   g <- Finalize(obj, ppm, ratio=ratio)
+   g <- Finalize(obj, ppm, ratio=ratio, reverse=reverse)
    if (nchar(title)==0) title <- g$title
    if (overlay) {
       graphics::lines( g$x, g$y, col=ovlCol )

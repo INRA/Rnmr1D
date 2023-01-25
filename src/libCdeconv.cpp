@@ -86,9 +86,11 @@ struct s_peaks {
      int     pics[MAXPICS];
      double  ppm[MAXPICS];
      double  AK[MAXPICS];
-     double  sigma[MAXPICS];
+     double  sigmaL[MAXPICS];
+     double  asymL[MAXPICS];
+     double  sigmaG[MAXPICS];
+     double  asymG[MAXPICS];
      double  eta[MAXPICS];
-     double  asym[MAXPICS];
      int     d2meth;
      int     optim;
      int     optim_int;
@@ -649,29 +651,34 @@ void wt2fn(double *a, unsigned long n, int isign, int wavelet)
 void fgradient(double x, double a[], double *y, double dyda[], int na)
 {
     int i, np;
-    double U, S, U2, S2, S3, V, V2, G, eta;
-    double E, W, K, R, C1,C2,C3, asym;
+    double U, S, U2, S2, V, V2, G, eta;
+    double E, W, K, R, C0,C1,C2,C3, asym;
 
     *y=0.0;
     np=(_OPBL_ >0) ? na - _OPBL_ - 2 : na;
-    for (i=1;i<=np;i+=5) {
-        asym = dabs(a[i+4])<_ASYMMAX_ ? a[i+4] : dsign(a[i+4])*_ASYMMAX_;
-        U=x-a[i+1]; U2=U*U; E=exp(asym*U); W=1+E; K=0.5+1/W; R=asym*E/(W*W);
-        C1=1+R*U/K; C2=K; C3=-E/(K*W*W);
-        S=K*a[i+2]; S2=S*S; V=U2+S2; V2=V*V;
-        dyda[i]=S2/V;
-        dyda[i+1]= 2*C1*a[i]*U*S2/V2;
-        dyda[i+2]= 2*C2*a[i]*U2*S/V2;
-        dyda[i+3]= 0;
-        dyda[i+4]= 2*C3*U*U2*S2/V2;
+    for (i=1;i<=np;i+=7) {
+        U=x-a[i+1]; U2=U*U;
+           asym = dabs(a[i+3])<_ASYMMAX_ ? a[i+3] : dsign(a[i+3])*_ASYMMAX_;
+           E=exp(asym*U); W=1+E; K=0.5+1/W; R=asym*E/(W*W);
+           S=K*a[i+2]; S2=S*S; V=U2+S2; V2=V*V;
+           C0=2*a[i]*U*S2/V2; C1=1+R*U/K; C2=U*K/S; C3=-U2*E/(K*W*W);
+           dyda[i]=S2/V;
+           dyda[i+1]= C0*C1;
+           dyda[i+2]= C0*C2;
+           dyda[i+3]= C0*C3;
+           dyda[i+4]=dyda[i+5]=dyda[i+6]=0;
         if (_OVGT_>0) {
-           S3=S2*S; G=exp(-0.5*U2/S2);
-           eta = (a[i+3]>_ETAMAX_) ? _ETAMAX_ : (a[i+3]<_ETAMIN_) ? _ETAMIN_ : a[i+3];
+           asym = dabs(a[i+5])<_ASYMMAX_ ? a[i+5] : dsign(a[i+5])*_ASYMMAX_;
+           eta = (a[i+6]>_ETAMAX_) ? _ETAMAX_ : (a[i+6]<_ETAMIN_) ? _ETAMIN_ : a[i+6];
+           E=exp(asym*U); W=1+E; K=0.5+1/W; R=asym*E/(W*W);
+           S=K*a[i+4]; S2=S*S; V=U2+S2; V2=V*V;
+           G=exp(-0.5*U2/S2);
+           C0=a[i]*U*G/S2; C1=1+R*U/K; C2=U*K/S; C3=-U2*E/(K*W*W);
            dyda[i]  = eta*dyda[i]   + (1-eta)*G;
-           dyda[i+1]= eta*dyda[i+1] + (1-eta)*a[i]*C1*U*G/S2;
-           dyda[i+2]= eta*dyda[i+2] + (1-eta)*a[i]*C2*U2*G/S3;
-           dyda[i+3]= a[i]*(S2/V-G);
-           dyda[i+4]= a[i]*(eta*dyda[i+4] + (1-eta)*C3*U*U2*G/S2);
+           dyda[i+1]= eta*dyda[i+1] + (1-eta)*C0*C1;
+           dyda[i+4]= C0*C2;
+           dyda[i+5]= C0*C3;
+           dyda[i+6]= a[i]*(S2/V-G);
         }
         *y += a[i]*dyda[i];
     }
@@ -812,8 +819,8 @@ double lorentz(double x,double x0, double s, double a=0) { double sa=s*(0.5+1/(1
 double gauss(double x,double x0, double s, double a=0)   { double sa=s*(0.5+1/(1+exp(a*(x-x0)))); return exp(-0.5*(x-x0)*(x-x0)/(sa*sa)); }
 
 // [[Rcpp::export]]
-double pvoigt(double x,double x0, double s, double a=0, double eta=0.5) {
-    return (eta!=0) ? eta*lorentz(x,x0,s,a) + (1-eta)*gauss(x,x0,s,a) : lorentz(x,x0,s,a);
+double pvoigt(double x,double x0, double sl, double sg, double al=0, double ag=0, double eta=0.5) {
+    return (eta!=0) ? eta*lorentz(x,x0,sl,al) + (1-eta)*gauss(x,x0,sg,ag) : lorentz(x,x0,sl,al);
 }
 
 double ppmval(struct s_spectre *sp, double count)
@@ -912,9 +919,9 @@ void find_peaks (struct s_spectre *sp, struct s_peaks *pk)
            pk->pics[pk->npic] = count;
            pk->ppm[pk->npic]=ppmval(sp,pk->pics[pk->npic]+pfac);
            pk->AK[pk->npic] = 0.95*vp[count];
-           pk->sigma[pk->npic] = pk->sigma_min/sp->delta_ppm;
+           pk->sigmaL[pk->npic] = pk->sigmaG[pk->npic] = pk->sigma_min/sp->delta_ppm;
+           pk->asymL[pk->npic] = pk->asymG[pk->npic] = _ASYM_;
            pk->eta[pk->npic] = _OVGT_>0 ? _ETA_ : 1;
-           pk->asym[pk->npic] = _ASYM_;
            pk->npic++;
            if (pk->npic==(MAXPICS-1)) ::Rf_error("Max peak count has been reached");
         }
@@ -941,9 +948,11 @@ void select_peaks(struct s_spectre *sp, struct s_peaks *pk, int fzero=0)
       if (_OVGT_==0) pk->eta[k]=1;
       if (select_npic < k) {
          pk->AK[select_npic]=dmin(pk->AK[k],sp->V[pk->pics[k]]);
-         pk->sigma[select_npic]=pk->sigma[k];
+         pk->sigmaL[select_npic]=pk->sigmaL[k];
+         pk->asymL[select_npic]= pk->asymL[k];
+         pk->sigmaG[select_npic]=pk->sigmaG[k];
+         pk->asymG[select_npic]= pk->asymG[k];
          pk->eta[select_npic]= pk->eta[k];
-         pk->asym[select_npic]= pk->asym[k];
          pk->pics[select_npic]=pk->pics[k];
          pk->ppm[select_npic]=pk->ppm[k];
       }
@@ -996,10 +1005,10 @@ void estime_sigma(struct s_spectre *sp,struct s_peaks *pk)
            x2 = n+j-1 + d2[n+j-1]/(d2[n+j]-d2[n+j-1]);
         }
         // Estimation of sigma
-        pk->sigma[k]=dmax(pk->sigma_min/sp->delta_ppm, sqrt(3)*(x2-x1)/2);
+        pk->sigmaL[k]=pk->sigmaG[k]=dmax(pk->sigma_min/sp->delta_ppm, sqrt(3)*(x2-x1)/2);
     }
     pk->sigma_moy=0.0;
-    for (k=0; k<pk->npic; k++) pk->sigma_moy+=pk->sigma[k];
+    for (k=0; k<pk->npic; k++) pk->sigma_moy+=pk->sigmaL[k];
     pk->sigma_moy /= pk->npic;
 }
 
@@ -1030,10 +1039,10 @@ void estime_AK(struct s_spectre *sp,struct s_peaks *pk)
          j=0; if ((sp->V[n]-sp->V[n+1])/sp->V[n] < pk->spcv) j++;
          i++; j++;
          while( (i<5 || j<5) && sp->V[n-i-1]<sp->V[n-i] && sp->V[n+j+1]<sp->V[n+j] ) { i++; j++; }
-         v1=(n-i-cntval(sp,pk->ppm[k]))/pk->sigma[k];
-         v2=(n+j-cntval(sp,pk->ppm[k]))/pk->sigma[k];
-         dL1=-2*v1/(pk->sigma[k]*(1+v1*v1)*(1+v1*v1));
-         dL2=-2*v2/(pk->sigma[k]*(1+v2*v2)*(1+v2*v2));
+         v1=(n-i-cntval(sp,pk->ppm[k]))/pk->sigmaL[k];
+         v2=(n+j-cntval(sp,pk->ppm[k]))/pk->sigmaL[k];
+         dL1=-2*v1/(pk->sigmaL[k]*(1+v1*v1)*(1+v1*v1));
+         dL2=-2*v2/(pk->sigmaL[k]*(1+v2*v2)*(1+v2*v2));
          pk->AK[k] = dmin( 0.95*sp->V[n], (d1[n+j]-d1[n-i])/(dL2-dL1) );
       } else pk->AK[k] = 0;
   }
@@ -1052,7 +1061,7 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
         pk->AK[k] = yk;
         ind=0; m=1;
         while ((k-m)>=0 && m<=50) {
-            double ykm=pvoigt(xk,pk->pics[k-m],pk->sigma[k-m],pk->asym[k-m],pk->eta[k-m]);
+            double ykm=pvoigt(xk,pk->pics[k-m],pk->sigmaL[k-m],pk->sigmaG[k-m],pk->asymL[k-m],pk->asymG[k-m],pk->eta[k-m]);
             if (ykm>0.01) indx[ind++]=k-m;
             m++;
         }
@@ -1062,7 +1071,7 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
 
         l=1;
         while ((k+l)<=pk->npic && l<=50) {
-            double ykl=pvoigt(xk,pk->pics[k+l],pk->sigma[k+l],pk->asym[k+1],pk->eta[k+l]);
+            double ykl=pvoigt(xk,pk->pics[k+l],pk->sigmaL[k+l],pk->sigmaG[k+l],pk->asymL[k+1],pk->asymG[k+1],pk->eta[k+l]);
             if (ykl>0.01) indx[ind++]=k+l;
             l++;
         }
@@ -1075,7 +1084,7 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
         for(i=1;i<=np;i++)
             for(j=1; j<=np; j++) {
                 if (i==j) {  aa[i][j]=1.0; continue; }
-                aa[i][j]=pvoigt(pk->pics[indx[i-1]],pk->pics[indx[j-1]],pk->sigma[indx[j-1]],pk->asym[indx[j-1]],pk->eta[indx[j-1]]);
+                aa[i][j]=pvoigt(pk->pics[indx[i-1]],pk->pics[indx[j-1]],pk->sigmaL[indx[j-1]],pk->sigmaG[indx[j-1]],pk->asymL[indx[j-1]],pk->asymG[indx[j-1]],pk->eta[indx[j-1]]);
             }
         for (i=1;i<=np;i++) { vv[i]=sp->V[pk->pics[indx[i-1]]]; }
         LU_resolv(aa,np,vv);
@@ -1105,8 +1114,9 @@ double compute_RSS(struct s_spectre *sp, struct s_peaks *pk,struct s_blocks *blo
          y1=sp->V[i]- bl;
          y2=0;
          for (k=pkstart;k<=pkstop;k++)
-             if (pk->AK[k]>0.0)  y2 += _OVGT_>0 ? pk->AK[k]*pvoigt(ppm, pk->ppm[k], pk->sigma[k]*sp->delta_ppm, pk->asym[k], pk->eta[k]) :
-                                                  pk->AK[k]*lorentz(ppm, pk->ppm[k], pk->sigma[k]*sp->delta_ppm, pk->asym[k]);
+             if (pk->AK[k]>0.0)
+                 y2 += _OVGT_>0 ? pk->AK[k]*pvoigt(ppm, pk->ppm[k], pk->sigmaL[k]*sp->delta_ppm, pk->sigmaG[k]*sp->delta_ppm, pk->asymL[k], pk->asymG[k], pk->eta[k]) :
+                                  pk->AK[k]*lorentz(ppm, pk->ppm[k], pk->sigmaL[k]*sp->delta_ppm, pk->asymL[k]);
          S += (y1-y2)*(y1-y2);
          p++;
     }
@@ -1128,7 +1138,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
 
     blocks->nbblocks=0;
     k=nstart=nstop=np=som_p=som_np=0;
-    p=5;
+    p=7;
 
     while (k<pk->npic) {
         if (blocks->oneblk>0) {
@@ -1139,14 +1149,14 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
             // Start of the Block
             if (k==0) {
                 fmin=sp->V[pk->pics[k]];
-                for (n=pk->pics[k]-2; n>(pk->pics[k]-8* blocks->scmin*pk->sigma[k]); n--) {
+                for (n=pk->pics[k]-2; n>(pk->pics[k]-8* blocks->scmin*pk->sigmaL[k]); n--) {
                     if (n==1) { nstart=1; break; }
                     if (sp->V[n]<fmin) { nstart=n; fmin=sp->V[n]; }
                 }
             }
             else {
-                if ( (pk->pics[k]-100*pk->sigma[k]) > (pk->pics[k-1]+100*pk->sigma[k-1]) )
-                    nstart = pk->pics[k]-100*pk->sigma[k];
+                if ( (pk->pics[k]-100*pk->sigmaL[k]) > (pk->pics[k-1]+100*pk->sigmaL[k-1]) )
+                    nstart = pk->pics[k]-100*pk->sigmaL[k];
                 else
                     nstart = nstop;
             }
@@ -1155,14 +1165,14 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
             while ((k+l)<pk->npic) {
                 if ((k+l)==(pk->npic-1)) {
                    fmin=sp->V[pk->pics[k+l]];
-                   for (n=pk->pics[k+l]+2; n<=(pk->pics[k+l]+8* blocks->scmin*pk->sigma[k+l]); n++) {
+                   for (n=pk->pics[k+l]+2; n<=(pk->pics[k+l]+8* blocks->scmin*pk->sigmaL[k+l]); n++) {
                         if (n==sp->count_max) { nstop=n-1; break; }
                         if (sp->V[n]<fmin) { nstop=n; fmin=sp->V[n]; }
                    }
                    break;
                 }
                 diff_n = pk->pics[k+l+1]  - pk->pics[k+l];
-                som_s  = pk->sigma[k+l+1] + pk->sigma[k+l];
+                som_s  = pk->sigmaL[k+l+1] + pk->sigmaL[k+l];
                 if (diff_n >=  blocks->scmin*som_s) {
                        fmin=dmax( sp->V[pk->pics[k+l]], sp->V[pk->pics[k+l+1]] );
                        for (n=pk->pics[k+l]+2; n<=pk->pics[k+l+1]-2; n++)
@@ -1196,14 +1206,16 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 j=p*(i-1)+1;
                 aw[j]  =pk->AK[k+i-1]<0 ? -pk->AK[k+i-1] : pk->AK[k+i-1];
                 aw[j+1]=pk->ppm[k+i-1];
-                aw[j+2]=pk->sigma[k+i-1]*sp->delta_ppm;
-                aw[j+3]=pk->eta[k+i-1];
-                aw[j+4]=pk->asym[k+i-1];
+                aw[j+2]=pk->sigmaL[k+i-1]*sp->delta_ppm;
+                aw[j+3]=pk->asymL[k+i-1];
+                aw[j+4]=pk->sigmaG[k+i-1]*sp->delta_ppm;
+                aw[j+5]=pk->asymG[k+i-1];
+                aw[j+6]=pk->eta[k+i-1];
                 iaw[j]=pk->optim_int;
                 iaw[j+1]=pk->optim_ppm;
-                iaw[j+2]=pk->optim_sigma;
-                iaw[j+3]=_OVGT_>0 && pk->optim_eta;
-                iaw[j+4]=pk->optim_asym;
+                iaw[j+2]=iaw[j+4]=pk->optim_sigma;
+                iaw[j+3]=iaw[j+5]=pk->optim_asym;
+                iaw[j+6]=_OVGT_>0 && pk->optim_eta;
             }
             if (_OPBL_ >0) {
                 aw[p*np+1]=0.5*(ppmval(sp,nstart) + ppmval(sp,nstop));
@@ -1226,7 +1238,8 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
             for (i=1; i<=np; i++) {
                 j=p*(i-1)+1;
                 if (aw[j+2]>pk->sigma_max)   aw[j+2]=pk->sigma_max;
-                if (aw[j+2]<pk->sigma_min)   aw[j] = 0.0;
+                if (aw[j+4]>pk->sigma_max)   aw[j+4]=pk->sigma_max;
+                if ((aw[j+2]<pk->sigma_min) & (aw[j+4]<pk->sigma_min)) aw[j] = 0.0;
                 if (aw[j]<pk->RatioPN*sp->B) aw[j] = 0.0;
 
                 if (pk->optim_int)
@@ -1236,14 +1249,18 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                     pk->pics[k+i-1] = cntval(sp,aw[j+1]);
                 }
                 if (pk->optim_sigma) {
-                    pk->sigma[k+i-1] = aw[j+2]/sp->delta_ppm;
+                    pk->sigmaL[k+i-1] = aw[j+2]/sp->delta_ppm;
+                    pk->sigmaG[k+i-1] = aw[j+4]/sp->delta_ppm;
+                }
+                if (pk->optim_asym) {
+                    pk->asymL[k+i-1] = dabs(aw[j+3])<_ASYMMAX_ ? aw[j+3] : dsign(aw[j+3])*_ASYMMAX_;
+                    pk->asymG[k+i-1] = dabs(aw[j+5])<_ASYMMAX_ ? aw[j+5] : dsign(aw[j+5])*_ASYMMAX_;
                 }
                 if (pk->optim_eta)
-                    pk->eta[k+i-1] = (aw[j+3]>_ETAMAX_) ? _ETAMAX_ : (aw[j+3]<_ETAMIN_) ? _ETAMIN_ : aw[j+3];
-                if (pk->optim_asym)
-                    pk->asym[k+i-1] = dabs(aw[j+4])<_ASYMMAX_ ? aw[j+4] : dsign(aw[j+4])*_ASYMMAX_;
-                som_p += _OVGT_>0 ? pk->AK[k+i-1]*(pk->eta[k+i-1]*M_PI*pk->sigma[k+i-1]+(1-pk->eta[k+i-1])*sqrt(2*M_PI)*pk->sigma[k+i-1]) : 
-                                   M_PI*pk->AK[k+i-1]*pk->sigma[k+i-1];
+                    pk->eta[k+i-1] = (aw[j+6]>_ETAMAX_) ? _ETAMAX_ : (aw[j+6]<_ETAMIN_) ? _ETAMIN_ : aw[j+6];
+
+                som_p += _OVGT_>0 ? pk->AK[k+i-1]*(pk->eta[k+i-1]*M_PI*pk->sigmaL[k+i-1]+(1-pk->eta[k+i-1])*sqrt(2*M_PI)*pk->sigmaG[k+i-1]) : 
+                                   M_PI*pk->AK[k+i-1]*pk->sigmaL[k+i-1];
             }
             if (_OPBL_ >0 )
                 for(i=0; i<=_OPBL_; i++)
@@ -1401,18 +1418,19 @@ SEXP C_Lorentz(SEXP ppm, double amp, double x0, double sigma, double a=0)
 }
 
 // [[Rcpp::export]]
-SEXP C_PVoigt(SEXP ppm, double amp, double x0, double sigma, double a=0, double eta=0.5)
+SEXP C_PVoigt(SEXP ppm, double amp, double x0, double sigmaL, double sigmaG, double aL=0, double aG=0, double eta=0.5)
 {
     int k;
-    double dx, sa, L, G;
+    double dx, SL, SG, L, G;
     NumericVector VecIn(ppm);
     NumericVector VecOut(VecIn.size());
     for (k=0; k<VecIn.size(); k++) {
         dx = VecIn[k]-x0;
-        sa = sigma*(0.5+1/(1+exp(a*dx)));
+        SL = sigmaL*(0.5+1/(1+exp(aL*dx)));
+        SG = sigmaG*(0.5+1/(1+exp(aG*dx)));
         if (dabs(dx)<100) {
-           L = sa*sa/(sa*sa+dx*dx);
-           G = exp(-0.5*(dx*dx)/(sa*sa));
+           L = SL*SL/(SL*SL+dx*dx);
+           G = exp(-0.5*(dx*dx)/(SG*SG));
            VecOut[k] = (eta == 1) ? amp*L : amp*( eta*L + (1-eta)*G );
         } else
            VecOut[k]=0.0;
@@ -1431,7 +1449,7 @@ SEXP C_OneVoigt(SEXP X, SEXP Y, SEXP par)
    int     *iaw;
    int k, na,ndata;
 
-   ndata=vy.size(); na=5;
+   ndata=vy.size(); na=7;
    Xw=vector(ndata); Yw=vector(ndata);
    aw=vector(na); iaw=ivector(na);
 
@@ -1586,24 +1604,28 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
                                     _["wmax"] = pk.wmax );
 
        // ------- PeakList ----------------------------------
-       NumericMatrix P(pk.npic, 7);
+       NumericMatrix P(pk.npic, 9);
        for (k=0; k<pk.npic; k++) {
           P(k,0) = pk.pics[k];
           P(k,1) = pk.ppm[k];
           P(k,2) = pk.AK[k];
-          P(k,3) = pk.sigma[k]*sp.delta_ppm;
-          P(k,4) = pk.asym[k];
-          P(k,5) = _OVGT_>0 ? pk.eta[k] : 1 ;
-          P(k,6) = _OVGT_>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigma[k]*sp.delta_ppm + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigma[k]*sp.delta_ppm ) :
-                              M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
+          P(k,3) = pk.sigmaL[k]*sp.delta_ppm;
+          P(k,4) = pk.asymL[k];
+          P(k,5) = pk.sigmaG[k]*sp.delta_ppm;
+          P(k,6) = pk.asymG[k];
+          P(k,7) = _OVGT_>0 ? pk.eta[k] : 1 ;
+          P(k,8) = _OVGT_>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigmaL[k]*sp.delta_ppm + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigmaG[k]*sp.delta_ppm ) :
+                              M_PI*pk.AK[k]*pk.sigmaL[k]*sp.delta_ppm;
        }
        ret["peaks"] = DataFrame::create( Named("pos") = P(_,0),
                                          Named("ppm") = P(_,1),
                                          Named("amp") = P(_,2),
-                                         Named("sigma") = P(_,3),
-                                         Named("asym") = P(_,4),
-                                         Named("eta") = P(_,5),
-                                         Named("integral") = P(_,6) );
+                                         Named("sigmaL") = P(_,3),
+                                         Named("asymL") = P(_,4),
+                                         Named("sigmaG") = P(_,5),
+                                         Named("asymG") = P(_,6),
+                                         Named("eta") = P(_,7),
+                                         Named("integral") = P(_,8) );
     }
     free_vector(v1);
     free_vector(v2);
@@ -1656,7 +1678,7 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
     pk.optim       = plist.containsElementNamed("optim")     ? as<int>(plist["optim"]) : 1;
     pk.optim_int   = plist.containsElementNamed("oint")      ? as<int>(plist["oint"]) : 1;
     pk.optim_sigma = plist.containsElementNamed("osigma")    ? as<int>(plist["osigma"]) : 1;
-    pk.optim_asym  = plist.containsElementNamed("oasym")     ? as<int>(plist["oasym"]) : 1;
+    pk.optim_asym  = plist.containsElementNamed("oasym")     ? as<int>(plist["oasym"]) : 0;
     pk.optim_eta   = plist.containsElementNamed("oeta")      ? as<int>(plist["oeta"]) : 1;
     pk.optim_ppm   = plist.containsElementNamed("oppm")      ? as<int>(plist["oppm"]) : 0;
     pk.maxstep     = plist.containsElementNamed("maxstep")   ? as<int>(plist["maxstep"]) : 50;
@@ -1688,9 +1710,11 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
         pk.pics[pk.npic] = (int)P0(k,0);
         pk.ppm[pk.npic] = P0(k,1);
         pk.AK[pk.npic] = P0(k,2);
-        pk.sigma[pk.npic] = P0(k,3)/sp.delta_ppm;
-        pk.asym[pk.npic] = P0(k,4);
-        pk.eta[pk.npic] = _OVGT_>0 ? P0(k,5) : 1 ;
+        pk.sigmaL[pk.npic] = P0(k,3)/sp.delta_ppm;
+        pk.asymL[pk.npic] = P0(k,4);
+        pk.sigmaG[pk.npic] = P0(k,5)/sp.delta_ppm;
+        pk.asymG[pk.npic] = P0(k,6);
+        pk.eta[pk.npic] = _OVGT_>0 ? P0(k,7) : 1 ;
         pk.npic++;
     }
     if (pk.npic==0)
@@ -1739,24 +1763,28 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
                                  _["wmax"] = pk.wmax );
 
     // ------- PeakList ----------------------------------
-    NumericMatrix P(pk.npic, 7);
+    NumericMatrix P(pk.npic, 9);
     for (k=0; k<pk.npic; k++) {
         P(k,0) = pk.pics[k];
         P(k,1) = pk.ppm[k];
         P(k,2) = pk.AK[k];
-        P(k,3) = pk.sigma[k]*sp.delta_ppm;
-        P(k,4) = pk.asym[k];
-        P(k,5) = _OVGT_>0 ? pk.eta[k] : 1 ;
-        P(k,6) = _OVGT_>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigma[k]*sp.delta_ppm + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigma[k]*sp.delta_ppm ) :
-                            M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
+        P(k,3) = pk.sigmaL[k]*sp.delta_ppm;
+        P(k,4) = pk.asymL[k];
+        P(k,5) = pk.sigmaG[k]*sp.delta_ppm;
+        P(k,6) = pk.asymG[k];
+        P(k,7) = _OVGT_>0 ? pk.eta[k] : 1 ;
+        P(k,8) = _OVGT_>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigmaL[k]*sp.delta_ppm + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigmaG[k]*sp.delta_ppm ) :
+                            M_PI*pk.AK[k]*pk.sigmaL[k]*sp.delta_ppm;
     }
     ret["peaks"] = DataFrame::create( Named("pos") = P(_,0),
                                       Named("ppm") = P(_,1),
                                       Named("amp") = P(_,2),
-                                      Named("sigma") = P(_,3),
-                                      Named("asym") = P(_,4),
-                                      Named("eta") = P(_,5),
-                                      Named("integral") = P(_,6) );
+                                      Named("sigmaL") = P(_,3),
+                                      Named("asymL") = P(_,4),
+                                      Named("sigmaG") = P(_,5),
+                                      Named("asymG") = P(_,6),
+                                      Named("eta") = P(_,7),
+                                      Named("integral") = P(_,8) );
 
     // ------- Massifs  ---------------------------------
     NumericMatrix M(blocks.nbblocks, 6);
@@ -1790,7 +1818,8 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
          ppm = ppmval(&sp,i+1);
          if (ppm>pk.wmin && ppm<pk.wmax) {
             for (k=0;k<pk.npic;k++)
-                 if (pk.AK[k]>0.0) Ymodel[i] += pk.AK[k]*pvoigt(ppm, pk.ppm[k], pk.sigma[k]*sp.delta_ppm, pk.asym[k], pk.eta[k]);
+                 if (pk.AK[k]>0.0)
+                     Ymodel[i] += pk.AK[k]*pvoigt(ppm, pk.ppm[k], pk.sigmaL[k]*sp.delta_ppm, pk.sigmaG[k]*sp.delta_ppm, pk.asymL[k], pk.asymG[k], pk.eta[k]);
          }
     }
     ret["model"]=Ymodel;
@@ -1820,32 +1849,38 @@ SEXP C_peakFiltering(SEXP spec, SEXP peaks, double ratioPN)
            pk.pics[pk.npic] = (int)P0(k,0);
            pk.ppm[pk.npic] = P0(k,1);
            pk.AK[pk.npic] = P0(k,2);
-           pk.sigma[pk.npic] = P0(k,3);
-           pk.asym[pk.npic] = P0(k,4);
-           pk.eta[pk.npic] = P0(k,5);
+           pk.sigmaL[pk.npic] = P0(k,3);
+           pk.asymL[pk.npic] = P0(k,4);
+           pk.sigmaG[pk.npic] = P0(k,5);
+           pk.asymG[pk.npic] = P0(k,6);
+           pk.eta[pk.npic] = P0(k,7);
            pk.npic++;
         }
     }
     if (pk.npic>0) {
-        NumericMatrix P(pk.npic, 7);
+        NumericMatrix P(pk.npic, 9);
         for (k=0; k<pk.npic; k++) {
             P(k,0) = pk.pics[k];
             P(k,1) = pk.ppm[k];
             P(k,2) = pk.AK[k];
-            P(k,3) = pk.sigma[k];
-            P(k,4) = pk.asym[k];
-            P(k,5) = pk.eta[k];
-            P(k,6) = pk.eta[k]>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigma[k] + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigma[k]) :
-                                   M_PI*pk.AK[k]*pk.sigma[k];
+            P(k,3) = pk.sigmaL[k];
+            P(k,4) = pk.asymL[k];
+            P(k,5) = pk.sigmaG[k];
+            P(k,6) = pk.asymG[k];
+            P(k,7) = pk.eta[k];
+            P(k,8) = pk.eta[k]>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigmaL[k] + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigmaG[k]) :
+                                   M_PI*pk.AK[k]*pk.sigmaL[k];
         }
 
         ret = DataFrame::create( Named("pos") = P(_,0),
                                  Named("ppm") = P(_,1),
                                  Named("amp") = P(_,2),
-                                 Named("sigma") = P(_,3),
-                                 Named("asym") = P(_,4),
-                                 Named("eta") = P(_,5),
-                                 Named("integral") = P(_,6) );
+                                 Named("sigmaL") = P(_,3),
+                                 Named("asymL") = P(_,4),
+                                 Named("sigmaG") = P(_,5),
+                                 Named("asymG") = P(_,6),
+                                 Named("eta") = P(_,7),
+                                 Named("integral") = P(_,8) );
     }
     return(ret);
 }
@@ -1877,7 +1912,7 @@ SEXP C_specModel(SEXP spec, SEXP ppmrange, SEXP peaks)
          ppm = ppm_min + i*delta_ppm;
          if (ppm>wmin && ppm<wmax) {
             for (k=0;k<P.nrow();k++)
-                 if (P(k,2)>0.0) Ymodel[i] += P(k,2)*pvoigt(ppm, P(k,1), P(k,3), P(k,4), P(k,5));
+                 if (P(k,2)>0.0) Ymodel[i] += P(k,2)*pvoigt(ppm, P(k,1), P(k,3), P(k,5), P(k,4), P(k,6), P(k,7));
          }
     }
     return(Ymodel);
