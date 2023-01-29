@@ -239,15 +239,13 @@ Lorentz <- function(ppm, amp, x0, sigma, asym)
 #' @param ppm a vector of ppm values
 #' @param amp amplitude of the lorentzian
 #' @param x0 central value of the lorentzian
-#' @param sigmaL half-width of lorentzian
-#' @param asymL asymetric parameter for lorentzian
-#' @param sigmaG half-width of gaussian
-#' @param asymG asymetric parameter for gaussian
+#' @param sigma half-width of both lorentzian and gaussian
+#' @param asym asymetric parameter
 #' @param eta mixing coefficient for the pseudo-voigt function (between 0 and 1)
 #' @return a vector of the lorentzian values (same size as ppm)
-PVoigt <- function(ppm, amp, x0, sigmaL, asymL, sigmaG, asymG, eta)
+PVoigt <- function(ppm, amp, x0, sigma, asym, eta)
 {
-   C_PVoigt(ppm, amp, x0, sigmaL, sigmaG, asymL, asymG, eta)
+   C_PVoigt(ppm, amp, x0, sigma, asym, eta)
 }
 
 #' optimOneVoigt
@@ -854,7 +852,8 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, 
             R2i <- c( R2i, 0 ); SDi <- c( SDi, 1e999 )
          }
          idx <- length(R2i)
-if (debug1) cat(filt,": R2i =",round(R2i[idx],4),", RMSEi =",round(SDi[idx],6),", PKi =",model0$nbpeak," - OBL =",obl," ETA =",model$peaks$eta[1],"\n")
+if (debug1) cat(filt,": R2i =",round(R2i[idx],4),", RMSEi =",round(SDi[idx],6),", PKi =",model0$nbpeak," - ",round(mean(model0$peaks$sigma),6),
+                     " OBL =",obl," ETA =",model$peaks$eta[1],"\n")
       }
       idx <- ifelse ( g$criterion==0, which(R2i==max(R2i))[1], which(SDi==min(SDi))[1] )
       OBL <- c( OBL, oblset[idx] )
@@ -913,7 +912,7 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
 }
 
 # Local Spectra Deconvolution with predefined peaks (g$peaks not NULL)
-LSDeconv_2 <- function(spec, ppmrange, params, oblset=1:12, verbose=1)
+LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
 {
    g <- getDeconvParams(params)
    #g$oneblk <- 1;
@@ -1183,7 +1182,7 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), tag
      for (k in 1:length(exclude_zones)) P2 <- rbind( P2[P2[,2]<exclude_zones[[k]][1],], P2[P2[,2]>exclude_zones[[k]][2],] )
    npk <- nrow(P2)
    npk_colors <- sample(grDevices::rainbow(npk, s=0.8, v=0.75))
-   V <- simplify2array(lapply(1:npk, function(i) { PVoigt(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigmaL[i], P2$asymL[i], P2$sigmaG[i], P2$asymG[i], P2$eta[i]) }))
+   V <- simplify2array(lapply(1:npk, function(i) { PVoigt(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigma[i], P2$asym[i], P2$eta[i]) }))
    fmodel <- apply(V,1,sum)
    datamodel <- data.frame(x=spec$ppm[iseq], ymodel=fmodel)
    labels <- match.arg(labels)

@@ -55,7 +55,10 @@ Spec1rProcpar <- list (
     PDATA_DIR='pdata/1',       # subdirectory containing the 1r file (bruker's format only)
     CLEANUP_OUTPUT=TRUE,       # Clean up the final output objet
 
-### PRE-PROCESSING
+### PRE-PROCESSING - 1r
+    ZF1R=FALSE,
+
+### PRE-PROCESSING - FID
     LINEBROADENING=TRUE,       # Line Broading
     LB= 0.3,                   # Exponantial Line Broadening parameter
     GB= 0,                     # Gaussian Line Broadening parameter
@@ -66,13 +69,6 @@ Spec1rProcpar <- list (
     O1RATIO=1,                 # Fractionnal value of the Sweep Width for PPM calibration
                                # if not based on the parameter of the spectral region center (O1)
     RABOT=FALSE,               # Zeroing of Negative Values
-
-### Phase Correction
-    OPTPHC0=TRUE,              # Zero order phase optimization
-    OPTPHC1=TRUE,              # Zero order and first order phases optimization
-    OPTCRIT1=2,                # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
-
-### PRE-PROCESSING
     REMLFREQ=0,                # Remove low frequencies by applying a polynomial subtraction method.
     BLPHC=50,                  # Number of points for baseline smoothing during phasing
     KSIG=2,                    # Number of times the noise signal to be considered
@@ -85,7 +81,12 @@ Spec1rProcpar <- list (
     CRITSTEP2=2,               # Criterium for second step of the first order phasing optimization
     RATIOPOSNEGMIN=0.4,        # Ratio Positive/Negative Minimum
     JGD_INNER=TRUE,            # JEOL : internal (or external) estimation for Group Delay
-    RMS=0
+    RMS=0,
+
+### Phase Correction
+    OPTPHC0=TRUE,              # Zero order phase optimization
+    OPTPHC1=TRUE,              # Zero order and first order phases optimization
+    OPTCRIT1=2                 # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
 )
 
 #--------------------------------
@@ -268,7 +269,7 @@ Spec1rProcpar <- list (
    SPECFILE <- paste(param$PDATA_DIR,"/1r",sep="")
    if (!file.exists(SPECFILE))
        stop("1r File (", SPECFILE, ") does not exist\n")
-
+ 
    # Processing parameters filename
    PROCFILE <- paste(param$PDATA_DIR,"/procs",sep="")
    if (!file.exists(PROCFILE)) 
@@ -316,16 +317,42 @@ Spec1rProcpar <- list (
    DTYPE <- ifelse( DTYPP==0, "int", "double" )
    
    to.read <- file(SPECFILE,"rb")
-   signal <- rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
+   signalR <- rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
    close(to.read)
-   signal <- (2^NC_proc)*signal
-   TD <- SI <- length(signal)
+   signalR <- (2^NC_proc)*signalR
+   TD <- SI <- length(signalR)
+
+   pmax <- OFFSET
+   pmin <- OFFSET - SW
+
+   # If "ZeroFilling" on the 1r spectrum
+   if (param$ZF1R) {
+      # read the 1i spectrum
+      SPECFILE <- paste(param$PDATA_DIR,"/1i",sep="")
+      if (!file.exists(SPECFILE))
+          stop("1i File (", SPECFILE, ") does not exist\n")
+      to.read <- file(SPECFILE,"rb")
+      signalI <- rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
+      close(to.read)
+      signalI <- (2^NC_proc)*signalI
+
+      # Compute the fid
+      spec <- complex(real=signalR, imaginary=signalI)
+      fid <- stats::fft(rev(spec), inverse=TRUE)
+      # Insert zeros just before the tail
+      k=0.99
+      tailFID <- fid[round(k*length(fid)):length(fid)]
+      fid <- c( fid[1:(round(k*length(fid))-1)], rep(complex(real=0, imaginary=0), TD), tailFID )
+      # Compute the real spectrum
+      spec <- rev(stats::fft(fid))
+      signalR <- (max(signalR)/max(Re(spec)))*Re(spec)
+      # Change point sizes
+      TD <- SI <- length(signalR)
+   }
 
    setwd(cur_dir)
 
    dppm <- SW/(TD-1)
-   pmax <- OFFSET
-   pmin <- OFFSET - SW
    ppm <- seq(from=pmin, to=pmax, by=dppm)
 
    acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
@@ -338,7 +365,7 @@ Spec1rProcpar <- list (
    param$ZEROFILLING <- FALSE
    param$LINEBROADENING <- FALSE
 
-   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=signal, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
+   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=signalR, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
 
    spec
 }
