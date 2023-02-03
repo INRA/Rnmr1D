@@ -117,6 +117,9 @@ deconvParams <- list (
   # a dataframe of peaks (columns : pos, ppm, amp, sigma, eta, integral)
   peaks = NULL,
 
+  # Indicates if a second deconvolution phase without the highest peaks has to be done
+  spass = 0,
+
   # slicing: the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone
   flatwidth = 0.004,
 
@@ -801,11 +804,60 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
 {
    if ( ! 'Spectrum' %in% class(spec) )
       stop("the input spec must belong to the 'Spectrum' class")
+
    set.seed(1234)
-   if (is.null(params$peaks))
-      LSDeconv_1(spec, ppmrange, params, filterset, oblset, verbose)
-   else
-      LSDeconv_2(spec, ppmrange, params, oblset, verbose)
+   if (is.null(params$peaks)) {
+      model <- LSDeconv_1(spec, ppmrange, params, filterset, oblset, verbose)
+      if (params$spass>0) { # second deconvolution phase without the highest peaks has to be done
+          model <- LSDspass(spec, model, ppmrange, params, oblset, verbose)
+      }
+   } else {
+      model <- LSDeconv_2(spec, ppmrange, params, oblset, verbose)
+   }
+   model
+}
+
+#' LSDspass
+#'
+#' Local Spectra Second Deconvolution Phase: \code{LSDspass} belongs to the low-level functions group for deconvolution.
+#' @param spec a 'spec' object
+#' @param model a 'model' object 
+#' @param ppmrange a ppm range as a list in order to apply the deconvolution
+#' @param params a list of specific parameters for deconvolution including or not (i.e equal to NULL) the matrix defining peaks, one peak by row, with columns defined as : pos, ppm, amp, sigma, eta
+#' @param oblset a set of baseline order for fitting
+#' @param verbose level of debug information
+#' @return a model object
+LSDspass <- function(spec, model, ppmrange, params=NULL, oblset=1:12, verbose=1)
+{
+   # Select significant peaks
+   pk1 <- model$peaks[model$peaks$amp/spec$Noise>100, ]
+   # if some significant peaks have an intensity less than 20% of the highest peak
+   if (nrow(pk1)>0 && (pk1$amp/max(pk1$amp))<0.2) {
+       # Select significant peaks with intensity greater than 50% of the highest peak
+       hpkpos <- pk1[(pk1$amp/max(pk1$amp))>0.5, ]$pos
+       if (length(hpkpos)<model$nbpeak) {
+          pksel <- model$peaks[which(model$peaks$pos == hpkpos), ]
+          Y1 <- specModel(spec, ppmrange, pksel)
+          specInt <- spec$int
+          spec$int <- spec$int - Y1
+          model_filter <- model$filter
+          # Select the other peaks to be deconvoluted separately
+          params$peaks <- model$peaks[which(model$peaks$pos != hpkpos), ]
+          model <- LSDeconv_2(spec, ppmrange, params, oblset, verbose = verbose)
+          # Add the previous selected peaks in the model
+          spec$int <- specInt
+          model$filter <- model_filter
+          model$peaks <- rbind(model$peaks, pksel)
+          model$peaks <- model$peaks[order(model$peaks$pos),]
+          model$nbpeak <- model$nbpeak + nrow(pksel)
+          rownames(model$peaks) <- 1:model$nbpeak
+          model$model <- specModel(spec, ppmrange, model$peaks)
+          model$residus <- spec$int - model$model - model$LB
+          model$RMSE <- sqrt(mean(model$residus^2))
+          model$R2 <- stats::cor(spec$int[model$iseq],model$model[model$iseq])^2
+       }
+   }
+   model
 }
 
 # Local Spectra Deconvolution with no predefined peaks (g$peaks=NULL)
@@ -1193,8 +1245,8 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), tag
    }
    p1 <- p1 %>% plotly::layout(title = title, xaxis = list(autorange = "reversed"), colorway = c('grey', npk_colors))
    if (tags) {
-     data <- data.frame(lab=rownames(P2$peaks), x=P2$peaks$ppm, y=1.05*P2$peaks$amp)
-     p1 <- p1 %>% plotly::add_annotations(x = data$x, y = data$y, text = data$lab, showarrow = TRUE, arrowcolor='red', 
+     data <- data.frame(lab=rownames(P2), x=P2[,2], y=1.05*P2[,3])
+     p1 <- p1 %>% plotly::add_annotations(x = data$x, y = data$y, text = as.character(data$lab), showarrow = TRUE, arrowcolor='red', 
                            font = list(color = 'black', family = 'sans serif', size = 18))
    }
    p1

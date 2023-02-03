@@ -643,46 +643,6 @@ void wt2fn(double *a, unsigned long n, int isign, int wavelet)
 /* Optimization by the gradient method  */
 /* ------------------------------------ */
 
-/* https://en.wikipedia.org/wiki/Voigt_profile
-   http://www.crl.nitech.ac.jp/~ida/research/reprints/expv.pdf */
-
-void fgradient(double x, double a[], double *y, double dyda[], int na)
-{
-    int i, np;
-    double U, S, U2, S2, V, V2, G, eta;
-    double E, W, K, R, C0,C1,C2,C3, asym;
-
-    *y=0.0;
-    np=(_OPBL_ >0) ? na - _OPBL_ - 2 : na;
-    for (i=1;i<=np;i+=5) {
-        asym = dabs(a[i+3])<_ASYMMAX_ ? a[i+3] : dsign(a[i+3])*_ASYMMAX_;
-        U=x-a[i+1]; U2=U*U; E=exp(asym*U); W=1+E; K=0.5+1/W; R=asym*E/(W*W);
-        S=K*a[i+2]; S2=S*S; V=U2+S2; V2=V*V;
-        C0=2*a[i]*U*S2/V2; C1=1+R*U/K; C2=U*K/S; C3=-U2*E/(K*W*W);
-        dyda[i]=S2/V;
-        dyda[i+1]= C0*C1;
-        dyda[i+2]= C0*C2;
-        dyda[i+3]= C0*C3;
-        dyda[i+4]= 0;
-        if (_OVGT_>0) {
-           eta = (a[i+4]>_ETAMAX_) ? _ETAMAX_ : (a[i+4]<_ETAMIN_) ? _ETAMIN_ : a[i+4];
-           G=exp(-0.5*U2/S2);
-           C0=a[i]*U*G/S2;
-           dyda[i]  = eta*dyda[i]   + (1-eta)*G;
-           dyda[i+1]= eta*dyda[i+1] + (1-eta)*C0*C1;
-           dyda[i+2]= eta*dyda[i+2] + (1-eta)*C0*C2;
-           dyda[i+3]= eta*dyda[i+3] + (1-eta)*C0*C3;
-           dyda[i+4]= a[i]*(S2/V-G);
-        }
-        *y += a[i]*dyda[i];
-    }
-    if (_OPBL_ >0) {
-       double xp = 1;
-       dyda[np+1]=0;
-       for(i=1; i<=(_OPBL_+1); i++) { *y += a[np+i+1]*xp; dyda[np+i+1]=xp; xp *= (x-a[np+1]); }
-    }
-}
-
 void mrqcof( double x[], double y[], int ndata, double a[], int ia[], int ma, double **alpha, double beta[], double *chisq, 
              void (*fg)(double, double*, double*, double*, int ) )
 {
@@ -764,7 +724,8 @@ int mrqmin( double x[], double y[], int ndata, double a[], int ma, int ia[], dou
     return 0;
 }
 
-int optimize(double x[], double y[], int ndata, double a[], int ia[], int na, void (*fg)(double, double*, double*, double*, int ), int maxstep=50, double tol=0.0001 )
+int optimize(double x[], double y[], int ndata, double a[], int ia[], int na, 
+             void (*fg)(double, double*, double*, double*, int ), int maxstep=50, double tol=0.0001 )
 {
     double **covar, **alpha;
     double chi2,chisq,alamda,olamda;
@@ -1091,6 +1052,44 @@ void estime_AK2(struct s_spectre *sp,struct s_peaks *pk)
 /* Optimization of Amplitudes & Sigmas  */
 /* ------------------------------------ */
 
+// Compute the Gradient (dyda) and the function (y) for value x and parameter vector a (na size)
+void fgradient(double x, double a[], double *y, double dyda[], int na)
+{
+    int i, np;
+    double U, S, U2, S2, V, V2, G, eta;
+    double E, W, K, R, C0,C1,C2,C3, asym;
+
+    *y=0.0;
+    np=(_OPBL_ >0) ? na - _OPBL_ - 2 : na;
+    for (i=1;i<=np;i+=5) {
+        asym = dabs(a[i+3])<_ASYMMAX_ ? a[i+3] : dsign(a[i+3])*_ASYMMAX_;
+        U=x-a[i+1]; U2=U*U; E=exp(asym*U); W=1+E; K=0.5+1/W; R=asym*E/(W*W);
+        S=K*a[i+2]; S2=S*S; V=U2+S2; V2=V*V;
+        C0=2*a[i]*U*S2/V2; C1=1+R*U/K; C2=U*K/S; C3=-U2*E/(K*W*W);
+        dyda[i]=S2/V;
+        dyda[i+1]= C0*C1;
+        dyda[i+2]= C0*C2;
+        dyda[i+3]= C0*C3;
+        dyda[i+4]= 0;
+        if (_OVGT_>0) {
+           eta = (a[i+4]>_ETAMAX_) ? _ETAMAX_ : (a[i+4]<_ETAMIN_) ? _ETAMIN_ : a[i+4];
+           G=exp(-0.5*U2/S2);
+           C0=a[i]*U*G/S2;
+           dyda[i]  = eta*dyda[i]   + (1-eta)*G;
+           dyda[i+1]= eta*dyda[i+1] + (1-eta)*C0*C1;
+           dyda[i+2]= eta*dyda[i+2] + (1-eta)*C0*C2;
+           dyda[i+3]= eta*dyda[i+3] + (1-eta)*C0*C3;
+           dyda[i+4]= a[i]*(S2/V-G);
+        }
+        *y += a[i]*dyda[i];
+    }
+    if (_OPBL_ >0) {
+       double xp = 1;
+       dyda[np+1]=0;
+       for(i=1; i<=(_OPBL_+1); i++) { *y += a[np+i+1]*xp; dyda[np+i+1]=xp; xp *= (x-a[np+1]); }
+    }
+}
+
 // Compute the residual sum of squares (RSS) of the model defined in the block 'block': pkstart = 1st peak, pkstop = last peak
 double compute_RSS(struct s_spectre *sp, struct s_peaks *pk,struct s_blocks *blocks, int block, int pkstart, int pkstop)
 {
@@ -1209,7 +1208,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
             if (_OPBL_ >0) {
                 aw[p*np+1]=0.5*(ppmval(sp,nstart) + ppmval(sp,nstop));
                 aw[p*np+2]=0.95*dmin(sp->V[nstart],sp->V[nstop]);
-                aw[p*np+3]=0.01*(sp->V[nstop] - sp->V[nstart])/(ppmval(sp,nstop) - ppmval(sp,nstart));
+                aw[p*np+3]=0.1*(sp->V[nstop] - sp->V[nstart])/(ppmval(sp,nstop) - ppmval(sp,nstart));
                 iaw[p*np+1]=0; iaw[p*np+2]=1; iaw[p*np+3]=1;
             }
             if (_OPBL_ >1) {
