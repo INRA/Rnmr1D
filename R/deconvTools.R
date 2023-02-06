@@ -839,7 +839,7 @@ LSDspass <- function(spec, model, ppmrange, params=NULL, oblset=1:12, verbose=1)
           pksel <- model$peaks[which(model$peaks$pos == hpkpos), ]
           Y1 <- specModel(spec, ppmrange, pksel)
           specInt <- spec$int
-          spec$int <- spec$int - Y1
+          spec$int <- specInt - Y1
           model_filter <- model$filter
           # Select the other peaks to be deconvoluted separately
           params$peaks <- model$peaks[which(model$peaks$pos != hpkpos), ]
