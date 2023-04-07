@@ -383,6 +383,7 @@ readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, sc
    spec <- Rnmr1D:::.ppm_calibration(spec)
    Noise <- C_noise_estimation(spec$int, which(spec$ppm>=ppmnoise[1])[1], length(which(spec$ppm<=ppmnoise[2])))
    spec$int <- spec$int/scaleIntensity
+   spec$img <- spec$img/scaleIntensity
    spec$B <- spec$Noise <- Noise/scaleIntensity
    spec$size <- length(spec$int)
    if (verbose) {
@@ -658,15 +659,27 @@ getSlices <- function(spec, ppmranges, flatwidth=0.004, snrfactor=4, maxrange=0.
       break
     }
   }
-  # Overlapping
-  for (k in 2:nrow(V)) {
-    if (V[k,1]>V[k-1,2]) next
-    n1 <- round((V[k,1]-spec$pmin)/spec$dppm)
-    n2 <- round((V[k-1,2]-spec$pmin)/spec$dppm)
-    vm <- ifelse( spec$int[n1] < spec$int[n2], V[k,1], V[k-1,2] )
-    V[k,1] <- V[k-1,2] <- vm
+  if ("numeric" %in% class(V)) V <- t(as.matrix(V))
+
+  if (nrow(V)>1) {
+     # Overlapping
+     for (k in 2:nrow(V)) {
+       if (V[k,1]>V[k-1,2]) next
+       n1 <- round((V[k,1]-spec$pmin)/spec$dppm)
+       n2 <- round((V[k-1,2]-spec$pmin)/spec$dppm)
+       vm <- ifelse( spec$int[n1] < spec$int[n2], V[k,1], V[k-1,2] )
+       V[k,1] <- V[k-1,2] <- vm
+     }
+     v <- unique(V[order(V[,1]), ])
+     if ("numeric" %in% class(V)) V <- t(as.matrix(V))
   }
-  unique(V[order(V[,1]), ])
+  if (nrow(V)>1) {
+     slices <- NULL
+     for (k in 1:nrow(V)) if(V[k,1]!=V[k,2]) slices <- rbind(slices, V[k,])
+  } else {
+     slices <- V
+  }
+  slices
 }
 
 getBestPeaks <- function(spec, model1, model2, crit=0)
@@ -809,7 +822,11 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=1:6, oblset=1:12, ve
    if (is.null(params$peaks)) {
       model <- LSDeconv_1(spec, ppmrange, params, filterset, oblset, verbose)
       if (params$spass>0) { # second deconvolution phase without the highest peaks has to be done
-          model <- LSDspass(spec, model, ppmrange, params, oblset, verbose)
+         model2 <- tryCatch({
+             LSDspass(spec, model, ppmrange, params, oblset, verbose)
+         },
+         error=function(e) { model2 <- model })
+         model <- model2
       }
    } else {
       model <- LSDeconv_2(spec, ppmrange, params, oblset, verbose)
@@ -929,7 +946,6 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
    g$peaks <- model0$peaks
    model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
    model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*FacN)
-   model$model <- Rnmr1D::specModel(spec, ppmrange, model$peaks)
 
    if (debug1) cat("----\n")
    P1 <- model$peaks[model$peaks$amp>0, ]
@@ -937,6 +953,7 @@ if (debug1) cat(filt,": R2 =",round(R2i[idx],4),", RMSE =",round(SDi[idx],6)," O
    model$peaks <- P2[P2$ppm<ppmrange[2],]
    rownames(model$peaks) <- NULL
    model$nbpeak <- nrow(model$peaks)
+   model$model <- Rnmr1D::specModel(spec, ppmrange, model$peaks)
    model$LB <- intern_computeBL(spec, model)
    Ymodel <- model$model + model$LB
 
@@ -1018,6 +1035,7 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=1:12, verbose=1)
    model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
    model$crit <- g$crit
    model$FacN <- FacN
+   model$eta <- mean(model$peaks$eta)
    model$RMSE <- sqrt(mean(model$residus^2))
 
    if (verbose) {

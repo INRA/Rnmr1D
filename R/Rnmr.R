@@ -264,11 +264,6 @@ Spec1rProcpar <- list (
    ACQFILE <- "acqus"
    if (!file.exists(ACQFILE)) 
        stop("Acquisition parameter File (", ACQFILE, ") does not exist\n")
-
-   # 1r filename
-   SPECFILE <- paste(param$PDATA_DIR,"/1r",sep="")
-   if (!file.exists(SPECFILE))
-       stop("1r File (", SPECFILE, ") does not exist\n")
  
    # Processing parameters filename
    PROCFILE <- paste(param$PDATA_DIR,"/procs",sep="")
@@ -311,31 +306,35 @@ Spec1rProcpar <- list (
    PHC0 <-  .bruker.get_param(PROC,"PHC0")
    PHC1 <-  .bruker.get_param(PROC,"PHC1")
 
-   # Read the 1r spectrum
+   # Read the 1r/1i spectra
    ENDIAN <- ifelse( BYTORDP==0, "little", "big")
    SIZE <- ifelse( DTYPP==0, 4L, 8L)
    DTYPE <- ifelse( DTYPP==0, "int", "double" )
-   
+
+   # 1r filename
+   SPECFILE <- paste(param$PDATA_DIR,"/1r",sep="")
+   if (!file.exists(SPECFILE))
+       stop("1r File (", SPECFILE, ") does not exist\n")   
    to.read <- file(SPECFILE,"rb")
    signalR <- rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
    close(to.read)
    signalR <- (2^NC_proc)*signalR
    TD <- SI <- length(signalR)
 
+   # 1i filename
+   SPECFILE <- paste(param$PDATA_DIR,"/1i",sep="")
+   if (!file.exists(SPECFILE))
+       stop("1i File (", SPECFILE, ") does not exist\n")   
+   to.read = file(SPECFILE,"rb")
+   signalI<-rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
+   close(to.read)
+   signalI <- (2^NC_proc)*signalI
+
    pmax <- OFFSET
    pmin <- OFFSET - SW
 
    # If "ZeroFilling" on the 1r spectrum
    if (param$ZF1R) {
-      # read the 1i spectrum
-      SPECFILE <- paste(param$PDATA_DIR,"/1i",sep="")
-      if (!file.exists(SPECFILE))
-          stop("1i File (", SPECFILE, ") does not exist\n")
-      to.read <- file(SPECFILE,"rb")
-      signalI <- rev(readBin(to.read, what=DTYPE, n=SI, size=SIZE, endian = ENDIAN))
-      close(to.read)
-      signalI <- (2^NC_proc)*signalI
-
       # Compute the fid
       spec <- complex(real=signalR, imaginary=signalI)
       fid <- stats::fft(rev(spec), inverse=TRUE)
@@ -346,6 +345,7 @@ Spec1rProcpar <- list (
       # Compute the real spectrum
       spec <- rev(stats::fft(fid))
       signalR <- (max(signalR)/max(Re(spec)))*Re(spec)
+      signalI <- (max(signalI)/max(Im(spec)))*Im(spec)
       # Change point sizes
       TD <- SI <- length(signalR)
    }
@@ -365,7 +365,7 @@ Spec1rProcpar <- list (
    param$ZEROFILLING <- FALSE
    param$LINEBROADENING <- FALSE
 
-   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=signalR, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
+   spec <- list( path=DIR, param=param, acq=acq, proc=proc, fid=NULL, int=signalR, img=signalI, dppm=dppm, pmin=pmin, pmax=pmax, ppm=ppm )
 
    spec
 }
