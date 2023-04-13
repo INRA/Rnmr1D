@@ -4,7 +4,14 @@
 \alias{doProcessing}
 \title{doProcessing}
 \usage{
-doProcessing(path, cmdfile, samplefile = NULL, bucketfile = NULL, ncpu = 1)
+doProcessing(
+  path,
+  cmdfile,
+  samplefile = NULL,
+  bucketfile = NULL,
+  phcfile = NULL,
+  ncpu = 1
+)
 }
 \arguments{
 \item{path}{The full path of either the raw spectra directory on the disk}
@@ -14,6 +21,8 @@ doProcessing(path, cmdfile, samplefile = NULL, bucketfile = NULL, ncpu = 1)
 \item{samplefile}{The full path name of the Sample file (tabular format)}
 
 \item{bucketfile}{The full path name of the file of bucket's zones (tabular format)}
+
+\item{phcfile}{The full path name of the phasing file for samples if required (tabular format)}
 
 \item{ncpu}{The number of cores [default: 1]}
 }

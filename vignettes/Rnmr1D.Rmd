@@ -14,8 +14,10 @@ output:
 always_allow_html: yes
 colorlinks: yes
 urlcolor: blue
-vignette: "%\\VignetteIndexEntry{Features illustration of the Rnmr1D package}\n%\\VignetteEncoding{UTF-8}
-  \n%\\VignetteEngine{knitr::knitr}\n"
+vignette: >
+    %\VignetteIndexEntry{Features illustration of the Rnmr1D package}
+    %\VignetteEncoding{UTF-8}
+    %\VignetteEngine{knitr::rmarkdown}
 ---
 
 ```{r setup, include=FALSE}
@@ -175,7 +177,7 @@ In this approach a Hierachical Classification Analysis (HCA, hclust) is applied 
 
 ```{r proc5b, echo=TRUE, eval=TRUE}
 options(warn=-1)
-clusthca <- Rnmr1D::getClusters(outMat, method='hca', vcutusr=0.11)
+clusthca <- Rnmr1D::getClusters(outMat, method='hca', vcutusr=0.12)
 ```
 <br>
 <br>
@@ -190,7 +192,7 @@ The getClusters function returns a list containing the several components, in pa
 ```{r proc5c, echo=TRUE, eval=TRUE}
 clustcor$clustertab[1:20, ]
 
-clustcor$clusters$C3      # same as clustcor$clusters[['C3']]
+clustcor$clusters$C7      # same as clustcor$clusters[['C7']]
 ```
 
 <br>
@@ -213,11 +215,11 @@ The'Corr' approach produces fewer clusters but correlations between all buckets 
 
 ```{r plot5a, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 g1 <- ggplotCriterion(clustcor)
-ggplotPlotly(g1, width=820, height=400)
-#g1
+#ggplotPlotly(g1, width=820, height=400)
+g1
 g2 <- ggplotCriterion(clusthca)
-ggplotPlotly(g2, width=820, height=400)
-#g2
+#ggplotPlotly(g2, width=820, height=400)
+g2
 ```
 
 #### Clusters distribution
@@ -240,11 +242,11 @@ We see that they cover three orders (log scaled) for CORR method and four orders
 
 ```{r plot5c, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 g3 <- ggplotClusters(outMat,clustcor)
-ggplotPlotly(g3, width=820, height=400)
-#g3
+#ggplotPlotly(g3, width=820, height=400)
+g3
 g4 <- ggplotClusters(outMat,clusthca)
-ggplotPlotly(g4, width=820, height=400)
-#g4
+#ggplotPlotly(g4, width=820, height=400)
+g4
 
 ```
 
@@ -268,8 +270,8 @@ evnorm <- (100*eigenvalues/sum(eigenvalues))[1:10]
 
 ```{r plot6a, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
 g5 <- ggplotScores(pca$x, 1, 2, groups=out$samples$Treatment, EV=evnorm , gcontour="polygon")
-ggplotPlotly(g5, width=820, height=450)
-#g5
+#ggplotPlotly(g5, width=820, height=450)
+g5
 ```
 
 <br>
@@ -280,8 +282,8 @@ Having calculated the clustering in the previous step (see above), it can be sup
 
 ```{r plot6b, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
 g6 <- ggplotLoadings(pca$rotation, 1, 2, associations=clusthca$clustertab, EV=evnorm, main=sprintf("Loadings - Crit=%s",clusthca$vcrit), gcontour="ellipse" )
-ggplotPlotly(g6, width=820, height=650)
-#g6
+#ggplotPlotly(g6, width=820, height=650)
+g6
 ```
 
 <br>
@@ -292,8 +294,8 @@ ggplotPlotly(g6, width=820, height=650)
 outMat.merged <- Rnmr1D::getMergedDataset(outMat, clusthca, onlycluster=TRUE)
 pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
 g7 <- ggplotLoadings(pca.merged$rotation, 1, 2, associations=NULL, EV=evnorm)
-ggplotPlotly(g7, width=820, height=650)
-#g7
+#ggplotPlotly(g7, width=820, height=650)
+g7
 ```
 
 Quod erat demonstrandum !

@@ -1259,9 +1259,7 @@ Spec1rProcpar <- list (
 
     param$SI <- length(rawspec)
     proc <- list( phc0=0, phc1=0, crit=NULL, RMS=0, SI=length(rawspec))
-    attach(param)
-    if (!exists("phc0") || is.null(phc0)) param$phc0 <- param$phc1 <- 0
-    detach(param)
+    if (! "phc0" %in% names(param) || is.null(param$phc0)) param$phc0 <- param$phc1 <- 0
 
     # PPM Calibration
     m <- proc$SI

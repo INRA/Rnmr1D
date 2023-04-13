@@ -22,7 +22,7 @@ setLogFile(con = stdout())
    RAWDIR <- file.path(data_dir, "CD_BBI_16P02")
    CMDFILE <- file.path(data_dir, "NP_macro_cmd.txt")
    SAMPLEFILE <- file.path(data_dir, "Samples.txt")
-   out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=6)
+   out <- Rnmr1D::doProcessing(RAWDIR, cmdfile=CMDFILE, samplefile=SAMPLEFILE, ncpu=2)
    close(con)
    readLines(outtmp)
  }

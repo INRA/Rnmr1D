@@ -1538,7 +1538,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        _OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : 0;
        _ETA_          = plist.containsElementNamed("eta")       ? as<double>(plist["eta"]) : _ETA_;
        _ASYM_         = plist.containsElementNamed("asym")      ? as<double>(plist["asym"]) : _ASYM_;
-       _ASYMMAX_      = plist.containsElementNamed("asymmax")      ? as<double>(plist["asymmax"]) : _ASYMMAX_;
+       _ASYMMAX_      = plist.containsElementNamed("asymmax")   ? as<double>(plist["asymmax"]) : _ASYMMAX_;
 
        // ------- Peaks detection --------------------------
        if(_verbose_>0) Rprintf("Peaks detection\n");

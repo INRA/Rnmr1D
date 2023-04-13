@@ -13,12 +13,12 @@
 ##########################################################################
 
 draw_key_hack <- function(data, params, size) {
-  data$fill <- alpha(data$fill, data$alpha)
+  data$fill <- scales::alpha(data$fill, data$alpha)
   data$alpha <- 1
 
-  grobTree(
-    if (!is.na(data$fill)) grid::rectGrob(gp = gpar(col = NA, fill = data$fill)),
-    draw_key_path(data, params)
+  grid::grobTree(
+    if (!is.na(data$fill)) grid::rectGrob(gp = grid::gpar(col = NA, fill = data$fill)),
+    ggplot2::draw_key_path(data, params)
   )
 }
 
@@ -124,7 +124,7 @@ GeomEncircle <- ggplot2::ggproto("GeomEncircle", ggplot2::Geom,
 geom_encircle <- function(mapping = NULL, data = NULL, stat = "identity",
                          position = "identity", na.rm = FALSE, show.legend = NA,
                          inherit.aes = TRUE, ...) {
-  layer(
+  ggplot2::layer(
     geom = GeomEncircle, mapping = mapping,  data = data, stat = stat,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
     params = list(na.rm = na.rm, ...)

@@ -112,6 +112,218 @@ fitdistr <- function(...) {
   return(pList)
 }
 
+#------------------------------
+# CluPA function for two spectra.
+#------------------------------
+# This function implements the idea of the CluPA algorithm to align the target spectrum against the reference spectrum.
+.hClustAlign <-function(refSpec, tarSpec, peakList, peakLabel, startP, endP,
+                       distanceMethod="average", maxShift=0, acceptLostPeak=FALSE){
+    minpeakList=min(peakList)[1];
+    maxpeakList=max(peakList)[1];
+    startCheckP=startP+which.min(tarSpec[startP:(minpeakList-1)])[1]-1;
+    if (is.na(startCheckP)) {
+        startCheckP=startP;
+    }
+    if(startCheckP < 1){
+        startCheckP <- startP
+    }
+    
+    endCheckP=maxpeakList+ which.min(tarSpec[(maxpeakList+1):endP])[1];
+    if (is.na(endCheckP)){
+        endCheckP=endP;
+    } 
+    if(endCheckP > length(tarSpec)){
+        endCheckP <- endP
+    }
+    
+    if ((endCheckP-startCheckP)<2) {
+        return (list(tarSpec=tarSpec,peakList=peakList));
+    }
+    adj=.findShiftStepFFT(refSpec[startCheckP:endCheckP],
+                         tarSpec[startCheckP:endCheckP],maxShift=maxShift);
+    if (adj$stepAdj!=0){
+        if (acceptLostPeak) isImplementShift=TRUE 
+        else isImplementShift=(adj$stepAdj<0&&adj$stepAdj+
+                                   minpeakList >=startCheckP )||(adj$stepAdj>0&&adj$stepAdj+
+                                                                     maxpeakList<=endCheckP);
+        if (isImplementShift)
+        {
+            newTargetSpecRegion=.doShift(tarSpec[startCheckP:endCheckP],adj$stepAdj);
+            tarSpec[startCheckP:endCheckP]=newTargetSpecRegion;
+            
+            peakListTarget=which(peakLabel==0);
+            peakList[peakListTarget]=peakList[peakListTarget]+adj$stepAdj;
+            
+            lostPeaks <- which(peakList <= 0 | peakList > length(tarSpec))
+            if (length(lostPeaks) >0){
+                
+                peakList=peakList[-lostPeaks];
+                peakLabel=peakLabel[-lostPeaks];
+            }
+        }
+    }
+    
+    if (length(peakList)<3) {return (list(tarSpec=tarSpec,peakList=peakList));}
+    hc=stats::hclust(stats::dist(peakList),method=distanceMethod)
+    clusterLabel=stats::cutree(hc,h=hc$height[length(hc$height)-1]);
+    if (length(unique(clusterLabel))<2){ 
+        return (list(tarSpec=tarSpec,peakList=peakList));
+    }
+    
+    labelID1=which(clusterLabel==1);
+    subData1=peakList[labelID1];
+    subLabel1=peakLabel[labelID1];
+    
+    labelID2=which(clusterLabel==2);
+    subData2=peakList[labelID2];
+    subLabel2=peakLabel[labelID2];
+    maxsubData1=max(subData1)[1];
+    minsubData2=min(subData2)[1];
+    
+    if (maxsubData1<minsubData2){
+        endP1=maxsubData1+which.min(tarSpec[(maxsubData1+1) :(minsubData2-1)])[1];
+        if (is.na(endP1)) endP1=maxsubData1;
+        if(endP1 > length(tarSpec)){
+            endP1 <- maxsubData1
+        }
+        startP2=endP1+1;
+        if (length(unique(subLabel1))>1){
+            res=.hClustAlign(refSpec,tarSpec,subData1,subLabel1,startP,endP1,
+                            distanceMethod=distanceMethod,maxShift=maxShift,
+                            acceptLostPeak=acceptLostPeak);
+            tarSpec=res$tarSpec;
+            if(length(labelID1) == length(res$peakList)){
+                peakList[labelID1] <- res$peakList
+            } else{ 
+                res$peakList <- c(res$peakList, rep(res$peakList[1], length(labelID1)- length(res$peakList) ) )
+                peakList[labelID1] <- res$peakList
+            }
+        }        
+        if (length(unique(subLabel2))>1){
+            res=.hClustAlign(refSpec,tarSpec,subData2,subLabel2,startP2,endP,
+                            distanceMethod=distanceMethod,maxShift=maxShift,
+                            acceptLostPeak=acceptLostPeak);
+            tarSpec=res$tarSpec;
+      
+            if(length(labelID2) == length(res$peakList)){
+                peakList[labelID2]=res$peakList
+            } else{ 
+                res$peakList <- c(res$peakList, rep(res$peakList[1], length(labelID2)- length(res$peakList) ) )
+                peakList[labelID2]=res$peakList
+            }
+        }
+    }else{        
+        maxsubData2=max(subData2)[1];
+        minsubData1=min(subData1)[1];
+        endP2=maxsubData2+which.min(tarSpec[(maxsubData2+1) :(minsubData1-1)])[1];
+        if (is.na(endP2)) endP2=maxsubData2;
+        if(endP2 > length(tarSpec)){
+            endP2 <- maxsubData2
+        }
+        startP1=endP2+1;
+        if (length(unique(subLabel2))>1){
+            res=.hClustAlign(refSpec,tarSpec,subData2,subLabel2,startP,endP2,
+                            distanceMethod=distanceMethod,maxShift=maxShift,
+                            acceptLostPeak=acceptLostPeak);
+            tarSpec=res$tarSpec;
+            
+            if(length(labelID2) == length(res$peakList)){
+                peakList[labelID2]=res$peakList
+            } else{ 
+                res$peakList <- c(res$peakList, rep(res$peakList[1], length(labelID2)- length(res$peakList) ) )
+                peakList[labelID2]=res$peakList
+            }
+        }    
+        if (length(unique(subLabel1))>1){
+            res=.hClustAlign(refSpec,tarSpec,subData1,subLabel1,startP1,endP,
+                            distanceMethod=distanceMethod,maxShift=maxShift,
+                            acceptLostPeak=acceptLostPeak);
+            tarSpec=res$tarSpec;
+            if(length(labelID1) == length(res$peakList)){
+                peakList[labelID1] <- res$peakList
+            } else{ 
+                res$peakList <- c(res$peakList, rep(res$peakList[1], length(labelID1)- length(res$peakList) ) )
+                peakList[labelID1] <- res$peakList
+            }
+        }        
+    }    
+    return (list(tarSpec=tarSpec,peakList=peakList));
+}
+
+# Segment shift
+# Move a spectral segment of a sample shiftStep points to right or left
+.doShift <-function(specSeg, shiftStep){
+    nFea=length(specSeg);
+    newSegment=double(nFea);
+    for (j in 1:nFea)
+        if (shiftStep+j>0&&shiftStep+j<=nFea) 
+            newSegment[shiftStep+j]=specSeg[j];
+        if (shiftStep>0){
+            for (j in 1: shiftStep) newSegment[j]=newSegment[shiftStep+1];
+        }
+        else{
+            for (j in (nFea+shiftStep): nFea) 
+                newSegment[j]=newSegment[(nFea+shiftStep-1)];
+        }
+        return (newSegment);
+}
+
+# Finding the shift-step by using Fast Fourier Transform cross- correlation
+# This function uses Fast Fourier Transform cross-correlation to find out the shift step between two spectra.
+.findShiftStepFFT<-function (refSpec, tarSpec, maxShift = 0, scale=NULL) 
+{
+    #do scaling if the spectra are low abundant
+    refScale=stats::median(abs(refSpec)); if (refScale==0) refScale=mean(abs(refSpec))
+    tarScale=stats::median(abs(tarSpec)); if (tarScale==0) tarScale=mean(abs(tarSpec))
+    scaleFactor=10^round(-log10(min(tarScale,refScale)))
+    if (is.null(scale) & scaleFactor > 1) scale=TRUE
+    if (is.null(scale)) scale=FALSE
+    if (scale){
+        refScale=refScale*scaleFactor
+        tarScale=tarScale*scaleFactor
+    }
+    
+    
+    M = length(refSpec)
+    zeroAdd = 2^ceiling(log2(M)) - M
+    r = c(refSpec*1e6, double(zeroAdd))
+    s = c(tarSpec*1e6, double(zeroAdd))
+    M = M + zeroAdd
+    fftR = stats::fft(r)
+    fftS = stats::fft(s)
+    R = fftR * Conj(fftS)
+    R = R/M
+    rev = stats::fft(R, inverse = TRUE)/length(R)
+    vals = Re(rev)
+    maxi = -1
+    maxpos = 1
+    lenVals <- length(vals)
+    if ((maxShift == 0) || (maxShift > M)) 
+        maxShift = M
+    if (anyNA(vals)) {
+        lag = 0
+        return(list(corValue = maxi, stepAdj = lag))
+    }
+    for (i in 1:maxShift) {
+        if (vals[i] > maxi) {
+            maxi = vals[i]
+            maxpos = i
+        }
+        if (vals[lenVals - i + 1] > maxi) {
+            maxi = vals[lenVals - i + 1]
+            maxpos = lenVals - i + 1
+        }
+    }
+    
+    if (maxi < 0.1) {
+        lag = 0
+        return(list(corValue = maxi, stepAdj = lag))
+    }
+    if (maxpos > lenVals/2) 
+        lag = maxpos - lenVals - 1
+    else lag = maxpos - 1
+    return(list(corValue = maxi, stepAdj = lag))
+}
 
 #------------------------------
 # CluPA alignment for multiple spectra
@@ -133,14 +345,14 @@ fitdistr <- function(...) {
      myPeakList <- c(peakList[[refInd]], peakList[[tarInd]])
      myPeakLabel <- double(length(myPeakList))
      myPeakLabel[1:length(peakList[[refInd]])] <- 1
-     res <- hClustAlign(refSpec, tarSpec, myPeakList, myPeakLabel, 1, length(tarSpec), maxShift = maxShift, acceptLostPeak = TRUE)
+     res <- .hClustAlign(refSpec, tarSpec, myPeakList, myPeakLabel, 1, length(tarSpec), maxShift = maxShift, acceptLostPeak = TRUE)
      res$tarSpec
   }}
   return(Y)
 }
 
 #------------------------------
-# Spectra alignment - see https://cran.r-project.org/web/packages/speaq/vignettes/speaq.pdf
+# Spectra alignment
 #------------------------------
 # Input parameters
 #   - data: n x p datamatrix
@@ -162,8 +374,6 @@ fitdistr <- function(...) {
 
   ## Reference spectrum determination
   if (reference == 0) {
-     #resFindRef<- speaq::findRef(peakList)
-     #refInd <- resFindRef$refInd
      V <- bestref(data, optim.crit="WCC")
      refInd  <- V$best.ref
 
