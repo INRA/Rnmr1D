@@ -139,31 +139,31 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_peakFinder
-SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt, Nullable<List> peaks, int verbose);
-RcppExport SEXP _Rnmr1D_C_peakFinder(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP filtSEXP, SEXP peaksSEXP, SEXP verboseSEXP) {
+SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt, Nullable<List> params, int verbose);
+RcppExport SEXP _Rnmr1D_C_peakFinder(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP filtSEXP, SEXP paramsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type spec(specSEXP);
     Rcpp::traits::input_parameter< SEXP >::type ppmrange(ppmrangeSEXP);
     Rcpp::traits::input_parameter< Nullable<List> >::type filt(filtSEXP);
-    Rcpp::traits::input_parameter< Nullable<List> >::type peaks(peaksSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type params(paramsSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_peakFinder(spec, ppmrange, filt, peaks, verbose));
+    rcpp_result_gen = Rcpp::wrap(C_peakFinder(spec, ppmrange, filt, params, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // C_peakOptimize
-SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose);
-RcppExport SEXP _Rnmr1D_C_peakOptimize(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP peaksSEXP, SEXP verboseSEXP) {
+SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose);
+RcppExport SEXP _Rnmr1D_C_peakOptimize(SEXP specSEXP, SEXP ppmrangeSEXP, SEXP paramsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type spec(specSEXP);
     Rcpp::traits::input_parameter< SEXP >::type ppmrange(ppmrangeSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type peaks(peaksSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type params(paramsSEXP);
     Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_peakOptimize(spec, ppmrange, peaks, verbose));
+    rcpp_result_gen = Rcpp::wrap(C_peakOptimize(spec, ppmrange, params, verbose));
     return rcpp_result_gen;
 END_RCPP
 }

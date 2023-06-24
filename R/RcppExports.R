@@ -37,12 +37,12 @@ C_OneVoigt <- function(X, Y, par) {
     .Call('_Rnmr1D_C_OneVoigt', PACKAGE = 'Rnmr1D', X, Y, par)
 }
 
-C_peakFinder <- function(spec, ppmrange, filt = NULL, peaks = NULL, verbose = 1L) {
-    .Call('_Rnmr1D_C_peakFinder', PACKAGE = 'Rnmr1D', spec, ppmrange, filt, peaks, verbose)
+C_peakFinder <- function(spec, ppmrange, filt = NULL, params = NULL, verbose = 1L) {
+    .Call('_Rnmr1D_C_peakFinder', PACKAGE = 'Rnmr1D', spec, ppmrange, filt, params, verbose)
 }
 
-C_peakOptimize <- function(spec, ppmrange, peaks, verbose = 1L) {
-    .Call('_Rnmr1D_C_peakOptimize', PACKAGE = 'Rnmr1D', spec, ppmrange, peaks, verbose)
+C_peakOptimize <- function(spec, ppmrange, params, verbose = 1L) {
+    .Call('_Rnmr1D_C_peakOptimize', PACKAGE = 'Rnmr1D', spec, ppmrange, params, verbose)
 }
 
 C_peakFiltering <- function(spec, peaks, ratioPN) {

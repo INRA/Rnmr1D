@@ -50,10 +50,12 @@ using namespace Rcpp;
 #define SYMLET8     6
 
 #define fNONE       0
-#define fDAUB8      1
-#define fSYMLET8    2
-#define fSAVGOL     3
-#define fSMOOTH     4
+#define fDAUB4      1
+#define fDAUB8      2
+#define fSYMLET4    3
+#define fSYMLET8    4
+#define fSAVGOL     5
+#define fSMOOTH     6
 
 // default mixing coefficient for the pseudo-voigt function
 double _ETA_  = 0.7;
@@ -1453,7 +1455,7 @@ SEXP C_OneVoigt(SEXP X, SEXP Y, SEXP par)
 
 
 // [[Rcpp::export]]
-SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nullable<List> peaks = R_NilValue, int verbose=1)
+SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nullable<List> params = R_NilValue, int verbose=1)
 {
     List slist(spec);
     NumericVector Y = as<NumericVector>(slist["int"]);
@@ -1492,9 +1494,17 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
             if(_verbose_>0) Rprintf("Filter = none\n");
             for (k=1; k<=Y.size(); k++) v2[k]=v1[k];
             break;
+         case fDAUB4:
+            if(_verbose_>0) Rprintf("Filter = daub4\n");
+            filtsigbywt(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),daub4);
+            break;
          case fDAUB8:
             if(_verbose_>0) Rprintf("Filter = daub8\n");
             filtsigbywt(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),daub8);
+            break;
+         case fSYMLET4:
+            if(_verbose_>0) Rprintf("Filter = symlet8\n");
+            filtsigbywt(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),symlet4);
             break;
          case fSYMLET8:
             if(_verbose_>0) Rprintf("Filter = symlet8\n");
@@ -1519,9 +1529,9 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
     List ret;
     ret["int"] = Yf;
 
-    if (peaks.isNotNull()) {
+    if (params.isNotNull()) {
 
-       List plist(peaks);
+       List plist(params);
 
        // Get input parameters
        pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
@@ -1619,10 +1629,10 @@ NumericMatrix C_DF2mat(DataFrame x) {
 }
 
 // [[Rcpp::export]]
-SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP peaks, int verbose=1)
+SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 {
     List slist(spec);
-    List plist(peaks);
+    List plist(params);
     NumericVector Y = as<NumericVector>(slist["int"]);
     NumericVector W(ppmrange);
 

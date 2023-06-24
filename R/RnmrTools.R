@@ -436,15 +436,14 @@ RCalib1D <- function(specMat, PPM_NOISE_AREA, zoneref, ppmref)
 #------------------------------
 RNorm1D <- function(specMat, normmeth, zones)
 {
-   N <- dim(zones)[1]
+   N <- nrow(zones)
 
    if (normmeth=='CSN') {
       # 1/ Integration of each zone ...
-      i <- 0
       SUM <- foreach::foreach(i=1:N, .combine='+') %dopar% {
           i1<-length(which(specMat$ppm>max(zones[i,])))
           i2<-which(specMat$ppm<=min(zones[i,]))[1]
-          simplify2array(lapply( 1:specMat$nspec, function(x) { 
+          simplify2array(lapply( 1:specMat$nspec, function(x) {
                 0.5*(specMat$int[x, i1] + specMat$int[x, i2]) + sum(specMat$int[x,(i1+1):(i2-1)])
           }))
       }
@@ -452,7 +451,6 @@ RNorm1D <- function(specMat, normmeth, zones)
    }
    if (normmeth=='PQN') {
       # 1/ Get spectra values for each zone ...
-      i <- 0
       SUBMAT <- foreach::foreach(i=1:N, .combine=cbind) %dopar% {
           i1<-length(which(specMat$ppm>max(zones[i,])))
           i2<-which(specMat$ppm<=min(zones[i,]))[1]
@@ -461,12 +459,16 @@ RNorm1D <- function(specMat, normmeth, zones)
       }
       # Calculate the most probabe quotient
       V <- apply(SUBMAT, 2, stats::median)
+      SUBMAT <- SUBMAT[, V!=0]
+      V <- V[V!=0]
       MQ <- t(t(SUBMAT)/V)
       COEFF <- apply(MQ,1, stats::median)
    }
 
    # 2/ Apply to each spectrum, its corresponding coefficient
-   V <- lapply( 1:specMat$nspec, function(x) { specMat$int[x,] <<- specMat$int[x,]/COEFF[x] } )
+   MatInt <- specMat$int/COEFF
+   specMat$int <- MatInt
+   #V <- lapply( 1:specMat$nspec, function(x) { specMat$int[x,] <<- specMat$int[x,]/COEFF[x] } )
    return(specMat)
 }
 
