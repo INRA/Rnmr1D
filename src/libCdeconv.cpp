@@ -24,7 +24,7 @@ using namespace Rcpp;
 #define MAXPICS     5000
 #define MAXBLOCKS   500
 #define MAXBLORD    18
-#define WAVELET_MAX_SIZE    18
+#define WAVELET_MAX_SIZE    34
 
 // Parameters fixing the lower and upper limits for spectrum processing
 // values (in ppm) to be specified in options later
@@ -1536,7 +1536,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
        // Get input parameters
        pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
        pk.dist_fac    = plist.containsElementNamed("dist_fac")  ? as<double>(plist["distPeaks"]) : 2.0;
-       pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
+       pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 2.5*sp.delta_ppm;
        pk.spcv        = plist.containsElementNamed("spcv")      ? as<double>(plist["spcv"]) : 0.02;
        pk.d2cv        = plist.containsElementNamed("d2cv")      ? as<double>(plist["d2cv"]) : 0.1*pk.spcv;
        pk.d2meth      = plist.containsElementNamed("d2meth")    ? as<int>(plist["d2meth"]) : 0;
@@ -1673,7 +1673,7 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
     pk.optim_ppm   = plist.containsElementNamed("oppm")      ? as<int>(plist["oppm"]) : 0;
     pk.maxstep     = plist.containsElementNamed("maxstep")   ? as<int>(plist["maxstep"]) : 50;
     pk.tol         = plist.containsElementNamed("reltol")    ? as<double>(plist["reltol"]) : 0.001;
-    pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 0.0005;
+    pk.sigma_min   = plist.containsElementNamed("sigma_min") ? as<double>(plist["sigma_min"]) : 2.5*sp.delta_ppm;
     pk.sigma_max   = plist.containsElementNamed("sigma_max") ? as<double>(plist["sigma_max"]) : 0.005;
     pk.RatioPN     = plist.containsElementNamed("ratioSN")   ? as<double>(plist["ratioSN"]) : RATIOPN;
     pk.selectpk    = plist.containsElementNamed("selectpk")  ? as<int>(plist["selectpk"]) : 0;

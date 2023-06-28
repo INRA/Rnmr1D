@@ -126,8 +126,11 @@ deconvParams <- list (
   # a dataframe of peaks (columns : pos, ppm, amp, sigma, eta, integral)
   peaks = NULL,
 
-  # Indicates if a second deconvolution phase without the highest peaks has to be done
+  # Specifies whether a second deconvolution phase without the highest peaks has to be done
   sndpass = 0,
+
+  # Specifies whether small peaks should be added into the model where high residual values occur
+  addpeaks = 0,
 
   # slicing: the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone
   flatwidth = 0.004,
@@ -860,8 +863,9 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
       model0 <- Rnmr1D::peakFinder(spec, ppmrange, g2, g2$filtermodel, verbose = 0)
       model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSNmodel)
       rownames(model0$peaks) <- 1:nrow(model0$peaks)
-      if (debug1) cat("Model reference : Nb peaks =",model0$nbpeak,"\n---\n")
-      if (debug2) print(round(model0$peaks$ppm,4))
+      if (debug1) cat("Model reference : Nb peaks =",model0$nbpeak,"\n")
+      if (verbose>2) print(round(model0$peaks$ppm,4))
+      if (debug1) cat("---\n")
    }
 
 # Set of values for filter
@@ -875,7 +879,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
           peaks <- model1$peaks
           obl <- model1$params$obl
       } else {
-          model2 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug1)
+          model2 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug2)
           g$obl <- model2$params$obl
           peaks <- intern_LSDpeaks(spec, ppmrange, g2, model0, model1, model2, verbose=debug2)
           g$obl <- max(model1$params$obl, model2$params$obl)
@@ -975,6 +979,46 @@ LSDsndpass <- function(spec, model, ppmrange, params=NULL, oblset=0:2, verbose=1
    model
 }
 
+# Local Spectra Deconvolution by adding some small peaks into the model where high residual values occur
+LSDaddpeaks <- function(spec, model, ppmrange, params=NULL, verbose=1)
+{
+	g <- getDeconvParams(params)
+	facN <- ifelse(!is.null(g$addPfacN), g$addPfacN, 150)
+	sigma_min <- ifelse(!is.null(g$addPsigmin), g$addPsigmin, 0.0007)
+	reldist <- ifelse(!is.null(g$addPdist), g$addPdist, 3)
+	facA <- ifelse(!is.null(g$addPfacA), g$addPfacA, 3)
+	iseq <- getIndexSeq(spec,ppmrange)
+	Ymodel <- model$model + intern_computeBL(spec, model)
+	residus <- spec$int - Ymodel
+	residus[residus<facN*spec$B] <- 0
+	specInt <- spec$int
+	spec$int <- residus
+	model0 <- Rnmr1D::peakFinder(spec, ppmrange, g, 'none', verbose = 0)
+	spec$int <- specInt
+	peaks <- model0$peaks[model0$peaks$sigma>sigma_min,]
+	if (nrow(peaks)>0) {
+		if (verbose) cat("Adding small peaks: Nb peaks =",nrow(peaks),"\n")
+		peaks$amp <- peaks$amp/facA
+		peaks <- rbind(model$peaks, peaks)
+		peaks <- peaks[order(peaks$pos), ]
+		v <- rep(TRUE, nrow(peaks))
+		for (k in 1:(nrow(peaks)-1))
+			if ( abs(peaks$ppm[k+1]-peaks$ppm[k])<reldist*spec$dppm )
+				if (peaks$amp[k]>peaks$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
+				else                             { v[k] <- FALSE }
+		g$peaks <- peaks[v,]
+		g$obl <- model$params$obl
+		model2 <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+		Ymodel <- model2$model + intern_computeBL(spec, model2)
+		model2$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+		if (model2$R2>model$R2) {
+			if (verbose) cat("Adding small peaks: Ok\n")
+			model <- model2
+		}
+	}
+	model
+}
+
 # Find best deconvolution based on a set of values for order of the polynomial model of the baseline
 intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 {
@@ -984,10 +1028,12 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
     pR2 <- 0
     pSD <- 1e999
     model1 <- NULL
+	peaks <- g$peaks 
     filtername <- ifelse(!is.null(filt),filt,'-')
     for (obl in oblset) {
        g$obl <- obl
-       if (! is.null(filt) && is.null(g$peaks)) {
+	   g$peaks <- peaks 
+       if (! is.null(filt) && is.null(peaks)) {
           model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = debug1)
           model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSN)
           model0$nbpeak <- ifelse('data.frame' %in% class(model0$peaks), nrow(model0$peaks), 0)
@@ -997,7 +1043,6 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
           g$peaks <- model0$peaks
        }
 
-       if (verbose) cat("---\n")
        model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
 
        if (! is.null(filt)) {
@@ -1034,6 +1079,10 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
        if (verbose) cat(filtername,": R2 =",round(model1$R2,4), ", RMSE =",round(SD,6), 
                            ", Nb Peaks =", nrow(model1$peaks), ", OBL =", obl, ", ETA =", round(median(model1$peaks$eta),4),"\n")
     }
+
+	if (g$addpeaks && is.null(peaks))
+		model1 <- LSDaddpeaks(spec, model1, ppmrange, g, verbose=verbose)
+
     gc()
     return(model1)
 }
@@ -1320,7 +1369,8 @@ plotModelwithResidus <- function(spec, model, ynames=c('Origin', 'Model', 'Resid
 #' @groups makes possible to group peaks, the set of groups consisting of a list: i) each group having the name of the group as label, ii) each group of peaks being the enumeration of the numbers of the peaks. Example: list('name1'=c(1,3,5), 'name2'=c(7,8,9)).
 #' @param tags boolean allowing you to put identification tags at the top of each peak
 #' @param title title of the graphic
-plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), groups=NULL, tags=FALSE, title='')
+#' @param grp_colors specifies the colors for the first groups and/or peaks
+plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), groups=NULL, tags=FALSE, title='', grp_colors=NULL)
 {
    if ( ! sum(c('peakModel', 'optimModel','GSDmodel', 'LSDmodel') %in% class(model) ) )
       stop("the input model must have an appropriate class, namely one of these: 'peakModel', 'optimModel', 'GSDmodel', 'LSDmodel'")
@@ -1331,12 +1381,14 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), gro
    P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
    P2 <- P1[P1$ppm<ppmrange[2],]
    if (! is.null(exclude_zones))
-     for (k in 1:length(exclude_zones)) P2 <- rbind( P2[P2[,2]<exclude_zones[[k]][1],], P2[P2[,2]>exclude_zones[[k]][2],] )
+      for (k in 1:length(exclude_zones)) P2 <- rbind( P2[P2[,2]<exclude_zones[[k]][1],], P2[P2[,2]>exclude_zones[[k]][2],] )
    npk <- nrow(P2)
    pkid <- rownames(P2) # the row identifier may be different of the current row number due to prior selection by filtering
 
    # A color for each peak
-   npk_colors <- sample(grDevices::rainbow(npk, s=0.8, v=0.75))
+   if (is.null(grp_colors))
+      grp_colors <- c('#315fbb','#a855a7','#a1e0a0', '#a2e0d5','#cadf9d')
+   npk_colors <- c(grp_colors, sample(grDevices::rainbow(npk, s=0.8, v=0.75)))
 
    # Compute the model based on all peaks
    Va <- simplify2array(lapply(1:npk, function(i) { PVoigt(spec$ppm[iseq], P2$amp[i], P2$ppm[i], P2$sigma[i], P2$asym[i], P2$eta[i]) }))
