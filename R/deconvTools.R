@@ -189,6 +189,14 @@ filterByThreshold <- function(s, wavelet, threshold = 0.5)
 # Deconvolution - general routines
 #=====================================================================
 
+# Compute the weighted mean
+wtd.mean <- function(x, weight=NULL)
+{
+	if (!is.null(weight)) ret <- sum(x*weight)/sum(weight)
+	else                  ret <- sum(x)
+	ret
+}
+
 #' getDeconvParams
 #'
 #' \code{getDeconvParams} merges some specific parameters values with the full deconvolution list and return the resulting list. With no parameter as input, it returns the default parameter list.
@@ -983,37 +991,45 @@ LSDsndpass <- function(spec, model, ppmrange, params=NULL, oblset=0:2, verbose=1
 LSDaddpeaks <- function(spec, model, ppmrange, params=NULL, verbose=1)
 {
 	g <- getDeconvParams(params)
-	facN <- ifelse(!is.null(g$addPfacN), g$addPfacN, 150)
-	sigma_min <- ifelse(!is.null(g$addPsigmin), g$addPsigmin, 0.0007)
-	reldist <- ifelse(!is.null(g$addPdist), g$addPdist, 3)
-	facA <- ifelse(!is.null(g$addPfacA), g$addPfacA, 3)
+	facN <- ifelse(!is.null(g$addPfacN), g$addPfacN, 100)
+	sigma_min <- ifelse(!is.null(g$addPsigmin), g$addPsigmin, 0.001)
+	reldist <- ifelse(!is.null(g$addPdist), g$addPdist, 2.5)
+	facA <- ifelse(!is.null(g$addPfacA), g$addPfacA, 1)
 	iseq <- getIndexSeq(spec,ppmrange)
 	Ymodel <- model$model + intern_computeBL(spec, model)
 	residus <- spec$int - Ymodel
-	residus[residus<facN*spec$B] <- 0
+	residus[residus<0] <- 0
 	specInt <- spec$int
 	spec$int <- residus
 	model0 <- Rnmr1D::peakFinder(spec, ppmrange, g, 'none', verbose = 0)
+	peaks <- model0$peaks[model0$peaks$sigma>sigma_min,,drop=F]
+	peaks <- peaks[peaks$amp>facN*spec$B,,drop=F]
 	spec$int <- specInt
-	peaks <- model0$peaks[model0$peaks$sigma>sigma_min,]
 	if (nrow(peaks)>0) {
-		if (verbose) cat("Adding small peaks: Nb peaks =",nrow(peaks),"\n")
+		#if (verbose) cat("Adding small peaks: Nb peaks =",nrow(peaks),"\n")
+        #if (verbose>1) print(peaks)
 		peaks$amp <- peaks$amp/facA
 		peaks <- rbind(model$peaks, peaks)
 		peaks <- peaks[order(peaks$pos), ]
 		v <- rep(TRUE, nrow(peaks))
-		for (k in 1:(nrow(peaks)-1))
-			if ( abs(peaks$ppm[k+1]-peaks$ppm[k])<reldist*spec$dppm )
-				if (peaks$amp[k]>peaks$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
-				else                             { v[k] <- FALSE }
+		for (k in 2:(nrow(peaks)-1)) {
+			if (peaks$pos[k] %in% model$peaks$pos) next
+			if ( (peaks$pos[k+1] %in% model$peaks$pos && abs(peaks$ppm[k+1]-peaks$ppm[k])<reldist*peaks$sigma[k+1]) ||
+				 (peaks$pos[k-1] %in% model$peaks$pos && abs(peaks$ppm[k]-peaks$ppm[k-1])<reldist*peaks$sigma[k-1]) )
+				v[k] <- FALSE
+		}
 		g$peaks <- peaks[v,]
-		g$obl <- model$params$obl
-		model2 <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
-		Ymodel <- model2$model + intern_computeBL(spec, model2)
-		model2$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-		if (model2$R2>model$R2) {
-			if (verbose) cat("Adding small peaks: Ok\n")
-			model <- model2
+		if (nrow(g$peaks)>nrow(model$peaks)) {
+		    if (verbose) cat("Adding small peaks: Nb peaks =",nrow(g$peaks[!g$peaks$pos %in% model$peaks$pos,,drop=F]),"\n")
+			if (verbose>1) print(g$peaks[!g$peaks$pos %in% model$peaks$pos,,drop=F])
+			g$obl <- model$params$obl
+			model2 <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+			Ymodel <- model2$model + intern_computeBL(spec, model2)
+			model2$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+			if (model2$R2>model$R2) {
+				if (verbose) cat("Adding small peaks: Ok\n")
+				model <- model2
+			}
 		}
 	}
 	model
@@ -1077,7 +1093,7 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
           next
        }
        if (verbose) cat(filtername,": R2 =",round(model1$R2,4), ", RMSE =",round(SD,6), 
-                           ", Nb Peaks =", nrow(model1$peaks), ", OBL =", obl, ", ETA =", round(median(model1$peaks$eta),4),"\n")
+                           ", Nb Peaks =", nrow(model1$peaks), ", obl =", obl, ", eta =", round(wtd.mean(model1$peaks$eta,model1$peaks$amp),4),"\n")
     }
 
 	if (g$addpeaks && is.null(peaks))
@@ -1167,7 +1183,7 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
    if (debug1) cat("----\n")
    if (verbose) {
       cat('=== FacN =',g$facN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*g$facN,"\n")
-      cat('crit =',model$crit,', obl =',model$params$obl,', eta =',median(model$peaks$eta),', oasym =',model$params$oasym,"\n")
+      cat('crit =',model$crit,', obl =',model$params$obl,', eta =',round(wtd.mean(model$peaks$eta,model$peaks$amp),4),', oasym =',model$params$oasym,"\n")
       cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
       cat('RMSE =', model$RMSE,"\n")
       cat('R2 =', model$R2,"\n")

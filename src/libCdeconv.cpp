@@ -1220,8 +1220,10 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
                 aw[p*np+i+2]=0; iaw[p*np+i+2]=1;
             }
 
-            // Optimize ak, sk, pk
+		// -----------------------------------
+        //  Optimize ak, sk, pk
             optimize(Xw,Yw,ndata,aw,iaw,na,&fgradient,pk->maxstep,pk->tol);
+		// -----------------------------------
 
             // Recovers the new values of the parameters and calculates the intensity of each peak in the block/bunch
             som_p=0;
