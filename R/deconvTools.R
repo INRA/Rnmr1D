@@ -48,95 +48,99 @@ filtnames <- list('haar'=0, 'daub2'=1, 'daub4'=2, 'daub8'=3, 'symlet2'=4, 'symle
 #'   \item \code{exclude_zones} : Exclude ppm zones for the criterion evaluation - default value = NULL
 #' }
 deconvParams <- list (
-  # Filter types
-  flist = list( 'none'=fnone, 'smooth0'=fsavgol3, 'smooth1'=fsavgol5, 'smooth2'=fsavgol10, 'smooth3'=fsavgol50,
-                'daub4'=fdaub4, 'daub8'=fdaub8, 'symlet4'=fsymlet4, 'symlet8'=fsymlet8 ),
+	# Filter types
+	flist = list( 'none'=fnone, 'smooth0'=fsavgol3, 'smooth1'=fsavgol5, 'smooth2'=fsavgol10, 'smooth3'=fsavgol50,
+				'daub4'=fdaub4, 'daub8'=fdaub8, 'symlet4'=fsymlet4, 'symlet8'=fsymlet8 ),
+	
+	# Threshold applied on the power of the multiscale decomposition layer
+	threshold=0.5,
 
-  threshold=0.5,
+	# Criterion type for the optimizations
+	# 0 => R2
+	# 1 => 1/Std(residues)
+	criterion = 0,
 
-  # Criterion type for the optimizations
-  # 0 => R2
-  # 1 => 1/Std(residues)
-  criterion = 0,
+	# Criterion tolerance for the optimization
+	reltol = 0.0001,
+	maxstep = 50,
 
-  # Criterion tolerance for the optimization
-  reltol = 0.0001,
-  maxstep = 50,
+	# Peak/Noise Ratio
+	facN = NULL,
+	ratioPN = 5,
+	lowPeaks = 0,
 
-  # Peak/Noise Ratio
-  facN = NULL,
-  ratioPN = 5,
-  lowPeaks = 1,
-  
-  # indicates if pseudo-voigt is used instead of lorentzian
-  pvoigt=1,
-  eta=0.7,
-  asym=0,
-  asymmax=50,
+	# indicates if pseudo-voigt is used instead of lorentzian
+	pvoigt=1,
+	eta=0.7,
+	etamin=0.05,
+	etamax=0.99,
+	asym=0,
+	asymmax=50,
 
-  # Optimization of peaks : 0 => No, 1 => Yes
-  optim=1,
-  oppm = 1,
-  osigma = 1,
-  oasym = 0,
-  oeta=1,
-  estimate_int=0,
-  estimate_sigma=0,
+	# Optimization of peaks : 0 => No, 1 => Yes
+	optim=1,
+	oppm = 1,
+	osigma = 1,
+	oasym = 0,
+	oeta=1,
+	estimate_int=0,
+	estimate_sigma=0,
 
-  # Indicate if peaks are selected based on the threshold ratio Signal-Noise
-  selectpk = 0,
+	# Indicate if peaks are selected based on the threshold ratio Signal-Noise
+	selectpk = 0,
 
-  # Optimization by only one block or by several blocks applying a cut-off process. 
-  oneblk=1,
-  scmin=2,
+	# Optimization by only one block or by several blocks applying a cut-off process. 
+	oneblk=1,
+	scmin=2,
 
-  # Optimization of a baseline (BL) for each massif
-  # 0 means no BL, an integer greater than 0 indicates the polynomial order of the BL
-  obl = 0,
+	# Optimization of a baseline (BL) for each massif
+	# 0 means no BL, an integer greater than 0 indicates the polynomial order of the BL
+	obl = 0,
 
-  # Peaks searching : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm)
-  distPeaks = 2,
+	# Peaks searching : min distance between 2 peaks (as multiple of sigma_min which is typically equal to 0.0005 ppm)
+	distPeaks = 2,
 
-  # Peaks searching : Minima method applied to the second derivation
-  d2meth = 1,
+	# Peaks searching : Minima method applied to the second derivation
+	d2meth = 1,
 
-  # minimum values for the peak curvature : the larger the value, the narrower the peak 
-  # 1) on spectrum (sp) and 2) its second derivate (d2)
-  spcv = 0.01, # 0.005 - 0.025
-  d2cv = 0.1,  # 0.05 - 0.25
+	# minimum values for the peak curvature : the larger the value, the narrower the peak 
+	# 1) on spectrum (sp) and 2) its second derivate (d2)
+	spcv = 0.01, # 0.005 - 0.025
+	d2cv = 0.1,  # 0.05 - 0.25
 
-  # Apply Filter (1) or not (0) on 1st (d1filt) and 2nd derivates (d2filt)
-  d1filt = 0,
-  d2filt = 0,
+	# Apply Filter (1) or not (0) on 1st (d1filt) and 2nd derivates (d2filt)
+	d1filt = 0,
+	d2filt = 0,
 
-  # Parameters for the comparison of 2 models
-  ratioSNmodel=10, # SN ratio for the model reference (model0) See LSDeconv_1 & intern_LSDpeaks
-  fwmh=3,          # the number of times the width at half height of the peak thus defining the comparison area - See intern_LSDpeaks
-  mwbp=2.4,        # minimum width between two peaks to merge - See intern_LSDpeaks
- 
-  # Optimization of Sigmas : Fixe the limits (min and max) of sigmas
-  sigma_min = 0.0005,
-  sigma_max = 0.005,
+	# Parameters for the comparison of 2 models
+	ratioSNmodel=10,       # SN ratio for the model reference (model0) See LSDeconv_1 & intern_LSDpeaks
+	fwmh=4,                # the number of times the width at half height of the peak thus defining the comparison area - See intern_LSDpeaks
+	mwbp=2.4,              # minimum width between two peaks to merge - See intern_LSDpeaks
+	filtermodel='smooth1', # Filter applied on the spectrum before compute the model reference (model0) See LSDeconv_1
 
-  # Indicates if we want information messages
-  verbose = 1,
+	# Optimization of Sigmas : Fixe the limits (min and max) of sigmas
+	sigma_min = 0.0005,
+	sigma_max = 0.005,
 
-  # Exclude ppm zones for the criterion evaluation
-  exclude_zones = NULL,
-  
-  # a dataframe of peaks (columns : pos, ppm, amp, sigma, eta, integral)
-  peaks = NULL,
+	# Indicates if we want information messages
+	verbose = 1,
 
-  # Specifies whether a second deconvolution phase without the highest peaks has to be done
-  sndpass = 0,
+	# Exclude ppm zones for the criterion evaluation
+	exclude_zones = NULL,
 
-  # Specifies whether small peaks should be added into the model where high residual values occur
-  addpeaks = 0,
+	# a dataframe of peaks (columns : pos, ppm, amp, sigma, eta, integral)
+	peaks = NULL,
 
-  # Parameters for slicing spectra
-  flatwidth = 0.004, # the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone
-  snrfactor = 4,     # the factor applied on the Std Dev. of the noise used as threshold for first derivate intensities
-  maxrange = 0.3     # the maximum width of a cutting zone (default 0.3 ppm)
+	# Specifies whether a second deconvolution phase without the highest peaks has to be done
+	sndpass = 0,
+
+	# Specifies whether small peaks should be added into the model where high residual values occur
+	addpeaks = 0,
+
+	# Parameters for slicing spectra
+	flatwidth = 0.004, # the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone
+	snrfactor = 4,     # the factor applied on the Std Dev. of the noise used as threshold for first derivate intensities
+	maxrange = 0.3     # the maximum width of a cutting zone (default 0.3 ppm)
 )
 
 #=====================================================================
@@ -932,14 +936,14 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=0:2, verbose=1)
 		g$facN <- max(1,round(max(spec$int[iseq])*0.05/spec$Noise))
 	spec$B <- spec$Noise/g$facN
 	g$ratioSN <- ifelse(g$lowPeaks==0, g$facN*g$ratioPN, g$facN/10)
-	
+
 	if (is.null(g$peaks) || ! "data.frame" %in% class(g$peaks) || nrow(g$peaks)==0 )
 		stop("the peaks param must be a data.frame with at least one row")
-	
+
 	debug1 <- ifelse(verbose>1, 1, 0)
 	debug2 <- ifelse(verbose>2, 2, debug1)
 	model <- intern_LSDeconv(spec, ppmrange, g, NULL, oblset, verbose=debug2)
-	
+
 	if (is.null(model) || nrow(model$peaks)==0)
 		stop("No peak found.")
 
@@ -955,7 +959,7 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=0:2, verbose=1)
 			model <- model2
 		}
 	}
-	
+
 	model <- intern_LSDoutput(spec, ppmrange, g, model, verbose)
 	class(model) = "LSDmodel"
 	model
@@ -981,7 +985,6 @@ LSDsndpass <- function(spec, model, ppmrange, params=NULL, oblset=0:2, verbose=1
 		# Select the other peaks to be deconvoluted separately
 		g$peaks <- model$peaks[which(model$peaks$pos != hpkpos), ]
 		g$sndpass <- 0
-		#model2 <- LSDeconv_2(spec, ppmrange, g, oblset, verbose = verbose)
 		model2 <- intern_LSDeconv(spec, ppmrange, g, NULL, oblset, verbose=0)
 		# Add the previous selected peaks in the model
 		spec$int <- specInt
@@ -1151,55 +1154,53 @@ intern_LSDpeaks <- function(spec, ppmrange, params, model0, model1, model2, verb
 # Finalize the output model
 intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 {
-   g <- getDeconvParams(params)
-   g$obl <- model$params$obl
-   g$oasym <- model$params$oasym
+	g <- getDeconvParams(params)
+	g$obl <- model$params$obl
+	g$oasym <- model$params$oasym
 
-   peaks <- model$peaks
-   v <- rep(TRUE, nrow(peaks))
-   if (nrow(peaks)>1)
-       for (k in 1:(nrow(peaks)-1))
-            if ( abs(peaks$ppm[k]-peaks$ppm[k+1])<g$mwbp*spec$dppm )
-                if (peaks$amp[k]>peaks$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
-                else                             { v[k] <- FALSE }
-   g$peaks <- peaks[v,]
+	peaks <- model$peaks
+	v <- rep(TRUE, nrow(peaks))
+	if (nrow(peaks)>1)
+		for (k in 1:(nrow(peaks)-1))
+			if ( abs(peaks$ppm[k]-peaks$ppm[k+1])<g$mwbp*spec$dppm )
+				if (peaks$amp[k]>peaks$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
+				else                             { v[k] <- FALSE }
+	g$peaks <- peaks[v,]
 
-   debug1 <- ifelse(verbose==2, 1, 0)
-   model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
-   if (g$ratioPN>0) {
-       model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
-       P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
-       model$peaks <- P1[P1$ppm<ppmrange[2],]
-   }
+	debug1 <- ifelse(verbose==2, 1, 0)
+	model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
 
-   rownames(model$peaks) <- NULL
-   model$nbpeak <- nrow(model$peaks)
-   model$LB <- intern_computeBL(spec, model)
-   Ymodel <- model$model + model$LB
+	model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
+	P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
+	model$peaks <- P1[P1$ppm<ppmrange[2],]
 
-   iseq <- getIndexSeq(spec,ppmrange)
-   model$residus <- spec$int-Ymodel
-   model$iseq <- iseq
-   model$ppmrange <- ppmrange
-   model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-   model$crit <- g$crit
-   model$FacN <- g$facN
-   model$eta <- mean(model$peaks$eta)
-   model$RMSE <- sqrt(mean(model$residus^2))
-   model$filter <- '-' # for backwards compatibility
+	rownames(model$peaks) <- NULL
+	model$nbpeak <- nrow(model$peaks)
+	model$LB <- intern_computeBL(spec, model)
+	Ymodel <- model$model + model$LB
+	iseq <- getIndexSeq(spec,ppmrange)
+	model$residus <- spec$int-Ymodel
+	model$iseq <- iseq
+	model$ppmrange <- ppmrange
+	model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+	model$crit <- g$crit
+	model$FacN <- g$facN
+	model$eta <- mean(model$peaks$eta)
+	model$RMSE <- sqrt(mean(model$residus^2))
+	model$filter <- '-' # for backwards compatibility
 
-   if (debug1) cat("----\n")
-   if (verbose) {
-      cat('=== FacN =',g$facN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*g$facN,"\n")
-      cat('crit =',model$crit,', obl =',model$params$obl,', eta =',round(wtd.mean(model$peaks$eta,model$peaks$amp),4),', oasym =',model$params$oasym,"\n")
-      cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
-      cat('RMSE =', model$RMSE,"\n")
-      cat('R2 =', model$R2,"\n")
-      cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),
-                ', Mean =',round(mean(model$residus[iseq]),4), "\n")
-   }
-   class(model) = "LSDmodel"
-   model
+	if (debug1) cat("----\n")
+	if (verbose) {
+	cat('=== FacN =',g$facN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*g$facN,"\n")
+	cat('crit =',model$crit,', obl =',model$params$obl,', eta =',round(wtd.mean(model$peaks$eta,model$peaks$amp),4),', oasym =',model$params$oasym,"\n")
+	cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
+	cat('RMSE =', model$RMSE,"\n")
+	cat('R2 =', model$R2,"\n")
+	cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),
+				', Mean =',round(mean(model$residus[iseq]),4), "\n")
+	}
+	class(model) = "LSDmodel"
+	model
 }
 
 

@@ -557,23 +557,18 @@ void WT(double *a, unsigned long n, int isign, std::vector<double> (*fn)())
         for (nn=wfilt->ncof;nn<=n;nn<<=1) Partial_WT(a,nn,wfilt,isign);
 }
 
-void Filtre_layer (double *v1, int count_max, int l1, int l2, int isign)
+void Filtre_WT (double *v1, int count_max, int l1, int l2, int isign, std::vector<double> (*fn)())
 {
     int    j,k,n1,n2;
     int    layer_max=(int)(log(count_max)/log(2)+0.5);
 
+    WT(v1,count_max,1,fn);
     for (j=1;j<=layer_max;j++) {
         if (isign>=0 && j>=l1 && j<=l2) continue;
         if (isign<0 && (j<l1 || j>l2))  continue;
         n1=pow(2,j-1); n2=pow(2,j)-1;
         for (k=n1;k<=n2;k++) v1[k]=0;
     }
-}
-
-void Filtre_WT (double *v1, int count_max, int l1, int l2, int isign, std::vector<double> (*fn)())
-{
-    WT(v1,count_max,1,fn);
-    Filtre_layer (v1, count_max, l1, l2, isign);
     WT(v1,count_max,-1,fn);
 }
 
@@ -581,7 +576,7 @@ void Filtre_Power_WT(double *v1, int count_max, double threshold, std::vector<do
 {
     int    j,k,n1,n2;
     int    layer_max=(int)(log(count_max)/log(2)+0.5);
-    double *P,Pj,S;
+    double *P,C,S;
     S=0;
     WT(v1,count_max,1,fn);
     P=vector(layer_max);
@@ -594,8 +589,10 @@ void Filtre_Power_WT(double *v1, int count_max, double threshold, std::vector<do
     if(_verbose_>1) Rprintf(" Zeroing layers : ");
     for (j=1;j<=layer_max;j++) {
         n1=pow(2,j-1); n2=pow(2,j)-1;
-        Pj = (100.0*P[j]/S)/(n2-n1+1);
-        if (Pj<threshold/count_max) {
+        //Pj = (100.0*P[j]/S)/(n2-n1+1);
+        //if (Pj<threshold/count_max) {
+        C = 100.0*(P[j]/(n2-n1+1))*(count_max/S);
+        if (C<threshold) {
             if(_verbose_>1) Rprintf("%d ",j);
             for (k=n1;k<=n2;k++) v1[k]=0;
         }
@@ -1719,6 +1716,10 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 
 	// function modelling the resonances : 0=> lorentzian, 1 => pseudo voigt
 	_OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : 0;
+
+	// In case of pseudo voigt, fixe the range for the eta parameter
+	_ETAMIN_       = plist.containsElementNamed("etamin")    ? as<double>(plist["etamin"]) : 0.05;
+	_ETAMAX_       = plist.containsElementNamed("etamax")    ? as<double>(plist["etamax"]) : 0.99;
 
 	// baseline order : O for no baseline adjustment
 	_OPBL_         = plist.containsElementNamed("obl")       ? as<int>(plist["obl"]) : 0;
