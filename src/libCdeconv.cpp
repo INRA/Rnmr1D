@@ -62,6 +62,7 @@ double _ETA_  = 0.7;
 double _ETAMAX_  = 0.99;
 double _ETAMIN_  = 0.05;
 
+// default values for asymmetric peak and its max value
 double _ASYM_ = 0;
 double _ASYMMAX_ = 50;
 
@@ -589,8 +590,6 @@ void Filtre_Power_WT(double *v1, int count_max, double threshold, std::vector<do
     if(_verbose_>1) Rprintf(" Zeroing layers : ");
     for (j=1;j<=layer_max;j++) {
         n1=pow(2,j-1); n2=pow(2,j)-1;
-        //Pj = (100.0*P[j]/S)/(n2-n1+1);
-        //if (Pj<threshold/count_max) {
         C = 100.0*(P[j]/(n2-n1+1))*(count_max/S);
         if (C<threshold) {
             if(_verbose_>1) Rprintf("%d ",j);
@@ -1093,14 +1092,14 @@ void fgradient(double x, double a[], double *y, double dyda[], int na)
 		dyda[i+3]= C0*C3;
 		dyda[i+4]= 0;
 		if (_OVGT_>0) {
-		eta = (a[i+4]>_ETAMAX_) ? _ETAMAX_ : (a[i+4]<_ETAMIN_) ? _ETAMIN_ : a[i+4];
-		G=exp(-0.5*U2/S2);
-		C0=a[i]*U*G/S2;
-		dyda[i]  = eta*dyda[i]   + (1-eta)*G;
-		dyda[i+1]= eta*dyda[i+1] + (1-eta)*C0*C1;
-		dyda[i+2]= eta*dyda[i+2] + (1-eta)*C0*C2;
-		dyda[i+3]= eta*dyda[i+3] + (1-eta)*C0*C3;
-		dyda[i+4]= a[i]*(S2/V-G);
+			eta = (a[i+4]>_ETAMAX_) ? _ETAMAX_ : (a[i+4]<_ETAMIN_) ? _ETAMIN_ : a[i+4];
+			G=exp(-0.5*U2/S2);
+			C0=a[i]*U*G/S2;
+			dyda[i]  = eta*dyda[i]   + (1-eta)*G;
+			dyda[i+1]= eta*dyda[i+1] + (1-eta)*C0*C1;
+			dyda[i+2]= eta*dyda[i+2] + (1-eta)*C0*C2;
+			dyda[i+3]= eta*dyda[i+3] + (1-eta)*C0*C3;
+			dyda[i+4]= a[i]*(S2/V-G);
 		}
 		*y += a[i]*dyda[i];
 	}
@@ -1475,12 +1474,12 @@ SEXP C_OneVoigt(SEXP X, SEXP Y, SEXP par)
    for (k=0; k<na; k++)    { aw[k+1]=vp[k]; iaw[k+1]=1; }
    optimize(Xw,Yw,ndata,aw,iaw,na,&fgradient);
 
+   NumericVector vout(na);
+   for (k=0; k<na; k++) vout[k]=aw[k+1];
+
    free_vector(aw);
    free_vector(Yw);
    free_vector(Xw);
-
-   NumericVector vout(na);
-   for (k=0; k<na; k++) vout[k]=aw[k+1];
 
    return(vout);
 }
@@ -1581,7 +1580,7 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 		_ETA_          = plist.containsElementNamed("eta")       ? as<double>(plist["eta"]) : _ETA_;
 		_ASYM_         = plist.containsElementNamed("asym")      ? as<double>(plist["asym"]) : _ASYM_;
 		_ASYMMAX_      = plist.containsElementNamed("asymmax")   ? as<double>(plist["asymmax"]) : _ASYMMAX_;
-	
+
 		// ------- Peaks detection --------------------------
 		if(_verbose_>0) Rprintf("Peaks detection\n");
 		sp.V = v2; // filtered spectrum
@@ -1618,16 +1617,16 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 
 		// ------- Parameters -------------------------------
 		ret["params"] = List::create(_["ratioSN"] = pk.RatioPN,
-										_["d2meth"] = pk.d2meth,
-										_["spcv"] = pk.spcv,
-										_["d2cv"] = pk.d2cv,
-										_["d1filt"] = pk.d1filt,
-										_["selectpk"] = pk.selectpk,
-										_["distPeaks"] = pk.dist_fac,
-										_["sigma_min"] = pk.sigma_min,
-										_["estimate_int"] = estimate_int,
-										_["wmin"] = pk.wmin,
-										_["wmax"] = pk.wmax );
+				_["d2meth"] = pk.d2meth,
+				_["spcv"] = pk.spcv,
+				_["d2cv"] = pk.d2cv,
+				_["d1filt"] = pk.d1filt,
+				_["selectpk"] = pk.selectpk,
+				_["distPeaks"] = pk.dist_fac,
+				_["sigma_min"] = pk.sigma_min,
+				_["estimate_int"] = estimate_int,
+				_["wmin"] = pk.wmin,
+				_["wmax"] = pk.wmax );
 	
 		// ------- PeakList ----------------------------------
 		NumericMatrix P(pk.npic, 7);
@@ -1642,12 +1641,12 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 								M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
 		}
 		ret["peaks"] = DataFrame::create( Named("pos") = P(_,0),
-											Named("ppm") = P(_,1),
-											Named("amp") = P(_,2),
-											Named("sigma") = P(_,3),
-											Named("asym") = P(_,4),
-											Named("eta") = P(_,5),
-											Named("integral") = P(_,6) );
+				Named("ppm") = P(_,1),
+				Named("amp") = P(_,2),
+				Named("sigma") = P(_,3),
+				Named("asym") = P(_,4),
+				Named("eta") = P(_,5),
+				Named("integral") = P(_,6) );
 	}
 	free_vector(v1);
 	free_vector(v2);
@@ -1776,23 +1775,23 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 
 	// ------- Parameters -------------------------------
 	ret["params"] = List::create(_["optim"] = pk.optim,
-								_["oint"] = pk.optim_int,
-								_["osigma"] = pk.optim_sigma,
-								_["oasym"] = pk.optim_asym,
-								_["oeta"] = pk.optim_eta,
-								_["oppm"] = pk.optim_ppm,
-								_["ratioSN"] = pk.RatioPN,
-								_["sigma_min"] = pk.sigma_min,
-								_["sigma_max"] = pk.sigma_max,
-								_["selectpk"] = pk.selectpk,
-								_["maxstep"] = pk.maxstep,
-								_["reltol"] = pk.tol,
-								_["scmin"] = blocks.scmin,
-								_["oneblk"] = blocks.oneblk,
-								_["obl"] = _OPBL_,
-								_["pvoigt"] = _OVGT_,
-								_["wmin"] = pk.wmin,
-								_["wmax"] = pk.wmax );
+			_["oint"] = pk.optim_int,
+			_["osigma"] = pk.optim_sigma,
+			_["oasym"] = pk.optim_asym,
+			_["oeta"] = pk.optim_eta,
+			_["oppm"] = pk.optim_ppm,
+			_["ratioSN"] = pk.RatioPN,
+			_["sigma_min"] = pk.sigma_min,
+			_["sigma_max"] = pk.sigma_max,
+			_["selectpk"] = pk.selectpk,
+			_["maxstep"] = pk.maxstep,
+			_["reltol"] = pk.tol,
+			_["scmin"] = blocks.scmin,
+			_["oneblk"] = blocks.oneblk,
+			_["obl"] = _OPBL_,
+			_["pvoigt"] = _OVGT_,
+			_["wmin"] = pk.wmin,
+			_["wmax"] = pk.wmax );
 
 	// ------- PeakList ----------------------------------
 	NumericMatrix P(pk.npic, 7);
@@ -1807,12 +1806,12 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 							M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
 	}
 	ret["peaks"] = DataFrame::create( Named("pos") = P(_,0),
-									Named("ppm") = P(_,1),
-									Named("amp") = P(_,2),
-									Named("sigma") = P(_,3),
-									Named("asym") = P(_,4),
-									Named("eta") = P(_,5),
-									Named("integral") = P(_,6) );
+			Named("ppm") = P(_,1),
+			Named("amp") = P(_,2),
+			Named("sigma") = P(_,3),
+			Named("asym") = P(_,4),
+			Named("eta") = P(_,5),
+			Named("integral") = P(_,6) );
 
 	// ------- Massifs  ---------------------------------
 	NumericMatrix M(blocks.nbblocks, 6);
@@ -1830,11 +1829,11 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 		for (i=0; i<=_OPBL_; i++)
 			BL(k,i) = blocks.bl[k][i];
 	ret["blocks"] = List::create( _["cnt"] = blocks.nbblocks,
-									_["blpars"] = BL,
-									_["blocks"] = M );
+					_["blpars"] = BL,
+					_["blocks"] = M );
 	} else
 	ret["blocks"] = List::create( _["cnt"] = blocks.nbblocks,
-									_["blocks"] = M );
+					_["blocks"] = M );
 
 	free_matrix(bl);
 
@@ -1896,12 +1895,12 @@ SEXP C_peakFiltering(SEXP spec, SEXP peaks, double ratioPN)
         }
 
         ret = DataFrame::create( Named("pos") = P(_,0),
-                                 Named("ppm") = P(_,1),
-                                 Named("amp") = P(_,2),
-                                 Named("sigma") = P(_,3),
-                                 Named("asym") = P(_,4),
-                                 Named("eta") = P(_,5),
-                                 Named("integral") = P(_,6) );
+                Named("ppm") = P(_,1),
+                Named("amp") = P(_,2),
+                Named("sigma") = P(_,3),
+                Named("asym") = P(_,4),
+                Named("eta") = P(_,5),
+                Named("integral") = P(_,6) );
     }
     return(ret);
 }

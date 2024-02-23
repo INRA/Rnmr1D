@@ -73,7 +73,9 @@ deconvParams <- list (
 	pvoigt=1,
 	eta=0.7,
 	etamin=0.05,
-	etamax=0.99,
+	etamax=1,
+
+	# default values for asymmetric peak and its max value
 	asym=0,
 	asymmax=50,
 
@@ -132,10 +134,11 @@ deconvParams <- list (
 	peaks = NULL,
 
 	# Specifies whether a second deconvolution phase without the highest peaks has to be done
+	# 0 => none, 1 => for each filter value, 2 => for each filter value (filterset) and each obl value (oblset)
 	sndpass = 0,
 
 	# Specifies whether small peaks should be added into the model where high residual values occur
-	addpeaks = 0,
+	addPeaks = 0,
 
 	# Parameters for slicing spectra
 	flatwidth = 0.004, # the minimum width of a zone in which the spectrum intensities are close to zero to consider this one as a cutting zone
@@ -893,19 +896,19 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 			peaks <- intern_LSDpeaks(spec, ppmrange, g2, model0, model1, model2, verbose=debug2)
 			g2$obl <- max(model1$params$obl, model2$params$obl)
 		}
-	
+
 		g2$peaks <- peaks
 		if (!is.null(model2))
-			model1 <- intern_LSDeconv(spec, ppmrange, g2, NULL, g2$obl, verbose=debug1)
+			model1 <- intern_LSDeconv(spec, ppmrange, g2, NULL, g2$obl, verbose=debug2)
 		if (g$oasym) {
 			g2$oasym <- 1
-			model2 <- intern_LSDeconv(spec, ppmrange, g2, NULL, g2$obl, verbose=debug1)
+			model2 <- intern_LSDeconv(spec, ppmrange, g2, NULL, g2$obl, verbose=debug2)
 			if (model2$R2>model1$R2) model1 <- model2
 		}
 		rownames(model1$peaks) <- 1:nrow(model1$peaks)
-	
+
 		if (g$sndpass==1) { # second deconvolution phase without the highest peaks has to be done
-			g2$oasym <- model1$params$oasym
+			g2$oasym <- g$oasym # model1$params$oasym
 			model2 <- tryCatch({
 				LSDsndpass(spec, model1, ppmrange, g2, g2$obl, debug1)
 			},
@@ -1107,7 +1110,7 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 								", Nb Peaks =", nrow(model1$peaks), ", obl =", obl, ", eta =", round(wtd.mean(model1$peaks$eta,model1$peaks$amp),4),"\n")
 	}
 	
-	if (g$addpeaks && is.null(peaks))
+	if (g$addPeaks && is.null(peaks))
 		model1 <- LSDaddpeaks(spec, model1, ppmrange, g, verbose=verbose)
 	
 	gc()
@@ -1157,8 +1160,9 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 	g <- getDeconvParams(params)
 	g$obl <- model$params$obl
 	g$oasym <- model$params$oasym
+	g$peaks <- model$peaks
 
-	peaks <- model$peaks
+	peaks <- g$peaks
 	v <- rep(TRUE, nrow(peaks))
 	if (nrow(peaks)>1)
 		for (k in 1:(nrow(peaks)-1))
@@ -1167,7 +1171,7 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 				else                             { v[k] <- FALSE }
 	g$peaks <- peaks[v,]
 
-	debug1 <- ifelse(verbose==2, 1, 0)
+	debug1 <- ifelse(verbose>1, 1, 0)
 	model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
 
 	model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
@@ -1188,6 +1192,7 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 	model$eta <- mean(model$peaks$eta)
 	model$RMSE <- sqrt(mean(model$residus^2))
 	model$filter <- '-' # for backwards compatibility
+	model$params$oasym <- ifelse ( mean(abs(model$peaks$asym))>0, 1, 0 )
 
 	if (debug1) cat("----\n")
 	if (verbose) {
@@ -1338,7 +1343,8 @@ cleanPeaks <- function(spec, model, SNthreshold=5) {
 #' @param ysel a vector defining the visibility of each y element (same order as the y matrix)
 #' @param title title of the graphic
 plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'), 
-                     ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), ysel=NULL, title='')
+                     ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), 
+                     ysel=NULL, xlab='', ylab='', title='')
 {
    iseq <- c(which(x>=ppmrange[1])[1]:length(which(x<=ppmrange[2])))
    if ("numeric" %in% class(y)) {
@@ -1357,32 +1363,10 @@ plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'),
          p <- p %>% plotly::add_trace(data=df, x = ~x, y = ~y, name=ynames[k], mode = 'lines', visible=visible)
       }
    }
-   p <- p %>% plotly::layout(title=title, xaxis = list(autorange = "reversed"), colorway = ycolors)
+   p <- p %>% plotly::layout(title=title, xaxis = list(autorange = "reversed", title=xlab), yaxis = list(title=ylab), colorway = ycolors)
    p
 }
 
-#' plotModelwithResidus
-#'
-#' \code{plotSpec} plots the model along with the resulting residues from deconvolution
-#' @param spec a 'spec' object (see \code{readSpectrum}, \code{Spec1rDoProc})
-#' @param model a 'model' object (see \code{specDeconv}, \code{peakOptimize}, \code{GSDeconv}, \code{LSDeconv})
-#' @param ynames a vector defining the y names. default value = c('Origin', 'Model', 'Residues')
-#' @param title title of the graphic
-plotModelwithResidus <- function(spec, model, ynames=c('Origin', 'Model', 'Residues'), title='')
-{
-   if ( ! sum(c('GSDmodel', 'LSDmodel') %in% class(model) ) )
-      stop("the input model must have an appropriate class, namely 'GSDmodel' or 'LSDmodel'")
-   Ymodel <- model$model
-   if (model$params$obl>0) Ymodel <- Ymodel + model$LB
-   iseq <- model$iseq
-   data <- data.frame( x=spec$ppm[iseq], y=spec$int[iseq], y1=Ymodel[iseq], y2=model$residus[iseq] )
-   p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines', 
-                fill = 'tozeroy', fillcolor='rgba(220,220,220,0.1)') %>%
-     plotly::add_trace(y = ~y1, name = ynames[2], mode = 'lines', hoverinfo = 'skip') %>%
-     plotly::add_trace(y = ~y2, name = ynames[3], mode = 'lines') %>%
-     plotly::layout(title=title, xaxis = list(autorange = "reversed"), colorway = c('grey', 'blue', 'red'))
-   p
-}
 
 #' plotModel
 #'
@@ -1395,7 +1379,8 @@ plotModelwithResidus <- function(spec, model, ynames=c('Origin', 'Model', 'Resid
 #' @param tags boolean allowing you to put identification tags at the top of each peak
 #' @param title title of the graphic
 #' @param grp_colors specifies the colors for the first groups and/or peaks
-plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), groups=NULL, tags=FALSE, title='', grp_colors=NULL)
+plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), 
+                      groups=NULL, tags=FALSE, xlab='', ylab='', title='', grp_colors=NULL)
 {
    if ( ! sum(c('peakModel', 'optimModel','GSDmodel', 'LSDmodel') %in% class(model) ) )
       stop("the input model must have an appropriate class, namely one of these: 'peakModel', 'optimModel', 'GSDmodel', 'LSDmodel'")
@@ -1446,7 +1431,7 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), gro
    }
 
    # Layout
-   p1 <- p1 %>% plotly::layout(title = title, xaxis = list(autorange = "reversed"), colorway = c('grey60', npk_colors))
+   p1 <- p1 %>% plotly::layout(title = title, xaxis = list(autorange = "reversed", title=xlab), yaxis = list(title=ylab), colorway = c('grey60', npk_colors))
 
    # Tags
    if (tags) {

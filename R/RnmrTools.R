@@ -17,6 +17,7 @@ lbSHIFT <- 'shift'
 lbCLUPA <- 'clupa'
 lbBUCKET <- 'bucket'
 lbZERO <- 'zero'
+lbZERONEG <- 'zeroneg'
 EOL <- 'EOL'
 
 # returns string w/o leading or trailing whitespace
@@ -39,8 +40,8 @@ fitdistr <- function(...) {
   x=matrix(x,nrow = 1, ncol=length(x))
   L=length(x)
   E=Matrix::spMatrix(L,L,i=seq(1,L),j=seq(1,L),rep(1,L))
-  D=methods::as(diff(E,1,differences),"dgCMatrix")
-  W=methods::as(Matrix::spMatrix(L,L,i=seq(1,L),j=seq(1,L),w),"dgCMatrix")
+  D=methods::as(diff(E,1,differences),"CsparseMatrix") # CsparseMatrix, dgCMatrix
+  W=methods::as(Matrix::spMatrix(L,L,i=seq(1,L),j=seq(1,L),w),"CsparseMatrix") # CsparseMatrix, dgCMatrix
   background=solve((W+lambda*t(D)%*%D),t((w*x)));
   return(as.vector(background))
 }
@@ -625,11 +626,15 @@ RairPLSbc1D <- function(specMat, zone, clambda, porder=1)
    i2 <- ifelse( min(zone)<=specMat$ppm_min, specMat$size - 1, which(specMat$ppm<=min(zone))[1] )
    n <- i2-i1+1
    cmax <- switch(porder, 6, 7, 8)
+   WS <- 30
 
-   lambda <- ifelse (clambda==cmax, 5, 10^(cmax-clambda) )
+   #lambda <- ifelse (clambda==cmax, 5, 10^(cmax-clambda) )
+   lambda <- ifelse( clambda>0, cmax-clambda, abs(clambda) )
+   lambda <- 10^max(lambda,1)
+ 
    # Baseline Estimation for each spectrum
    BLList <- foreach::foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
-       x <- specMat$int[i,c(i1:i2)]
+       x <- Smooth(specMat$int[i,c(i1:i2)],WS)
        bc <- .airPLS(x, lambda, porder)
        gc()
        bc
@@ -679,6 +684,27 @@ RZero1D <- function(specMat, zones, DEBUG=FALSE)
        i1<-length(which(specMat$ppm>max(zones[i,])))
        i2<-which(specMat$ppm<=min(zones[i,]))[1]
        specMat$int[,c(i1:i2)] <- matrix(0,specMat$nspec,(i2-i1+1))
+       if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),")\n"))
+   }
+   specMat$LOGMSG <- LOGMSG
+   return(specMat)
+}
+
+#------------------------------
+# Zeroing the selected PPM ranges
+#------------------------------
+RZeroNeg1D <- function(specMat, zones, DEBUG=FALSE)
+{
+   # Zeroing negative values for each PPM range
+   N <- dim(zones)[1]
+   LOGMSG <- ""
+
+   for ( i in 1:N ) {
+       i1<-length(which(specMat$ppm>max(zones[i,])))
+       i2<-which(specMat$ppm<=min(zones[i,]))[1]
+       V <- specMat$int[,c(i1:i2)]
+	   V[V<0] <- 0
+	   specMat$int[,c(i1:i2)] <- V
        if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),")\n"))
    }
    specMat$LOGMSG <- LOGMSG
@@ -976,6 +1002,10 @@ RWrapperCMD1D <- function(cmdName, specMat, ...)
           specMat <- RZero1D(specMat, ...)
           break
        }
+       if (cmdName == lbZERONEG) {
+          specMat <- RZeroNeg1D(specMat, ...)
+          break
+       }
        if (cmdName == lbALIGN) {
           specMat <- RAlign1D(specMat, ...)
           break
@@ -1258,6 +1288,20 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
                   CMD <- CMD[-1]
               }
               Write.LOG(LOGFILE,"Rnmr1D:  Zeroing the selected PPM ranges ...\n")
+              specMat <- RWrapperCMD1D(cmdName,specMat, zones2, DEBUG=debug)
+              if (debug) Write.LOG(LOGFILE, specMat$LOGMSG )
+              specMat$fWriteSpec <- TRUE
+              CMD <- CMD[-1]
+              break
+          }
+          if (cmdName == lbZERONEG) {
+              CMD <- CMD[-1]
+              zones2 <- NULL
+              while(CMD[1] != EOL) {
+                  zones2 <- rbind(zones2, as.numeric(unlist(strsplit(CMD[1],";"))))
+                  CMD <- CMD[-1]
+              }
+              Write.LOG(LOGFILE,"Rnmr1D:  Zeroing negative values for the selected PPM ranges ...\n")
               specMat <- RWrapperCMD1D(cmdName,specMat, zones2, DEBUG=debug)
               if (debug) Write.LOG(LOGFILE, specMat$LOGMSG )
               specMat$fWriteSpec <- TRUE
