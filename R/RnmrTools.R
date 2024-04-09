@@ -48,7 +48,6 @@ fitdistr <- function(...) {
  
 .airPLS <- function(x, lambda=100, porder=1, itermax=8)
 {
-  
   x = as.vector(x)
   m = length(x)
   w = rep(1,m)

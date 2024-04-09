@@ -1067,7 +1067,7 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 			model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = verbose)
 			model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSN)
 			model0$nbpeak <- ifelse('data.frame' %in% class(model0$peaks), nrow(model0$peaks), 0)
-			if (verbose) cat("Peak Finder: Nb peaks =",model0$nbpeak,"\n")
+			if (verbose) cat("model0: Peak Finder: Nb peaks =",model0$nbpeak,"\n")
 			if (model0$nbpeak==0) break
 			if (debug1) print(round(model0$peaks$ppm,4))
 			g$peaks <- model0$peaks
@@ -1082,6 +1082,8 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 	
 		Ymodel <- model$model + intern_computeBL(spec, model)
 		model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+		if (is.na(model$R2)) next;
+		
 		if (model$nbpeak>0 && g$sndpass==2) { # second deconvolution phase without the highest peaks has to be done
 			if (verbose) cat("LSD 1st pass: Nb peaks =",nrow(model$peaks),', R2 =',round(model$R2,4),"\n")
 			model2 <- tryCatch({
@@ -1098,6 +1100,7 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 		if (model$nbpeak>0) {
 			R2 <- model$R2
 			SD <- model$blocks$blocks[1,6]
+			if (debug1) cat('intern_LSDeconv: criterion =',g$criterion,', R2 =',round(R2,4),', pR2 =',round(pR2,4),"\n")
 			if ( (g$criterion==0 && R2>pR2) || (g$criterion==1 && SD<pSD) ) {
 				model1 <- model
 				pR2 <- R2; pSD <- SD
