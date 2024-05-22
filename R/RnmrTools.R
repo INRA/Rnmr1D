@@ -18,6 +18,7 @@ lbCLUPA <- 'clupa'
 lbBUCKET <- 'bucket'
 lbZERO <- 'zero'
 lbZERONEG <- 'zeroneg'
+lbSMOOTH <- 'smooth'
 EOL <- 'EOL'
 
 # returns string w/o leading or trailing whitespace
@@ -939,7 +940,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
 #' the Macro-command Reference Guide (\url{https://nmrprocflow.org/themes/pdf/Macrocommand.pdf})
 checkMacroCmdFile <- function(commandfile) {
    ret <- 1
-   allowKW <- c( 'align', 'warp', 'clupa', 'shift', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 'normalisation', 'denoising', 'bucket', 'zero', 'EOL' )
+   allowKW <- c( 'align', 'warp', 'clupa', 'shift', 'gbaseline', 'baseline', 'qnmrbline', 'airpls', 'binning', 'calibration', 'normalisation', 'denoising', 'bucket', 'zero', 'zeroneg', 'smooth', 'EOL' )
 
    tryCatch({
       # Read the macrocommand file

@@ -19,7 +19,7 @@ fsavgol10 <- list( type=5, m=10, nl=20, nr=30 )
 fsavgol50 <- list( type=5, m=50, nl=60, nr=80 )
 fsmooth <- list( type=6, m=12 )
 
-# Names of Filter type
+# Names of Filter type used by the Filter routines filterByWT & filterByThreshold
 filtnames <- list('haar'=0, 'daub2'=1, 'daub4'=2, 'daub8'=3, 'symlet2'=4, 'symlet4'=5, 'symlet8'=6)
 
 #' deconvParams
@@ -48,7 +48,7 @@ filtnames <- list('haar'=0, 'daub2'=1, 'daub4'=2, 'daub8'=3, 'symlet2'=4, 'symle
 #'   \item \code{exclude_zones} : Exclude ppm zones for the criterion evaluation - default value = NULL
 #' }
 deconvParams <- list (
-	# Filter types
+	# Filter types used by Deconvolution routines LSDeconv & MultiLSDeconv
 	flist = list( 'none'=fnone, 'smooth0'=fsavgol3, 'smooth1'=fsavgol5, 'smooth2'=fsavgol10, 'smooth3'=fsavgol50,
 				'daub4'=fdaub4, 'daub8'=fdaub8, 'symlet4'=fsymlet4, 'symlet8'=fsymlet8 ),
 	
@@ -93,6 +93,8 @@ deconvParams <- list (
 
 	# Optimization by only one block or by several blocks applying a cut-off process. 
 	oneblk=1,
+
+	# cut-off value if Optimization by several blocks
 	scmin=2,
 
 	# Optimization of a baseline (BL) for each massif
@@ -874,10 +876,14 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 		if (is.null(g$filtermodel)) g2$filtermodel <-  'smooth2'
 		model0 <- Rnmr1D::peakFinder(spec, ppmrange, g2, g2$filtermodel, verbose = 0)
 		model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSNmodel)
-		rownames(model0$peaks) <- 1:nrow(model0$peaks)
-		if (debug1) cat("Model reference : Nb peaks =",model0$nbpeak,"\n")
+		if (! is.null(model0$peaks) && nrow(model0$peaks)>0) {
+			rownames(model0$peaks) <- 1:nrow(model0$peaks)
+			if (debug1) cat("Model reference : Nb peaks =",model0$nbpeak,"\n")
 			if (verbose>2) print(round(model0$peaks$ppm,4))
-		if (debug1) cat("---\n")
+			if (debug1) cat("---\n")
+		} else {
+			model0 <- NULL
+		}
 	}
 	
 	# Set of values for filter
@@ -893,8 +899,10 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 		} else {
 			model2 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug2)
 			g2$obl <- model2$params$obl
-			peaks <- intern_LSDpeaks(spec, ppmrange, g2, model0, model1, model2, verbose=debug2)
-			g2$obl <- max(model1$params$obl, model2$params$obl)
+			if (! is.null(model0$peaks)) {
+				peaks <- intern_LSDpeaks(spec, ppmrange, g2, model0, model1, model2, verbose=debug2)
+				g2$obl <- max(model1$params$obl, model2$params$obl)
+			}
 		}
 
 		g2$peaks <- peaks
@@ -1137,9 +1145,11 @@ intern_LSDpeaks <- function(spec, ppmrange, params, model0, model1, model2, verb
 		iseq0 <- getIndexSeq(spec, ppmrk)
 		R2m1 <- stats::cor(spec$int[iseq0],Ymodel1[iseq0])^2
 		R2m2 <- stats::cor(spec$int[iseq0],Ymodel2[iseq0])^2
-		if (R2m1>R2m2) Mpeaks <- model1$peaks else Mpeaks <- model2$peaks
-		P1 <- Mpeaks[Mpeaks$ppm>=ppmrk[1], ]
-		peaks <- rbind(peaks, P1[P1$ppm<=ppmrk[2],])
+		if (!is.na(R2m1) && !is.na(R2m2)) {
+			if (R2m1>R2m2) Mpeaks <- model1$peaks else Mpeaks <- model2$peaks
+			P1 <- Mpeaks[Mpeaks$ppm>=ppmrk[1], ]
+			peaks <- rbind(peaks, P1[P1$ppm<=ppmrk[2],])
+		}
 	}
 	colnames(peaks) <- colnames(model0$peaks)
 	peaks <- unique(peaks)

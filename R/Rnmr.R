@@ -1130,8 +1130,8 @@ Spec1rProcpar <- list (
 .groupDelay_correction <- function(spec, param=Spec1rProcpar)
 {
     fid <- spec$fid
+    if (! is.null(param$GRDFLG) && param$GRDFLG) spec$acq$GRPDLY <- .estime_grpdelay(fid)
     if (spec$acq$GRPDLY>0) {
-       if (! is.null(param$GRDFLG) && param$GRDFLG) spec$acq$GRPDLY <- .estime_grpdelay(fid)
        m <- length(fid)
        if (is.null(param$OC)) {
           P <- sqrt(  Re(fid)^2 + Im(fid)^2 )
@@ -1194,9 +1194,10 @@ Spec1rProcpar <- list (
        } else {
            if(param$DEBUG) .v("\tGauss. Line Broadening (GB=%f)\n", param$GB, logfile=logfile)
            AQ <- td/(2*spec$acq$SWH)
-           #vlb <- exp(  t*param$LB*pi - ( t^2 )*param$LB*pi/(2*param$GB*AQ) )
-           vlb <- sin( (pi-param$GB)*t/AQ+param$GB)
-           if (param$LB<0) vlb <- vlb^2
+           vlb <- exp(  t*param$LB*pi - ( t^2 )*param$LB*pi/(2*param$GB*AQ) )
+           # Test : sin bell (LB>0) & sin bell squared (LB<0) : param$GB in [ pi/6, pi/4 ]
+		   # vlb <- sin( (pi-param$GB)*t/AQ+param$GB)
+           # if (param$LB<0) vlb <- vlb^2
            Tmax <- max(vlb); vlb <- vlb/Tmax
        }
        spec$fid <- vlb*spec$fid
@@ -1387,8 +1388,6 @@ Spec1rProcpar <- list (
       return(ret)
    }
 
-   DEBUG <- spec$param$DEBUG
-   spec$param$DEBUG <- TRUE
    V <- spec$data0
    if (spec$param$REVPPM) V <- rev(V)
    crittype <- spec$param$OPTCRIT0
@@ -1407,7 +1406,6 @@ Spec1rProcpar <- list (
    spec$proc$crit <- L$crit
    spec$proc$phc0 <- L$phc[1]
    spec$proc$RMS <- L$crit[CritID]
-   spec$param$DEBUG <- DEBUG
    if (spec$param$DEBUG) .v("\n\tBest solution: phc0 = %3.6f, Entropy= %2.4e   ", L$phc[1]*180/pi, L$crit[3], logfile=spec$param$LOGFILE)
    spec
 }
@@ -1459,11 +1457,9 @@ Spec1rProcpar <- list (
 
 .optimphase1 <- function(spec)
 {
-   DEBUG <- spec$param$DEBUG
    BLPHC <- spec$param$BLPHC
    CRITSTEP1 <- spec$param$CRITSTEP1
    CRITSTEP2 <- spec$param$CRITSTEP2
-   spec$param$DEBUG <- TRUE
    V <- spec$data0;
    if (spec$param$REVPPM) V <- rev(V)
 
@@ -1487,7 +1483,6 @@ Spec1rProcpar <- list (
       L <- .optimExec(spec, V, phc, CRITSTEP2, lopt); spec <- L$spec; lopt <- L$lopt
    }
 
-   spec$param$DEBUG <- DEBUG
    if (spec$param$DEBUG) .v("\nBest solution: phc = (%3.6f, %3.6f)   ", spec$proc$phc0*180/pi, spec$proc$phc1*180/pi, logfile=spec$param$LOGFILE)
    spec
 }
