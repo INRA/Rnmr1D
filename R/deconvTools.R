@@ -893,13 +893,15 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 		model2 <- NULL
 		if (which(filterset %in% filt)==1) {
 			model1 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug2)
+			if (!is.null(model1) && debug1) cat("LSDeconv_1 : Model1, R2 = ",model1$R2,"\n")
 			if (is.null(model1)) break
 			g2$obl <- model1$params$obl
 			peaks <- model1$peaks
 		} else {
 			model2 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug2)
+			if (!is.null(model1) && debug1) cat("LSDeconv_1 : Model2, R2 = ",model2$R2,"\n")
 			g2$obl <- model2$params$obl
-			if (! is.null(model0$peaks)) {
+			if (! is.null(model0)) {
 				peaks <- intern_LSDpeaks(spec, ppmrange, g2, model0, model1, model2, verbose=debug2)
 				g2$obl <- max(model1$params$obl, model2$params$obl)
 			}
@@ -1081,7 +1083,14 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 			g$peaks <- model0$peaks
 		}
 
-		model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+		debug2 <- ifelse(debug1>0, 2, debug1)
+		model <- C_peakOptimize(spec, ppmrange, g, verbose = debug2)
+		if (!is.null(model) && !is.null(model$peaks) && debug1) {
+			Ymodel <- model$model + intern_computeBL(spec, model)
+			model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+			cat("model0: Optimization before filtration, Nb peaks =",model$nbpeak,", R2=",model$R2,"\n")
+			print(round(model$peaks$ppm,4))
+		}
 
 		if (! is.null(filt)) {
 			model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)

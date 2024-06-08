@@ -596,6 +596,7 @@ void Filtre_Power_WT(double *v1, int count_max, double threshold, std::vector<do
             for (k=n1;k<=n2;k++) v1[k]=0;
         }
     }
+    if(_verbose_>1) Rprintf("\n");
     free_vector(P);
     WT(v1,count_max,-1,fn);
 }
