@@ -123,7 +123,7 @@ deconvParams <- list (
 	filtermodel='smooth1', # Filter applied on the spectrum before compute the model reference (model0) See LSDeconv_1
 
 	# Optimization of Sigmas : Fixe the limits (min and max) of sigmas
-	sigma_min = 0.0005,
+	sigma_min = 0.0003,
 	sigma_max = 0.005,
 
 	# Indicates if we want information messages
@@ -932,11 +932,12 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 	}
 	gc()
 	
-	if (is.null(model1) || nrow(model1$peaks)==0)
-		stop("No peak found.")
-	
-	model <- intern_LSDoutput(spec, ppmrange, g, model1, verbose)
-	class(model) = "LSDmodel"
+	if (is.null(model1) || nrow(model1$peaks)==0) {
+		model <- NULL
+	} else {
+		model <- intern_LSDoutput(spec, ppmrange, g, model1, verbose)
+		class(model) = "LSDmodel"
+	}
 	model
 }
 
@@ -1130,7 +1131,7 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 								", Nb Peaks =", nrow(model1$peaks), ", obl =", obl, ", eta =", round(wtd.mean(model1$peaks$eta,model1$peaks$amp),4),"\n")
 	}
 	
-	if (g$addPeaks && is.null(peaks))
+	if (g$addPeaks && is.null(peaks) && !is.null(model1))
 		model1 <- LSDaddpeaks(spec, model1, ppmrange, g, verbose=verbose)
 	
 	gc()

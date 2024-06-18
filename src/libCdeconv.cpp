@@ -1140,7 +1140,7 @@ double compute_RSS(struct s_spectre *sp, struct s_peaks *pk,struct s_blocks *blo
 // - scmin : required minimum distance (as a multiple of sigma) between two peaks to determine a cut-off point
 void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks)
 {
-	double  *Xw,*Yw,*aw,diff_n,som_s,som_p,pmin,pmax,fmin;
+	double  *Xw,*Yw,*aw,diff_n,som_s,som_p,pmin,pmax,fmin,int_p;
 	int     *iaw;
 	int i,j,k,l,m,p,n,np,na,som_np,ndata,nstart,nstop;
 	
@@ -1249,10 +1249,11 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
 			for (i=1; i<=np; i++) {
 				j=p*(i-1)+1;
 				m=k+i-1;
-				if (aw[j+2]>pk->sigma_max)   aw[j+2]=pk->sigma_max;
-				if (aw[j+2]<pk->sigma_min)   aw[j] = 0.0;
-				if (aw[j]<pk->RatioPN*sp->B) aw[j] = 0.0;
-	
+				if (aw[j+2]>pk->sigma_max)    aw[j+2]=pk->sigma_max;
+				if (aw[j+2]<pk->sigma_min)    aw[j] = 0.0;
+				if (aw[j]<pk->RatioPN*sp->B)  aw[j] = 0.0;
+				if (aw[j+2] != aw[j+2])	      aw[j] = 0.0;
+
 				if (pk->optim_int)
 					pk->AK[m] = aw[j];
 				if (pk->optim_ppm) {
@@ -1262,13 +1263,18 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
 				if (pk->optim_sigma) {
 					pk->sigma[m] = aw[j+2]/sp->delta_ppm;
 				}
+				if (pk->sigma[m] != pk->sigma[m])
+					pk->AK[m] = 0.0;
 				if (pk->optim_asym)
 					pk->asym[m] = dabs(aw[j+3])<_ASYMMAX_ ? aw[j+3] : dsign(aw[j+3])*_ASYMMAX_;
 				if (pk->optim_eta)
 					pk->eta[m] = (aw[j+4]>_ETAMAX_) ? _ETAMAX_ : (aw[j+4]<_ETAMIN_) ? _ETAMIN_ : aw[j+4];
-	
-				som_p += _OVGT_>0 ? pk->AK[m]*(pk->eta[m]*M_PI*pk->sigma[m]+(1-pk->eta[m])*sqrt(2*M_PI)*pk->sigma[m]) :
-								M_PI*pk->AK[m]*pk->sigma[m];
+				int_p = _OVGT_>0 ? pk->AK[m]*(pk->eta[m]*M_PI*pk->sigma[m]+(1-pk->eta[m])*sqrt(2*M_PI)*pk->sigma[m]) :
+							M_PI*pk->AK[m]*pk->sigma[m];
+				if (int_p != int_p) {
+					if(_verbose_>1) Rprintf("Error peak %d at %f: A=%f, S=%f, eta=%f\n",i, pk->ppm[m], pk->AK[m], pk->sigma[m], pk->eta[m]);
+				} else
+					som_p += int_p;
 			}
 			if (_OPBL_ >0 )
 				for(i=0; i<=_OPBL_; i++)
