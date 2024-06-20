@@ -936,7 +936,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 		model <- NULL
 	} else {
 		model <- intern_LSDoutput(spec, ppmrange, g, model1, verbose)
-		class(model) = "LSDmodel"
+		if (!is.null(model)) class(model) = "LSDmodel"
 	}
 	model
 }
@@ -1201,33 +1201,40 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 	P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
 	model$peaks <- P1[P1$ppm<ppmrange[2],]
 
-	rownames(model$peaks) <- NULL
-	model$nbpeak <- nrow(model$peaks)
-	model$LB <- intern_computeBL(spec, model)
-	Ymodel <- model$model + model$LB
-	iseq <- getIndexSeq(spec,ppmrange)
-	model$residus <- spec$int-Ymodel
-	model$iseq <- iseq
-	model$ppmrange <- ppmrange
-	model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-	model$crit <- g$crit
-	model$FacN <- g$facN
-	model$eta <- mean(model$peaks$eta)
-	model$RMSE <- sqrt(mean(model$residus^2))
-	model$filter <- '-' # for backwards compatibility
-	model$params$oasym <- ifelse ( mean(abs(model$peaks$asym))>0, 1, 0 )
-
 	if (debug1) cat("----\n")
-	if (verbose) {
-	cat('=== FacN =',g$facN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*g$facN,"\n")
-	cat('crit =',model$crit,', obl =',model$params$obl,', eta =',round(wtd.mean(model$peaks$eta,model$peaks$amp),4),', oasym =',model$params$oasym,"\n")
-	cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
-	cat('RMSE =', model$RMSE,"\n")
-	cat('R2 =', model$R2,"\n")
-	cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),
-				', Mean =',round(mean(model$residus[iseq]),4), "\n")
+
+	rownames(model$peaks) <- NULL
+	if (nrow(model$peaks)>0) {
+		model$nbpeak <- nrow(model$peaks)
+		model$LB <- intern_computeBL(spec, model)
+		Ymodel <- model$model + model$LB
+		iseq <- getIndexSeq(spec,ppmrange)
+		model$residus <- spec$int-Ymodel
+		model$iseq <- iseq
+		model$ppmrange <- ppmrange
+		model$crit <- g$crit
+		model$FacN <- g$facN
+		model$filter <- '-' # for backwards compatibility
+		model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
+		model$params$oasym <- mean(abs(is.numeric(model$peaks$asym)))
+		model$eta <- mean(model$peaks$eta)
+		model$RMSE <- sqrt(mean(model$residus^2))
+		model$params$oasym <- ifelse ( mean(abs(model$peaks$asym))>0, 1, 0 )
+		class(model) <- "LSDmodel"
+
+		if (verbose) {
+			cat('=== FacN =',g$facN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*g$facN,"\n")
+			cat('crit =',model$crit,', obl =',model$params$obl,', eta =',round(wtd.mean(model$peaks$eta,model$peaks$amp),4),', oasym =',model$params$oasym,"\n")
+			cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
+			cat('RMSE =', model$RMSE,"\n")
+			cat('R2 =', model$R2,"\n")
+			cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),
+						', Mean =',round(mean(model$residus[iseq]),4), "\n")
+		}
+	} else {
+		model <- NULL
+		if (verbose) cat("No peak found\n")
 	}
-	class(model) = "LSDmodel"
 	model
 }
 
