@@ -885,12 +885,14 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 			model0 <- NULL
 		}
 	}
-	
+
 	# Set of values for filter
 	for (filt in filterset) {
 		g2 <- g
 		g2$oasym <- 0
 		model2 <- NULL
+	# Compute model1 (first loop) or model2 (next loops)
+		if (debug1) cat("oasym = 0\n")
 		if (which(filterset %in% filt)==1) {
 			model1 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug2)
 			if (!is.null(model1) && debug1) cat("LSDeconv_1 : Model1, R2 = ",model1$R2,"\n")
@@ -899,20 +901,34 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 			peaks <- model1$peaks
 		} else {
 			model2 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug2)
-			if (!is.null(model1) && debug1) cat("LSDeconv_1 : Model2, R2 = ",model2$R2,"\n")
-			g2$obl <- model2$params$obl
-			if (! is.null(model0)) {
-				peaks <- intern_LSDpeaks(spec, ppmrange, g2, model0, model1, model2, verbose=debug2)
-				g2$obl <- max(model1$params$obl, model2$params$obl)
+	# if model2 not null, Compute mixte model (modelM <- model1 + model2)
+			if (!is.null(model2)) {
+				if (debug1) cat("LSDeconv_1 : Model2, R2 = ",model2$R2,"\n")
+				g2$obl <- model2$params$obl
+				peaks <- model2$peaks
+				if (! is.null(model0)) {
+					if (debug1) cat("----\n")
+					peaks <- intern_LSDpeaks(spec, ppmrange, g2, model0, model1, model2, verbose=debug2)
+					g2$obl <- max(model1$params$obl, model2$params$obl)
+				}
+				g2$peaks <- peaks
+				modelM <- intern_LSDeconv(spec, ppmrange, g2, 'Mixte', g2$obl, verbose=debug2)
+				V <- c(model1$R2, model2$R2, modelM$R2)
+				idx <- which(V %in% max(V))[1]
+				if (debug1) cat("Keep peaks from best model: R2 =",V[idx],"\n")
+				if (idx==2) { model1 <- model2 }
+				if (idx==3) { model1 <- modelM }
+				peaks <- model1$peaks
 			}
 		}
 
+	# if asym is true, compute new model if the retained model is not already with asym 
 		g2$peaks <- peaks
-		if (!is.null(model2))
-			model1 <- intern_LSDeconv(spec, ppmrange, g2, NULL, g2$obl, verbose=debug2)
-		if (g$oasym) {
+		if (g$oasym && model1$params$oasym==0) {
+			if (debug1) cat("oasym = 1\n")
+			filter <- ifelse(is.null(model2), filt, 'Mixte')
 			g2$oasym <- 1
-			model2 <- intern_LSDeconv(spec, ppmrange, g2, NULL, g2$obl, verbose=debug2)
+			model2 <- intern_LSDeconv(spec, ppmrange, g2, filter, g2$obl, verbose=debug2)
 			if (model2$R2>model1$R2) model1 <- model2
 		}
 		rownames(model1$peaks) <- 1:nrow(model1$peaks)
@@ -973,7 +989,7 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=0:2, verbose=1)
 			model <- model2
 		}
 	}
-
+	model$filter <- NULL
 	model <- intern_LSDoutput(spec, ppmrange, g, model, verbose)
 	class(model) = "LSDmodel"
 	model
@@ -1049,6 +1065,7 @@ LSDaddpeaks <- function(spec, model, ppmrange, params=NULL, verbose=1)
 			if (verbose>1) print(g$peaks[!g$peaks$pos %in% model$peaks$pos,,drop=F])
 			g$obl <- model$params$obl
 			model2 <- C_peakOptimize(spec, ppmrange, g, verbose = 0)
+			model2$filter <- model$filter
 			Ymodel <- model2$model + intern_computeBL(spec, model2)
 			model2$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
 			if ((model2$R2>model$R2) || addPforce>0 ) {
@@ -1070,11 +1087,11 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 	pSD <- 1e999
 	model1 <- NULL
 	peaks <- g$peaks 
-	filtername <- ifelse(!is.null(filt),filt,'-')
+	filtername <- ifelse(!is.null(filt),filt,'None')
 	for (obl in oblset) {
 		g$obl <- obl
 		g$peaks <- peaks 
-		if (! is.null(filt) && is.null(peaks)) {
+		if (is.null(peaks)) {
 			model0 <- C_peakFinder(spec, ppmrange, g$flist[[filt]], g, verbose = verbose)
 			model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSN)
 			model0$nbpeak <- ifelse('data.frame' %in% class(model0$peaks), nrow(model0$peaks), 0)
@@ -1093,7 +1110,7 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 			print(round(model$peaks$ppm,4))
 		}
 
-		if (! is.null(filt)) {
+		if (is.null(peaks)) {
 			model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
 			model$model <- Rnmr1D::specModel(spec, ppmrange, model$peaks)
 		}
@@ -1130,10 +1147,13 @@ intern_LSDeconv <- function(spec, ppmrange, params, filt, oblset, verbose=1)
 		if (verbose) cat(filtername,": R2 =",round(model1$R2,4), ", RMSE =",round(SD,6), 
 								", Nb Peaks =", nrow(model1$peaks), ", obl =", obl, ", eta =", round(wtd.mean(model1$peaks$eta,model1$peaks$amp),4),"\n")
 	}
-	
+
 	if (g$addPeaks && is.null(peaks) && !is.null(model1))
 		model1 <- LSDaddpeaks(spec, model1, ppmrange, g, verbose=verbose)
-	
+
+	if (!is.null(model1))
+		model1$filter <- filtername
+
 	gc()
 	return(model1)
 }
@@ -1184,27 +1204,31 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 	g$obl <- model$params$obl
 	g$oasym <- model$params$oasym
 	g$peaks <- model$peaks
-
-	peaks <- g$peaks
-	v <- rep(TRUE, nrow(peaks))
-	if (nrow(peaks)>1)
-		for (k in 1:(nrow(peaks)-1))
-			if ( abs(peaks$ppm[k]-peaks$ppm[k+1])<g$mwbp*spec$dppm )
-				if (peaks$amp[k]>peaks$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
-				else                             { v[k] <- FALSE }
-	g$peaks <- peaks[v,]
+	filter <- model$filter
 
 	debug1 <- ifelse(verbose>1, 1, 0)
-	model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
 
-	model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
-	P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
-	model$peaks <- P1[P1$ppm<ppmrange[2],]
+	if (FALSE) {
+	    # Remove certain peaks if necessary to respect a minimum distance (set by mwbp - default value = 2.4)
+		peaks <- g$peaks
+		v <- rep(TRUE, nrow(peaks))
+		if (nrow(peaks)>1)
+			for (k in 1:(nrow(peaks)-1))
+				if ( abs(peaks$ppm[k]-peaks$ppm[k+1])<g$mwbp*spec$dppm )
+					if (peaks$amp[k]>peaks$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
+					else                             { v[k] <- FALSE }
+	    # then recompute the model 
+		g$peaks <- peaks[v,]
+		model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+		model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
+		model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
+		if (debug1) cat("----\n")
+	}
 
-	if (debug1) cat("----\n")
 
 	rownames(model$peaks) <- NULL
 	if (nrow(model$peaks)>0) {
+		rownames(model$peaks) <- 1:nrow(model$peaks)
 		model$nbpeak <- nrow(model$peaks)
 		model$LB <- intern_computeBL(spec, model)
 		Ymodel <- model$model + model$LB
@@ -1214,7 +1238,7 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 		model$ppmrange <- ppmrange
 		model$crit <- g$crit
 		model$FacN <- g$facN
-		model$filter <- '-' # for backwards compatibility
+		model$filter <- ifelse(!is.null(filter), filter, '-')
 		model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
 		model$params$oasym <- mean(abs(is.numeric(model$peaks$asym)))
 		model$eta <- mean(model$peaks$eta)

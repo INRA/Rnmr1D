@@ -283,6 +283,7 @@ Spec1rProcpar <- list (
    RELAXDELAY <- .bruker.get_param(ACQ,"D",type="numeric",  arrayType=TRUE)[2]
    PULSEWIDTH <- .bruker.get_param(ACQ,"P",type="numeric",  arrayType=TRUE)[1]
    SPINNINGRATE  <- .bruker.get_param(ACQ,"MASR",type="numeric")
+   NUMBEROFSCANS <- .bruker.get_param(ACQ,"NS")
    TD      <- .bruker.get_param(ACQ,"TD")
    SW      <- .bruker.get_param(ACQ,"SW")
    SWH     <- .bruker.get_param(ACQ,"SW_h")
@@ -359,7 +360,7 @@ Spec1rProcpar <- list (
    ppm <- seq(from=pmin, to=pmax, by=dppm)
 
    acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
-                PROBE=PROBE, PULSE=PULSE, NUC=NUC, SOLVENT=SOLVENT, TEMP=TEMP, 
+                PROBE=PROBE, PULSE=PULSE, NUC=NUC, NUMBEROFSCANS=NUMBEROFSCANS, SOLVENT=SOLVENT, TEMP=TEMP, 
                 RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
                 TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
 
