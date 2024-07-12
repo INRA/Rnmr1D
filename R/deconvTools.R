@@ -886,13 +886,14 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 		}
 	}
 
+	if (debug1) cat("oasym =",g$oasym,"\n")
+	if (debug1) cat("---\n")
+
 	# Set of values for filter
 	for (filt in filterset) {
 		g2 <- g
-		g2$oasym <- 0
 		model2 <- NULL
 	# Compute model1 (first loop) or model2 (next loops)
-		if (debug1) cat("oasym = 0\n")
 		if (which(filterset %in% filt)==1) {
 			model1 <- intern_LSDeconv(spec, ppmrange, g2, filt, oblset, verbose=debug2)
 			if (!is.null(model1) && debug1) cat("LSDeconv_1 : Model1, R2 = ",model1$R2,"\n")
@@ -922,19 +923,10 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2
 			}
 		}
 
-	# if asym is true, compute new model if the retained model is not already with asym 
 		g2$peaks <- peaks
-		if (g$oasym && model1$params$oasym==0) {
-			if (debug1) cat("oasym = 1\n")
-			filter <- ifelse(is.null(model2), filt, 'Mixte')
-			g2$oasym <- 1
-			model2 <- intern_LSDeconv(spec, ppmrange, g2, filter, g2$obl, verbose=debug2)
-			if (model2$R2>model1$R2) model1 <- model2
-		}
 		rownames(model1$peaks) <- 1:nrow(model1$peaks)
 
 		if (g$sndpass==1) { # second deconvolution phase without the highest peaks has to be done
-			g2$oasym <- g$oasym # model1$params$oasym
 			model2 <- tryCatch({
 				LSDsndpass(spec, model1, ppmrange, g2, g2$obl, debug1)
 			},
@@ -974,24 +966,26 @@ LSDeconv_2 <- function(spec, ppmrange, params=NULL, oblset=0:2, verbose=1)
 	debug2 <- ifelse(verbose>2, 2, debug1)
 	model <- intern_LSDeconv(spec, ppmrange, g, NULL, oblset, verbose=debug2)
 
-	if (is.null(model) || nrow(model$peaks)==0)
-		stop("No peak found.")
-
-	if (g$sndpass==1) { # second deconvolution phase without the highest peaks has to be done
-		g2 <- g
-		g2$oasym <- model$params$oasym
-		model2 <- tryCatch({
-			LSDsndpass(spec, model, ppmrange, g2, g2$obl, debug1)
-		},
-		error=function(e) { model2 <- model })
-		if (model2$R2>model$R2) {
-			if (debug1) cat("LSD 2nd pass: Ok\n")
-			model <- model2
+	if (!is.null(model) && nrow(model$peaks)>0) {
+		if (g$sndpass==1) { # second deconvolution phase without the highest peaks has to be done
+			g2 <- g
+			g2$oasym <- model$params$oasym
+			model2 <- tryCatch({
+				LSDsndpass(spec, model, ppmrange, g2, g2$obl, debug1)
+			},
+			error=function(e) { model2 <- model })
+			if (model2$R2>model$R2) {
+				if (debug1) cat("LSD 2nd pass: Ok\n")
+				model <- model2
+			}
 		}
+		model$filter <- NULL
+		model <- intern_LSDoutput(spec, ppmrange, g, model, verbose)
+		class(model) = "LSDmodel"
+	} else {
+		model <- NULL
+		if (verbose) cat("No peak found\n")
 	}
-	model$filter <- NULL
-	model <- intern_LSDoutput(spec, ppmrange, g, model, verbose)
-	class(model) = "LSDmodel"
 	model
 }
 
@@ -1240,11 +1234,9 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 		model$FacN <- g$facN
 		model$filter <- ifelse(!is.null(filter), filter, '-')
 		model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-		model$params$oasym <- mean(abs(is.numeric(model$peaks$asym)))
-		model$eta <- mean(model$peaks$eta)
+		model$eta <- median(model$peaks$eta)
 		model$RMSE <- sqrt(mean(model$residus^2))
 		model$params$oasym <- ifelse ( mean(abs(model$peaks$asym))>0, 1, 0 )
-		class(model) <- "LSDmodel"
 
 		if (verbose) {
 			cat('=== FacN =',g$facN,', RatioPN =',g$ratioPN,', RatioSN =',g$ratioPN*g$facN,"\n")
@@ -1400,25 +1392,26 @@ plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'),
                      ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), 
                      ysel=NULL, xlab='', ylab='', title='')
 {
-   iseq <- c(which(x>=ppmrange[1])[1]:length(which(x<=ppmrange[2])))
-   if ("numeric" %in% class(y)) {
-      data <- data.frame(x=x[iseq], y=y[iseq])
-      p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines')
-   }
-   else {
-      if (is.null(ysel)) ysel <- rep(TRUE,ncol(y))
-      y1 <- y[,1]
-      data <- data.frame(x=x[iseq], y=y1[iseq])
-      visible <- ifelse(ysel[1],  TRUE , "legendonly" )
-      p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines', visible=visible)
-      for (k in 2:ncol(y)) {
-         df <- data.frame(x=x[iseq], y=y[iseq,k])
-         visible <- ifelse(ysel[k],  TRUE , "legendonly" )
-         p <- p %>% plotly::add_trace(data=df, x = ~x, y = ~y, name=ynames[k], mode = 'lines', visible=visible)
-      }
-   }
-   p <- p %>% plotly::layout(title=title, xaxis = list(autorange = "reversed", title=xlab), yaxis = list(title=ylab), colorway = ycolors)
-   p
+	iseq <- c(which(x>=ppmrange[1])[1]:length(which(x<=ppmrange[2])))
+	if ("numeric" %in% class(y)) {
+		data <- data.frame(x=x[iseq], y=y[iseq])
+		p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines')
+	}
+	else {
+		if (is.null(ysel)) ysel <- rep(TRUE,ncol(y))
+		y1 <- y[,1]
+		data <- data.frame(x=x[iseq], y=y1[iseq])
+		visible <- ifelse(ysel[1],  TRUE , "legendonly" )
+		p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines', visible=visible)
+		for (k in 2:ncol(y)) {
+			df <- data.frame(x=x[iseq], y=y[iseq,k])
+			visible <- ifelse(ysel[k],  TRUE , "legendonly" )
+			p <- p %>% plotly::add_trace(data=df, x = ~x, y = ~y, name=ynames[k], mode = 'lines', visible=visible)
+		}
+	}
+	names(ycolors)[ 1:length(ynames) ] <- ynames
+	p <- p %>% plotly::layout(title=title, xaxis = list(autorange = "reversed", title=xlab), yaxis = list(title=ylab), colorway = ycolors)
+	p
 }
 
 
