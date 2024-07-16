@@ -1064,6 +1064,7 @@ LSDaddpeaks <- function(spec, model, ppmrange, params=NULL, verbose=1)
 			model2$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
 			if ((model2$R2>model$R2) || addPforce>0 ) {
 				if (verbose) cat("Adding small peaks: Ok\n")
+				if (verbose) cat("AddPforce :",addPforce,"\n")
 				model <- model2
 			}
 		}
@@ -1413,7 +1414,6 @@ plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'),
 	p <- p %>% plotly::layout(title=title, xaxis = list(autorange = "reversed", title=xlab), yaxis = list(title=ylab), colorway = ycolors)
 	p
 }
-
 
 #' plotModel
 #'
