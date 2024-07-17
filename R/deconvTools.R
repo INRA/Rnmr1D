@@ -1220,6 +1220,11 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 		if (debug1) cat("----\n")
 	}
 
+	if (TRUE) {
+		model$peaks <- Rnmr1D::cleanPeaks(spec,model$peaks, g$ratioPN*g$facN)
+		model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
+		if (debug1) cat("----\n")
+	}
 
 	rownames(model$peaks) <- NULL
 	if (nrow(model$peaks)>0) {
@@ -1245,7 +1250,7 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 			cat('Nb Blocks =',model$blocks$cnt,', Nb Peaks =', model$nbpeak,"\n")
 			cat('RMSE =', model$RMSE,"\n")
 			cat('R2 =', model$R2,"\n")
-			cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),
+			cat('Residue : SD =',round(stats::sd(model$residus[iseq]),4),paste0('(',round(stats::sd(model$residus[iseq])/spec$Noise,2),')'),
 						', Mean =',round(mean(model$residus[iseq]),4), "\n")
 		}
 	} else {
@@ -1360,18 +1365,25 @@ MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filterset=c(7,9), o
 
 #' cleanPeaks
 #'
-#' \code{cleanPeaks} cleans the peaks under a specified threshold 
+#' \code{cleanPeaks} cleans the peaks under a specified threshold and also remove redundant peaks having the same position
 #' @param spec a 'spec' object
-#' @param model a model object
-#' @param SNthreshold Threshold for the Signal-Noise Ratio below which the peaks will be rejected
+#' @param peaks a data.frame of the input peaks
+#' @param ratioPN Threshold of the Peak/Noise ration below which the peaks will be rejected
 #' @return a data.frame of the remaining peaks
-cleanPeaks <- function(spec, model, SNthreshold=5) {
-   cmodel <- model$peaks[model$peaks$amp/spec$Noise > SNthreshold, -5 ]
-   ppm <- model$ppmrange
-   cmodel <- cmodel[cmodel$ppm>ppm[1],]; cmodel <- cmodel[cmodel$ppm<ppm[2],]
-   cmodel$PNratio<- cmodel$amp/spec$Noise
-   rownames(cmodel) <- c(1:length(cmodel$ppm))
-   cmodel
+cleanPeaks <- function(spec, peaks, ratioPN)
+{
+	peaks <- Rnmr1D::peakFiltering(spec,peaks, ratioPN)
+	if (! is.null(peaks) && nrow(peaks)>0) {
+		P1 <- NULL
+		for (pos in unique(peaks$pos)) {
+			P2 <- peaks[peaks$pos==pos,,drop=F ]
+			if (nrow(P2)>1) P2 <- P2[order(P2$amp, decreasing=T),][1,]
+			P1 <- rbind(P1, P2)
+		}
+		peaks <- P1
+		rownames(peaks) <- c(1:nrow(peaks))
+	}
+	peaks
 }
 
 #=====================================================================
