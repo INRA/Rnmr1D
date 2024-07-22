@@ -1216,15 +1216,14 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 		g$peaks <- peaks[v,]
 		model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
 		model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
-		model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
-		if (debug1) cat("----\n")
 	}
 
 	if (TRUE) {
 		model$peaks <- Rnmr1D::cleanPeaks(spec,model$peaks, g$ratioPN*g$facN)
-		model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
-		if (debug1) cat("----\n")
 	}
+
+	model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
+	if (debug1) cat("----\n")
 
 	rownames(model$peaks) <- NULL
 	if (nrow(model$peaks)>0) {

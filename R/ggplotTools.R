@@ -429,7 +429,7 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
 #' @param psize point size
 #' @param gcontour type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'
 #' @param params parameters depending on the contour type
-ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores", glabels=FALSE, psize=3, gcontour="ellipse", params=list(cellipse=0.95))
+ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores", glabels=FALSE, psize=3, gcontour="ellipse", params=list(cellipse=0.95), colors=NULL)
 {
    S <- data[,c(pc1,pc2)]
    xlabs <- colnames(S)[1]; ylabs <- colnames(S)[2]
@@ -458,9 +458,12 @@ ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores
               g <- g + ggplot2::scale_shape_manual("",values = shape_values )
           }
       }
+      if (!is.null(colors)) {
+          g <- g + scale_color_manual(values=colors)
+          g <- g + scale_fill_manual(values=colors)
+      }
       if (gcontour=="ellipse")  g <- g + ggplot2::stat_ellipse(geom = "polygon", alpha = 0.2, level=params$cellipse, show.legend=FALSE)
       if (gcontour=="ellipse2") g <- g + ggplot2::stat_ellipse(ggplot2::aes(color = groups), level=params$cellipse, show.legend=FALSE)
-
       if (gcontour=="polygon") {
           .find_hull <- function(Scores) Scores[grDevices::chull(Scores[,2], Scores[,3]), ]
           hulls <- plyr::ddply(Scores, "groups", .find_hull)
