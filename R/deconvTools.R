@@ -1361,7 +1361,7 @@ cleanPeaks <- function(spec, peaks, ratioPN)
 	repeat {
 		if (is.null(peaks) || nrow(peaks)==0) break
 		P1 <- Rnmr1D::peakFiltering(spec,peaks, ratioPN)
-		if (is.null(P1) || nrow(P1)==0) break
+		if (is.null(P1) || nrow(P1)<2) break
 		# Remove certain peaks if necessary to respect a minimum distance (minDistPos)
 		v <- rep(TRUE, nrow(P1))
 		for (k in 1:(nrow(P1)-1)) {
