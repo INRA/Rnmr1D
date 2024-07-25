@@ -840,7 +840,7 @@ computeBL <- function(spec, model)
 #' @param oblset a set of baseline order for fitting
 #' @param verbose level of debug information
 #' @return a model object
-LSDeconv <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2, verbose=1)
+LSDeconv <- function(spec, ppmrange, params=NULL, filterset=c('daub8'), oblset=0, verbose=1)
 {
 	if ( ! 'Spectrum' %in% class(spec) )
 		stop("the input spec must belong to the 'Spectrum' class")
@@ -856,7 +856,7 @@ LSDeconv <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2, 
 }
 
 # Local Spectra Deconvolution with no predefined peaks (g$peaks=NULL)
-LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c(7,9), oblset=0:2, verbose=1)
+LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c('daub8'), oblset=0, verbose=1)
 {
 	g <- getDeconvParams(params)
 	iseq <- getIndexSeq(spec,ppmrange)
@@ -1204,13 +1204,11 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 	debug1 <- ifelse(verbose>1, 1, 0)
 
 	# Remove certain peaks that are too small or to respect a minimum distance
-	g$peaks <- Rnmr1D::cleanPeaks(spec,model$peaks, g$ratioPN*g$facN)
-
-	# then recompute the model 
+	# then recompute the model
+	model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
+	g$peaks <- cleanPeaks(spec,model$peaks, g$ratioPN*g$facN)
 	model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
 
-
-	model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
 	if (debug1) cat("----\n")
 
 	rownames(model$peaks) <- NULL
@@ -1355,30 +1353,25 @@ MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filterset=c(7,9), o
 #' \code{cleanPeaks} cleans the peaks under a specified threshold and also remove redundant peaks having the same position
 #' @param spec a 'spec' object
 #' @param peaks a data.frame of the input peaks
-#' @param ratioPN Threshold of the Peak/Noise ration below which the peaks will be rejected
+#' @param ratioPN Threshold of the Peak/Noise ratio below which the peaks will be rejected
 #' @return a data.frame of the remaining peaks
 cleanPeaks <- function(spec, peaks, ratioPN)
 {
+	minDistPos <- 3
 	repeat {
 		if (is.null(peaks) || nrow(peaks)==0) break
-		peaks <- Rnmr1D::peakFiltering(spec,peaks, ratioPN)
-		if (is.null(peaks) || nrow(peaks)==0) break
-		P1 <- NULL
-		for (pos in unique(peaks$pos)) {
-			P2 <- peaks[peaks$pos==pos,,drop=F ]
-			if (nrow(P2)>1) P2 <- P2[order(P2$amp, decreasing=T),][1,]
-			P1 <- rbind(P1, P2)
-		}
-		peaks <- P1
-		if (nrow(peaks)==0) break
-	    # Remove certain peaks if necessary to respect a minimum distance
+		P1 <- Rnmr1D::peakFiltering(spec,peaks, ratioPN)
+		if (is.null(P1) || nrow(P1)==0) break
+		# Remove certain peaks if necessary to respect a minimum distance (minDistPos)
 		v <- rep(TRUE, nrow(P1))
-		for (k in 1:(nrow(P1)-1))
-			if ( abs(P1$pos[k+1]-P1$pos[k])<2 )
+		for (k in 1:(nrow(P1)-1)) {
+			if ( abs(P1$pos[k+1]-P1$pos[k])<minDistPos )
 				if (P1$amp[k]>P1$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
 				else                       { v[k] <- FALSE }
-		peaks <- P1[v,]
-		rownames(peaks) <- c(1:nrow(peaks))
+		}
+		P2 <- P1[v,]
+		rownames(P2) <- which(peaks$pos %in% P2$pos)
+		peaks <- P2
 		break
 	}
 	peaks

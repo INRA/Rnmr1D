@@ -1245,7 +1245,7 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
 		// -----------------------------------
 	
 			// Recovers the new values of the parameters and calculates the intensity of each peak in the block/bunch
-			som_p=0;
+			som_p=int_p=0;
 			for (i=1; i<=np; i++) {
 				j=p*(i-1)+1;
 				m=k+i-1;
@@ -1269,12 +1269,14 @@ void optim_peaks(struct s_spectre *sp,struct s_peaks *pk,struct s_blocks *blocks
 					pk->asym[m] = dabs(aw[j+3])<_ASYMMAX_ ? aw[j+3] : dsign(aw[j+3])*_ASYMMAX_;
 				if (pk->optim_eta)
 					pk->eta[m] = (aw[j+4]>_ETAMAX_) ? _ETAMAX_ : (aw[j+4]<_ETAMIN_) ? _ETAMIN_ : aw[j+4];
-				int_p = _OVGT_>0 ? pk->AK[m]*(pk->eta[m]*M_PI*pk->sigma[m]+(1-pk->eta[m])*sqrt(2*M_PI)*pk->sigma[m]) :
-							M_PI*pk->AK[m]*pk->sigma[m];
-				if (int_p != int_p) {
-					if(_verbose_>1) Rprintf("Error peak %d at %f: A=%f, S=%f, eta=%f\n",i, pk->ppm[m], pk->AK[m], pk->sigma[m], pk->eta[m]);
-				} else
-					som_p += int_p;
+				if (pk->AK[m]>0) {
+					int_p = _OVGT_>0 ? pk->AK[m]*(pk->eta[m]*M_PI*pk->sigma[m]+(1-pk->eta[m])*sqrt(2*M_PI)*pk->sigma[m]) :
+								M_PI*pk->AK[m]*pk->sigma[m];
+					if (int_p != int_p) {
+						if(_verbose_>1) Rprintf("Error peak %d at %f: A=%f, S=%f, eta=%f\n",i, pk->ppm[m], pk->AK[m], pk->sigma[m], pk->eta[m]);
+					} else
+						som_p += int_p;
+				}
 			}
 			if (_OPBL_ >0 )
 				for(i=0; i<=_OPBL_; i++)
@@ -1682,7 +1684,7 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 	struct s_peaks pk;
 	struct s_blocks blocks;
 
-	int i,k;
+	int i,k,cnt;
 	double  **bl, *v1, ppm;
 
 	bl=matrix(MAXBLOCKS,MAXBLORD+2);
@@ -1786,7 +1788,6 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 	free_vector(v1);
 
 	List ret;
-	ret["nbpeak"]= pk.npic;
 
 	// ------- Parameters -------------------------------
 	ret["params"] = List::create(_["optim"] = pk.optim,
@@ -1810,16 +1811,19 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 
 	// ------- PeakList ----------------------------------
 	NumericMatrix P(pk.npic, 7);
-	for (k=0; k<pk.npic; k++) {
-		P(k,0) = pk.pics[k];
-		P(k,1) = pk.ppm[k];
-		P(k,2) = pk.AK[k];
-		P(k,3) = pk.sigma[k]*sp.delta_ppm;
-		P(k,4) = pk.asym[k];
-		P(k,5) = _OVGT_>0 ? pk.eta[k] : 1 ;
-		P(k,6) = _OVGT_>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigma[k]*sp.delta_ppm + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigma[k]*sp.delta_ppm ) :
-							M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
-	}
+	cnt = 0;
+	for (k=0; k<pk.npic; k++)
+		if (pk.AK[k]>0) {
+			P(k,0) = pk.pics[k];
+			P(k,1) = pk.ppm[k];
+			P(k,2) = pk.AK[k];
+			P(k,3) = pk.sigma[k]*sp.delta_ppm;
+			P(k,4) = pk.asym[k];
+			P(k,5) = _OVGT_>0 ? pk.eta[k] : 1 ;
+			P(k,6) = _OVGT_>0 ? pk.AK[k]*( pk.eta[k]*M_PI*pk.sigma[k]*sp.delta_ppm + (1-pk.eta[k])*sqrt(2*M_PI)*pk.sigma[k]*sp.delta_ppm ) :
+								M_PI*pk.AK[k]*pk.sigma[k]*sp.delta_ppm;
+			cnt++;
+		}
 	ret["peaks"] = DataFrame::create( Named("pos") = P(_,0),
 			Named("ppm") = P(_,1),
 			Named("amp") = P(_,2),
@@ -1827,6 +1831,7 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 			Named("asym") = P(_,4),
 			Named("eta") = P(_,5),
 			Named("integral") = P(_,6) );
+	ret["nbpeak"]= cnt;
 
 	// ------- Massifs  ---------------------------------
 	NumericMatrix M(blocks.nbblocks, 6);
