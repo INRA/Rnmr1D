@@ -1203,24 +1203,12 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 
 	debug1 <- ifelse(verbose>1, 1, 0)
 
-	if (FALSE) {
-	    # Remove certain peaks if necessary to respect a minimum distance (set by mwbp - default value = 2.4)
-		peaks <- g$peaks
-		v <- rep(TRUE, nrow(peaks))
-		if (nrow(peaks)>1)
-			for (k in 1:(nrow(peaks)-1))
-				if ( abs(peaks$ppm[k]-peaks$ppm[k+1])<g$mwbp*spec$dppm )
-					if (peaks$amp[k]>peaks$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
-					else                             { v[k] <- FALSE }
-	    # then recompute the model 
-		g$peaks <- peaks[v,]
-		model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
-		model$peaks <- Rnmr1D::peakFiltering(spec,model$peaks, g$ratioPN*g$facN)
-	}
+	# Remove certain peaks that are too small or to respect a minimum distance
+	g$peaks <- Rnmr1D::cleanPeaks(spec,model$peaks, g$ratioPN*g$facN)
 
-	if (TRUE) {
-		model$peaks <- Rnmr1D::cleanPeaks(spec,model$peaks, g$ratioPN*g$facN)
-	}
+	# then recompute the model 
+	model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+
 
 	model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
 	if (debug1) cat("----\n")
@@ -1371,8 +1359,10 @@ MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filterset=c(7,9), o
 #' @return a data.frame of the remaining peaks
 cleanPeaks <- function(spec, peaks, ratioPN)
 {
-	peaks <- Rnmr1D::peakFiltering(spec,peaks, ratioPN)
-	if (! is.null(peaks) && nrow(peaks)>0) {
+	repeat {
+		if (is.null(peaks) || nrow(peaks)==0) break
+		peaks <- Rnmr1D::peakFiltering(spec,peaks, ratioPN)
+		if (is.null(peaks) || nrow(peaks)==0) break
 		P1 <- NULL
 		for (pos in unique(peaks$pos)) {
 			P2 <- peaks[peaks$pos==pos,,drop=F ]
@@ -1380,7 +1370,16 @@ cleanPeaks <- function(spec, peaks, ratioPN)
 			P1 <- rbind(P1, P2)
 		}
 		peaks <- P1
+		if (nrow(peaks)==0) break
+	    # Remove certain peaks if necessary to respect a minimum distance
+		v <- rep(TRUE, nrow(P1))
+		for (k in 1:(nrow(P1)-1))
+			if ( abs(P1$pos[k+1]-P1$pos[k])<2 )
+				if (P1$amp[k]>P1$amp[k+1]) { v[k+1] <- FALSE; k <- k + 1 }
+				else                       { v[k] <- FALSE }
+		peaks <- P1[v,]
 		rownames(peaks) <- c(1:nrow(peaks))
+		break
 	}
 	peaks
 }
@@ -1446,10 +1445,9 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'),
    # Get all peaks within the ppm range of the model (=> P2)
    ppmrange <- c(model$params$wmin, model$params$wmax)
    iseq <- getIndexSeq(spec,ppmrange)
-   P1 <- model$peaks[model$peaks$ppm>ppmrange[1], ]
-   P2 <- P1[P1$ppm<ppmrange[2],]
+   P2 <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm<ppmrange[2], , drop=F]
    if (! is.null(exclude_zones))
-      for (k in 1:length(exclude_zones)) P2 <- rbind( P2[P2[,2]<exclude_zones[[k]][1],], P2[P2[,2]>exclude_zones[[k]][2],] )
+      for (k in 1:length(exclude_zones)) P2 <- P2[ P2[,2]<exclude_zones[[k]][1] & P2[,2]>exclude_zones[[k]][2], , drop=F ]
    npk <- nrow(P2)
    pkid <- rownames(P2) # the row identifier may be different of the current row number due to prior selection by filtering
 
@@ -1475,7 +1473,7 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'),
    # Plot each group
    for (g in names(groups)){
       # Compute the model based on peaks within the group
-      Vg <- simplify2array(lapply(groups[[g]], function(i) { k=which(pkid %in% i); PVoigt(spec$ppm[iseq], P2$amp[k], P2$ppm[k], P2$sigma[k], P2$asym[k], P2$eta[k]) }))
+      Vg <- simplify2array(lapply(groups[[g]], function(i) { k=which(pkid %in% i)[1]; PVoigt(spec$ppm[iseq], P2$amp[k], P2$ppm[k], P2$sigma[k], P2$asym[k], P2$eta[k]) }))
       fmodel <- apply(Vg,1,sum)
       df <- data.frame(x=datamodel$x, y=fmodel)
       p1 <- plotly::add_trace(p1, data=df, x = ~x, y = ~y, name=g, mode = 'lines', fill = 'tozeroy')

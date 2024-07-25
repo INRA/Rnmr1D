@@ -1583,8 +1583,12 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 		pk.selectpk    = plist.containsElementNamed("selectpk")  ? as<int>(plist["selectpk"]) : 0;
 	
 		// function modelling the resonances : 0=> lorentzian, 1 => pseudo voigt
-		_OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : 0;
+		_OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : _OVGT_;
+
+		// In case of pseudo voigt, fixe the default value for the eta parameter
 		_ETA_          = plist.containsElementNamed("eta")       ? as<double>(plist["eta"]) : _ETA_;
+
+		// In case of asymmetric peaks, fixe the default value and its limit for the asym parameter
 		_ASYM_         = plist.containsElementNamed("asym")      ? as<double>(plist["asym"]) : _ASYM_;
 		_ASYMMAX_      = plist.containsElementNamed("asymmax")   ? as<double>(plist["asymmax"]) : _ASYMMAX_;
 
@@ -1721,11 +1725,15 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 	blocks.scmin   = plist.containsElementNamed("scmin")     ? as<double>(plist["scmin"]) : 2;
 
 	// function modelling the resonances : 0=> lorentzian, 1 => pseudo voigt
-	_OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : 0;
+	_OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : _OVGT_;
 
 	// In case of pseudo voigt, fixe the range for the eta parameter
 	_ETAMIN_       = plist.containsElementNamed("etamin")    ? as<double>(plist["etamin"]) : 0.05;
 	_ETAMAX_       = plist.containsElementNamed("etamax")    ? as<double>(plist["etamax"]) : 0.99;
+
+	// In case of asymmetric peaks, fixe the default value and its limit for the asym parameter
+	_ASYM_         = plist.containsElementNamed("asym")      ? as<double>(plist["asym"]) : _ASYM_;
+	_ASYMMAX_      = plist.containsElementNamed("asymmax")   ? as<double>(plist["asymmax"]) : _ASYMMAX_;
 
 	// baseline order : O for no baseline adjustment
 	_OPBL_         = plist.containsElementNamed("obl")       ? as<int>(plist["obl"]) : 0;
