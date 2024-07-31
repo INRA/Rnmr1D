@@ -1356,8 +1356,9 @@ MultiLSDeconv <- function(spec, ppmranges=NULL, params=NULL, filterset=c(7,9), o
 #' @param spec a 'spec' object
 #' @param peaks a data.frame of the input peaks
 #' @param ratioPN Threshold of the Peak/Noise ratio below which the peaks will be rejected
+#' @param keeprows indicates if row names must be preserved.
 #' @return a data.frame of the remaining peaks
-cleanPeaks <- function(spec, peaks, ratioPN)
+cleanPeaks <- function(spec, peaks, ratioPN, keeprows=FALSE)
 {
 	minDistPos <- 3
 	repeat {
@@ -1372,7 +1373,7 @@ cleanPeaks <- function(spec, peaks, ratioPN)
 				else                       { v[k] <- FALSE }
 		}
 		P2 <- P1[v,]
-		rownames(P2) <- which(unique(peaks$pos) %in% P2$pos)
+		if (keeprows) rownames(P2) <- which(unique(peaks$pos) %in% P2$pos)
 		peaks <- P2
 		break
 	}
