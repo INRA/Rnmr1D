@@ -1207,12 +1207,14 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 	# then recompute the model
 	model$peaks <- model$peaks[model$peaks$ppm>ppmrange[1] & model$peaks$ppm>ppmrange[1], ]
 	g$peaks <- cleanPeaks(spec,model$peaks, g$ratioPN*g$facN)
-	model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
-
+	if (!is.null(g$peaks) && nrow(g$peaks)>0) {
+		model <- C_peakOptimize(spec, ppmrange, g, verbose = debug1)
+	} else {
+		model$peaks <- NULL
+	}
 	if (debug1) cat("----\n")
 
-	rownames(model$peaks) <- NULL
-	if (nrow(model$peaks)>0) {
+	if (!is.null(model) && nrow(model$peaks)>0) {
 		rownames(model$peaks) <- 1:nrow(model$peaks)
 		model$nbpeak <- nrow(model$peaks)
 		model$LB <- intern_computeBL(spec, model)
@@ -1370,7 +1372,7 @@ cleanPeaks <- function(spec, peaks, ratioPN)
 				else                       { v[k] <- FALSE }
 		}
 		P2 <- P1[v,]
-		rownames(P2) <- which(peaks$pos %in% P2$pos)
+		rownames(P2) <- which(unique(peaks$pos) %in% P2$pos)
 		peaks <- P2
 		break
 	}
