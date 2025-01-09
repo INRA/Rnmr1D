@@ -1432,7 +1432,6 @@ Spec1rProcpar <- list (
         n2 <- round(m*(x0+0.2/SW))
         V <- spec$data0
         phc0 <- L$phc[1]
-                         0, phc0*180/pi, n1, n2, length(V), logfile=spec$param$LOGFILE)
         new_spec1r <- C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=phc0, phc1=0))
         Yre <- new_spec1r$re
         n0 <- which(Yre[n1:n2] == max(Yre[n1:n2])) + n1 - 1
