@@ -1424,7 +1424,7 @@ Spec1rProcpar <- list (
 
    # Ajust phc0 based on TSP peak
    if (spec$param$ADJPZTSP) {
-if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP", 0, logfile=spec$param$LOGFILE)
+        if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP", 0, logfile=spec$param$LOGFILE)
         m <- spec$acq$TD
         SW <- spec$acq$SW
         x0 <- abs(spec$pmin)/SW
@@ -1432,7 +1432,6 @@ if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP", 0, logfile=spec$param$LOGFILE)
         n2 <- round(m*(x0+0.2/SW))
         V <- spec$data0
         phc0 <- L$phc[1]
-if (spec$param$DEBUG) .v("\n\t%d: phc0 = %3.6f , n1 = %d , n2 = %d , Size = %d", 
                          0, phc0*180/pi, n1, n2, length(V), logfile=spec$param$LOGFILE)
         new_spec1r <- C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=phc0, phc1=0))
         Yre <- new_spec1r$re
@@ -1440,7 +1439,6 @@ if (spec$param$DEBUG) .v("\n\t%d: phc0 = %3.6f , n1 = %d , n2 = %d , Size = %d",
         dPHC <- spec$param$DPHCPZTSP
         dppm <- spec$param$DHZPZTSP/spec$acq$SFO1
         dN <- round(dppm/spec$dppm)
-if (spec$param$DEBUG) .v("\n\t%d: phc0 = %3.6f , n1 = %d , n2 = %d", 0, phc0, n0-dN, n0+dN, logfile=spec$param$LOGFILE)
         best2 <- stats::optimize(rms0b, interval = c(phc0-dPHC, phc0+dPHC), maximum = FALSE, y = V, n1=n0-dN, n2=n0+dN)
         L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
         crit2 <- L2$crit

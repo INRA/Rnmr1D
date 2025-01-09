@@ -144,6 +144,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
         if (! is.null(procpar$GB)) procParams$GB <- as.numeric(procpar$GB)
         if (! is.null(procpar$ZNEG)) procParams$RABOT <- ifelse( procpar$ZNEG=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$TSP)) procParams$TSP <- ifelse( procpar$TSP=="TRUE", TRUE, FALSE)
+        if (! is.null(procpar$ADJPZTSP)) procParams$ADJPZTSP <- ifelse( procpar$ADJPZTSP=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$O1RATIO)) procParams$O1RATIO <- as.numeric(procpar$O1RATIO)
         if (! is.null(procpar$ZF)) procParams$ZEROFILLING <- ifelse (as.numeric(procpar$ZF)>0, TRUE, FALSE)
         if (! is.null(procpar$ZF)) procParams$ZFFAC <- as.numeric(procpar$ZF)
