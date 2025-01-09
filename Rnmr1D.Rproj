@@ -16,5 +16,9 @@ BuildType: Package
 PackageUseDevtools: Yes
 PackageInstallArgs: --no-multiarch --with-keep.source
 PackageBuildBinaryArgs: --build
-PackageCheckArgs: --as-cran
+PackageCheckArgs: --as-cran --no-clean-on-error
 PackageRoxygenize: rd,collate,namespace
+
+PythonType: conda
+PythonVersion: 3.10.13
+PythonPath: C:/_Tools/anaconda3/python.exe

@@ -1,7 +1,9 @@
+#------------------------------------------------
 # ID RnmrTools.R
-# Copyright (C) 2017-2022 INRAE
-# Authors: D. Jacob
-#
+# Rnmr1D package: Spectra processing
+# Project: NMRProcFlow
+# (C) 2017-2022 - D. JACOB - IMRAE
+#------------------------------------------------
 
 lbALIGN <- 'align'
 lbGBASELINE <- 'gbaseline'

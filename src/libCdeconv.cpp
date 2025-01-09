@@ -1527,38 +1527,38 @@ SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nu
 	_verbose_ = verbose;
 
 	if (filt.isNotNull()) {
-	List flist(filt);
-	fn = as<int>(flist["type"]);
-	switch(fn) {
-		case fNONE:
-			if(_verbose_>0) Rprintf("Filter = none\n");
-			for (k=1; k<=Y.size(); k++) v2[k]=v1[k];
-			break;
-		case fDAUB4:
-			if(_verbose_>0) Rprintf("Filter = daub4\n");
-			filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),daub4);
-			break;
-		case fDAUB8:
-			if(_verbose_>0) Rprintf("Filter = daub8\n");
-			filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),daub8);
-			break;
-		case fSYMLET4:
-			if(_verbose_>0) Rprintf("Filter = symlet8\n");
-			filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),symlet4);
-			break;
-		case fSYMLET8:
-			if(_verbose_>0) Rprintf("Filter = symlet8\n");
-			filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),symlet8);
-			break;
-		case fSAVGOL:
-			if(_verbose_>0) Rprintf("Filter = savgol\n");
-			fsavgol(sp.V,v2,sp.count_max, as<int>(flist["m"]), as<int>(flist["nl"]), as<int>(flist["nr"]));
-			break;
-		case fSMOOTH:
-			if(_verbose_>0) Rprintf("Filter = smooth\n");
-			Smooth(sp.V,v2,sp.count_max, as<int>(flist["m"]));
-			break;
-	}
+		List flist(filt);
+		fn = as<int>(flist["type"]);
+		switch(fn) {
+			case fNONE:
+				if(_verbose_>0) Rprintf("Filter = none\n");
+				for (k=1; k<=Y.size(); k++) v2[k]=v1[k];
+				break;
+			case fDAUB4:
+				if(_verbose_>0) Rprintf("Filter = daub4\n");
+				filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),daub4);
+				break;
+			case fDAUB8:
+				if(_verbose_>0) Rprintf("Filter = daub8\n");
+				filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),daub8);
+				break;
+			case fSYMLET4:
+				if(_verbose_>0) Rprintf("Filter = symlet8\n");
+				filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),symlet4);
+				break;
+			case fSYMLET8:
+				if(_verbose_>0) Rprintf("Filter = symlet8\n");
+				filtbypower(sp.V,v2,sp.count_max,as<double>(flist["threshold"]),symlet8);
+				break;
+			case fSAVGOL:
+				if(_verbose_>0) Rprintf("Filter = savgol\n");
+				fsavgol(sp.V,v2,sp.count_max, as<int>(flist["m"]), as<int>(flist["nl"]), as<int>(flist["nr"]));
+				break;
+			case fSMOOTH:
+				if(_verbose_>0) Rprintf("Filter = smooth\n");
+				Smooth(sp.V,v2,sp.count_max, as<int>(flist["m"]));
+				break;
+		}
 	} else {
 		for (k=1; k<=Y.size(); k++) v2[k]=v1[k];
 	}
@@ -1730,8 +1730,8 @@ SEXP C_peakOptimize(SEXP spec, SEXP ppmrange, SEXP params, int verbose=1)
 	_OVGT_         = plist.containsElementNamed("pvoigt")    ? as<int>(plist["pvoigt"]) : _OVGT_;
 
 	// In case of pseudo voigt, fixe the range for the eta parameter
-	_ETAMIN_       = plist.containsElementNamed("etamin")    ? as<double>(plist["etamin"]) : 0.05;
-	_ETAMAX_       = plist.containsElementNamed("etamax")    ? as<double>(plist["etamax"]) : 0.99;
+	_ETAMIN_       = plist.containsElementNamed("etamin")    ? as<double>(plist["etamin"]) : _ETAMIN_;
+	_ETAMAX_       = plist.containsElementNamed("etamax")    ? as<double>(plist["etamax"]) : _ETAMAX_;
 
 	// In case of asymmetric peaks, fixe the default value and its limit for the asym parameter
 	_ASYM_         = plist.containsElementNamed("asym")      ? as<double>(plist["asym"]) : _ASYM_;

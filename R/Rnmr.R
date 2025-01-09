@@ -1,7 +1,8 @@
 #------------------------------------------------
-# Rnmr1D package: Build 1r spectrum from FID file (Bruker/RS2D/Varian/nmrML)
+# ID Rnmr.R
+# Rnmr1D package: Build 1r spectrum from FID file (Bruker/RS2D/Varian/Jeol/nmrML)
 # Project: NMRProcFlow
-# (C) 2015-2021 - D. JACOB - IMRAE UMR1332 BAP
+# (C) 2015-2021 - D. JACOB - IMRAE
 #------------------------------------------------
 
 #' Spec1rDoProc
@@ -88,7 +89,10 @@ Spec1rProcpar <- list (
 ### Phase Correction
     OPTPHC0=TRUE,              # Zero order phase optimization
     OPTPHC1=TRUE,              # Zero order and first order phases optimization
-    OPTCRIT1=2                 # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
+    OPTCRIT1=2,                # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
+    ADJPZTSP=FALSE,            # Ajust phc0 based on TSP peak : active / desactivate
+    DHZPZTSP=7,                # Ajust phc0 based on TSP peak : HZ range around TSP peak
+    DPHCPZTSP = 0.8            # Ajust phc0 based on TSP peak : phase range around previous estimated value
 )
 
 #--------------------------------
@@ -1197,7 +1201,7 @@ Spec1rProcpar <- list (
            AQ <- td/(2*spec$acq$SWH)
            vlb <- exp(  t*param$LB*pi - ( t^2 )*param$LB*pi/(2*param$GB*AQ) )
            # Test : sin bell (LB>0) & sin bell squared (LB<0) : param$GB in [ pi/6, pi/4 ]
-		   # vlb <- sin( (pi-param$GB)*t/AQ+param$GB)
+           # vlb <- sin( (pi-param$GB)*t/AQ+param$GB)
            # if (param$LB<0) vlb <- vlb^2
            Tmax <- max(vlb); vlb <- vlb/Tmax
        }
@@ -1389,6 +1393,19 @@ Spec1rProcpar <- list (
       return(ret)
    }
 
+   rms0b <- function(ang, y, n1, n2) {
+      Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
+      Yre <- Yrot$re
+      sum <- 0
+      a <- (Yre[n2]-Yre[n1])/(n2-n1);  b <- (Yre[n1]*n2-Yre[n2]*n1)/(n2-n1)
+      for (k in n1:n2) { 
+      	Y <- a*k + b
+      	if (Yre[k]<Y) sum <- sum + abs(Y-Yre[k])
+      }
+      ret <- 10000000*sum
+      return(ret)
+   }
+
    V <- spec$data0
    if (spec$param$REVPPM) V <- rev(V)
    crittype <- spec$param$OPTCRIT0
@@ -1404,6 +1421,32 @@ Spec1rProcpar <- list (
         crit2 <- L2$crit
         if (crit2[CritID] < crit0[CritID]) { L <- L2 }
    }
+
+   # Ajust phc0 based on TSP peak
+   if (spec$param$ADJPZTSP) {
+if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP", 0, logfile=spec$param$LOGFILE)
+        m <- spec$acq$TD
+        SW <- spec$acq$SW
+        x0 <- abs(spec$pmin)/SW
+        n1 <- round(m*(x0-0.4/SW))
+        n2 <- round(m*(x0+0.2/SW))
+        V <- spec$data0
+        phc0 <- L$phc[1]
+if (spec$param$DEBUG) .v("\n\t%d: phc0 = %3.6f , n1 = %d , n2 = %d , Size = %d", 
+                         0, phc0*180/pi, n1, n2, length(V), logfile=spec$param$LOGFILE)
+        new_spec1r <- C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=phc0, phc1=0))
+        Yre <- new_spec1r$re
+        n0 <- which(Yre[n1:n2] == max(Yre[n1:n2])) + n1 - 1
+        dPHC <- spec$param$DPHCPZTSP
+        dppm <- spec$param$DHZPZTSP/spec$acq$SFO1
+        dN <- round(dppm/spec$dppm)
+if (spec$param$DEBUG) .v("\n\t%d: phc0 = %3.6f , n1 = %d , n2 = %d", 0, phc0, n0-dN, n0+dN, logfile=spec$param$LOGFILE)
+        best2 <- stats::optimize(rms0b, interval = c(phc0-dPHC, phc0+dPHC), maximum = FALSE, y = V, n1=n0-dN, n2=n0+dN)
+        L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
+        crit2 <- L2$crit
+        if (crit2[CritID] < crit0[CritID]) { L <- L2 }
+   }
+
    spec$proc$crit <- L$crit
    spec$proc$phc0 <- L$phc[1]
    spec$proc$RMS <- L$crit[CritID]

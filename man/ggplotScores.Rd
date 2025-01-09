@@ -14,7 +14,8 @@ ggplotScores(
   glabels = FALSE,
   psize = 3,
   gcontour = "ellipse",
-  params = list(cellipse = 0.95)
+  params = list(cellipse = 0.95),
+  colors = NULL
 )
 }
 \arguments{
