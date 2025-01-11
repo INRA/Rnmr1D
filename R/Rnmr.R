@@ -2,7 +2,7 @@
 # ID Rnmr.R
 # Rnmr1D package: Build 1r spectrum from FID file (Bruker/RS2D/Varian/Jeol/nmrML)
 # Project: NMRProcFlow
-# (C) 2015-2021 - D. JACOB - IMRAE
+# (C) 2015-2025 - D. JACOB - IMRAE
 #------------------------------------------------
 
 #' Spec1rDoProc
@@ -57,7 +57,7 @@ Spec1rProcpar <- list (
     CLEANUP_OUTPUT=TRUE,       # Clean up the final output objet
 
 ### PRE-PROCESSING - 1r
-    ZF1R=FALSE,
+    ZF1R=FALSE,                # "ZeroFilling" on the 1r spectrum
 
 ### PRE-PROCESSING - FID
     LINEBROADENING=TRUE,       # Line Broading
@@ -92,7 +92,9 @@ Spec1rProcpar <- list (
     OPTCRIT1=2,                # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
     ADJPZTSP=FALSE,            # Ajust phc0 based on TSP peak : active / desactivate
     DHZPZTSP=7,                # Ajust phc0 based on TSP peak : HZ range around TSP peak
-    DPHCPZTSP = 0.8            # Ajust phc0 based on TSP peak : phase range around previous estimated value
+    DPHCPZTSP = 0.8,           # Ajust phc0 based on TSP peak : phase range around previous estimated value
+    MVPZTSP=FALSE,             # Ajust phc0 based on TSP peak : small additional adjustemnt
+    DHZPZRANGE=250             # Ajust phc0 based on mean spectrum on the ppm range closed to the TSP peak
 )
 
 #--------------------------------
@@ -835,7 +837,6 @@ Spec1rProcpar <- list (
            pad <- readBin(to.read, what="int", n=16, size=1L, signed=T, endian = endian)
        }
        if (is.null(Value)) {        
-           #cat("Unknkown Value_Type\n")
            pad <- readBin(to.read, what="int", n=20, size=1L, signed=T, endian = endian)
        }
        Name <- tolower(readChar(to.read, 28))
@@ -847,7 +848,7 @@ Spec1rProcpar <- list (
            Value <- as.logical(Value)
        } else
            Value <- trim(Value)
-   
+
        prefix <- ''
        if (Units[1]>0) {
             v1 <- trunc(Units[1] / 16)
@@ -863,8 +864,6 @@ Spec1rProcpar <- list (
           expr <- paste0(expr, '"value"=',Value)
        expr <- paste0(expr, ' ,"Unit"="',v_unit, '", "Unit_Scaler"=',Unit_Scaler,')')
        eval(parse(text=expr))
-   
-       #cat(Name,"=",trim(Value),v_unit,"\n")
    }   
    seek(to.read,0)
    close(to.read)
@@ -1380,30 +1379,36 @@ Spec1rProcpar <- list (
 
 .optimphase0 <- function(spec)
 {
-   # rms function to be optimised
-   rms0 <- function(ang, y, B, type=0)  {
-      Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
-      Yre <- Yrot$re
-      NPBLSM <- 100
-      Yre <- Yre - C_Estime_LB2 (Yre, 1, length(Yre)-1, NPBLSM, NPBLSM, 6*B)
-      n <- round(length(Yre)/24)
-      Yre <- Yre[n:(23*n)]
-      if (type==0) ret <- sum((Yre[Yre<0])^2);
-      if (type==1) ret <- sum((Yre[Yre>0])^2);
-      return(ret)
+   # functions to be optimised
+   rms0 <- function(ang, y, B, type=0) {
+       Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
+       Yre <- Yrot$re
+       NPBLSM <- 100
+       Yre <- Yre - C_Estime_LB2 (Yre, 1, length(Yre)-1, NPBLSM, NPBLSM, 6*B)
+       n <- round(length(Yre)/24)
+       Yre <- Yre[n:(23*n)]
+       if (type==0) ret <- sum((Yre[Yre<0])^2);
+       if (type==1) ret <- sum((Yre[Yre>0])^2);
+       return(ret)
    }
 
-   rms0b <- function(ang, y, n1, n2) {
-      Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
-      Yre <- Yrot$re
-      sum <- 0
-      a <- (Yre[n2]-Yre[n1])/(n2-n1);  b <- (Yre[n1]*n2-Yre[n2]*n1)/(n2-n1)
-      for (k in n1:n2) { 
-      	Y <- a*k + b
-      	if (Yre[k]<Y) sum <- sum + abs(Y-Yre[k])
-      }
-      ret <- 10000000*sum
-      return(ret)
+   sumneg0 <- function(ang, y, n1, n2) {
+       Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
+       Yre <- Yrot$re
+       sumYneg <- 0
+       a <- (Yre[n2]-Yre[n1])/(n2-n1);  b <- (Yre[n1]*n2-Yre[n2]*n1)/(n2-n1)
+       for (k in n1:n2) { 
+           Y <- a*k + b
+           if (Yre[k]<Y) sumYneg <- sumYneg + abs(Y-Yre[k])
+       }
+       10000000*sumYneg
+   }
+
+   mean0 <- function(ang, y, n1, n2) {
+       Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
+       Yre <- Yrot$re
+       Ym <- mean(Yre[n1:n2])
+       10000000*sum((Yre[n1:n2]-Ym)*(Yre[n1:n2]-Ym))
    }
 
    V <- spec$data0
@@ -1414,34 +1419,46 @@ Spec1rProcpar <- list (
    crit0 <- L$crit
    CritID <- spec$param$OPTCRIT1
    if (spec$acq$NUC %in% c('1H','H1','31P')) {
-        #V <- .capSolvent(spec,0);
-        V <- .maskNegPeaks(spec,C_corr_spec_re(list(re=Re(spec$data0),im=Im(spec$data0), phc0=best[["minimum"]], phc1=0)),0);
-        best2 <- stats::optimize(rms0, interval = c(-2*pi, 2*pi), maximum = FALSE, y = V, B=spec$B, type=crittype)
-        L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
-        crit2 <- L2$crit
-        if (crit2[CritID] < crit0[CritID]) { L <- L2 }
+       #V <- .capSolvent(spec,0);
+       V <- .maskNegPeaks(spec,C_corr_spec_re(list(re=Re(spec$data0),im=Im(spec$data0), phc0=best[["minimum"]], phc1=0)),0);
+       best2 <- stats::optimize(rms0, interval = c(-2*pi, 2*pi), maximum = FALSE, y = V, B=spec$B, type=crittype)
+       L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
+       if (L2$crit[CritID] < crit0[CritID]) { L <- L2; crit0 <- L2$crit }
    }
 
    # Ajust phc0 based on TSP peak
    if (spec$param$ADJPZTSP) {
-        if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP", 0, logfile=spec$param$LOGFILE)
-        m <- spec$acq$TD
-        SW <- spec$acq$SW
-        x0 <- abs(spec$pmin)/SW
-        n1 <- round(m*(x0-0.4/SW))
-        n2 <- round(m*(x0+0.2/SW))
-        V <- spec$data0
-        phc0 <- L$phc[1]
-        new_spec1r <- C_corr_spec_re(list(re=Re(V),im=Im(V), phc0=phc0, phc1=0))
-        Yre <- new_spec1r$re
-        n0 <- which(Yre[n1:n2] == max(Yre[n1:n2])) + n1 - 1
-        dPHC <- spec$param$DPHCPZTSP
-        dppm <- spec$param$DHZPZTSP/spec$acq$SFO1
-        dN <- round(dppm/spec$dppm)
-        best2 <- stats::optimize(rms0b, interval = c(phc0-dPHC, phc0+dPHC), maximum = FALSE, y = V, n1=n0-dN, n2=n0+dN)
-        L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
-        crit2 <- L2$crit
-        if (crit2[CritID] < crit0[CritID]) { L <- L2 }
+       if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP", 0, logfile=spec$param$LOGFILE)
+       m <- spec$proc$SI
+       SW <- spec$acq$SW
+       x0 <- abs(spec$pmin)/SW
+       n1 <- round(m*(x0-0.4/SW))
+       n2 <- round(m*(x0+0.2/SW))
+       fspec <- stats::fft(spec$fid)
+       m <- length(fspec); p <- ceiling(m/2)
+       phc0 <- L$phc[1]
+       fspec <- stats::fft(spec$fid)
+       m <- length(fspec); p <- ceiling(m/2)
+       fspec <- c( fspec[(p+1):m], fspec[1:p] )
+       if ( spec$param$REVPPM ) fspec <- fspec[rev(1:m)]
+       new_spec1r <- C_corr_spec_re(list(re=Re(fspec),im=Im(fspec), phc0=phc0, phc1=0))
+       Yre <- new_spec1r$re
+       if (max(Yre[n1:n2])>10*C_estime_sd(Yre,128)) {
+           n0 <- which(Yre[n1:n2] == max(Yre[n1:n2])) + n1 - 1
+           dPHC <- spec$param$DPHCPZTSP
+           dN <- round(spec$param$DHZPZTSP/(spec$acq$SFO1*spec$dppm))
+           best2 <- stats::optimize(sumneg0, interval = c(phc0-dPHC, phc0+dPHC), maximum = FALSE, y = fspec, n1=n0-dN, n2=n0+dN)
+           phc0 <- best2[["minimum"]]
+           L2 <- .checkPhc(spec, c(phc0,0), 0)
+           if (L2$crit[CritID] < crit0[CritID]) { L <- L2; crit0 <- L2$crit }
+           # Small additional adjustment
+           if (spec$param$MVPZTSP) {
+                n1 <- n0 + dN
+                n2 <- n1 + round(spec$param$DHZPZRANGE/(spec$acq$SFO1*spec$dppm))
+                best2 <- stats::optimize(mean0, interval = c(phc0-dPHC/10, phc0+dPHC/10), maximum = FALSE, y = fspec, n1=n1, n2=n2)
+                L$phc[1] <- best2[["minimum"]]
+           }
+       }
    }
 
    spec$proc$crit <- L$crit
