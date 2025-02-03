@@ -404,33 +404,34 @@ RCalib1D <- function(specMat, PPM_NOISE_AREA, zoneref, ppmref)
 {
    i1<-length(which(specMat$ppm>max(zoneref)))
    i2<-which(specMat$ppm<=min(zoneref))[1]
+   PPM_MIN <- -1000
+   PPM_MAX <- 1000
 
-   # PPM calibration of each spectrum
-   for ( i in 1:specMat$nspec ) {
+   # Compute the shift of each spectrum
+   Tdecal <- foreach::foreach(i=1:specMat$nspec, .combine=c) %dopar% {
        i0 <- i1 + which(specMat$int[i, i1:i2]==max(specMat$int[i, i1:i2])) - 1
        ppm0 <- specMat$ppm_max - (i0-1)*specMat$dppm
-       dppmref <- ppm0 - ppmref
-       decal <- 0
-       sig <- C_estime_sd(specMat$int[i, 1:specMat$size],128)
-       if (abs(dppmref) > specMat$dppm) {
-           decal <- trunc(dppmref/specMat$dppm)
-           dppmref <- dppmref - decal*specMat$dppm
-       }
-       if (abs(dppmref) > 0.5*specMat$dppm) {
-           decal <- decal + trunc(2*dppmref/specMat$dppm)
-           dppmref <- dppmref - trunc(2*dppmref/specMat$dppm)*specMat$dppm
-       }
-       if (decal==0) next
-
-       if (decal<0) {
-          specMat$int[i, 1:(specMat$size-abs(decal))] <- specMat$int[i,(1+abs(decal)):specMat$size]
-          specMat$int[i, (specMat$size-abs(decal)+1):specMat$size] <- stats::rnorm(length((specMat$size-abs(decal)+1):specMat$size), mean=specMat$int[i,specMat$size-abs(decal)-1], sd=sig)
-       }
-       if (decal>0) {
-          specMat$int[i,(1+abs(decal)):specMat$size] <- specMat$int[i, 1:(specMat$size-abs(decal))]
-          specMat$int[i, 1:abs(decal)] <- stats::rnorm(length(1:abs(decal)), mean=specMat$int[i,abs(decal)+1], sd=sig)
-       }
+       return(ppm0 - ppmref)
    }
+
+   # Compute the new full ppm range
+   PPM_MIN <- max(PPM_MIN, specMat$ppm_min-Tdecal)
+   PPM_MAX <- min(PPM_MAX, specMat$ppm_max-Tdecal)
+
+   # PPM calibration of each spectrum
+   N <- length(seq(from=PPM_MIN, to=PPM_MAX, by=specMat$dppm))
+   M <- foreach::foreach(i=1:specMat$nspec, .combine=rbind) %dopar% {
+       ppm <- specMat$ppm - Tdecal[i]
+       P <- ppm>PPM_MIN & ppm<=PPM_MAX
+       V <- specMat$int[i,P]
+       if (length(V)<N) { V <- c(V, rep(0,N-length(V)) ) }
+       if (length(V)>N) { V <- V[1:N] }
+       return(V)
+   }
+   specMat$int <- M
+   specMat$ppm_min <- PPM_MIN
+   specMat$ppm_max <- PPM_MAX
+   specMat$ppm <- rev(seq(from=specMat$ppm_min, to=specMat$ppm_max, by=specMat$dppm))
    return(specMat)
 }
 

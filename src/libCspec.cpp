@@ -1,6 +1,6 @@
 /*
   ID libCspec.cpp
-  Copyright (C) 2015-2022 INRAE
+  Copyright (C) 2015-2025 INRAE
   Authors: D. Jacob
 */
  

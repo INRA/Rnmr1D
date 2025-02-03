@@ -1,7 +1,7 @@
 #------------------------------------------------
 # ID deconvTools.R
 # Rnmr1D package: Spectra deconvolution
-# (C) 2017-2024 - D. JACOB - IMRAE
+# (C) 2019-2025 - D. JACOB - INRAE
 #------------------------------------------------
 
 #=====================================================================
@@ -409,7 +409,7 @@ readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, sc
 
    procParams$DEBUG <- ifelse(verbose, TRUE, FALSE)
    spec <- Rnmr1D::Spec1rDoProc(Input=ACQDIR,param=procParams)
-   spec <- Rnmr1D:::.ppm_calibration(spec)
+   #spec <- Rnmr1D:::.ppm_calibration(spec)
    Noise <- C_noise_estimation(spec$int, which(spec$ppm>=ppmnoise[1])[1], length(which(spec$ppm<=ppmnoise[2])))
    spec$int <- spec$int/scaleIntensity
    spec$img <- spec$img/scaleIntensity

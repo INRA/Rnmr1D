@@ -342,13 +342,14 @@ set_Metadata <- function(RAWDIR, procParams, samples)
       ERRORLIST <- c()
       OKRAW <- 1
 
+      pattern <- ifelse(procParams$INPUT_SIGNAL == "fid", "fid$", "1r$")
+      LIST <-  gsub("//", "/", list.files(path = RAWDIR, pattern = pattern, all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
+
       for (i in 1:nraw) {
           FileSpectrum <- paste(samples[i,1],samples[i,3], sep="/")
           if (procParams$INPUT_SIGNAL == "fid") {
-              LIST <-  gsub("//", "/", list.files(path = RAWDIR, pattern = "fid$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
               FileSpectrum <- paste(FileSpectrum, "fid", sep="/")
           } else {
-              LIST <-  gsub("//", "/", list.files(path = RAWDIR, pattern = "1r$", all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
               FileSpectrum <- paste(FileSpectrum, "pdata",samples[i,4], "1r", sep="/")
           }
           L <- grep(pattern=FileSpectrum, LIST, value=TRUE)
@@ -392,14 +393,15 @@ set_Metadata <- function(RAWDIR, procParams, samples)
       ERRORLIST <- c()
       OKRAW <- 1
 
+      LIST <-  gsub("//", "/", list.files(path = RAWDIR, pattern = "data.dat$",
+                   all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
+
       for (i in 1:nraw) {
           if (procParams$INPUT_SIGNAL == "fid") {
               FileSpectrum  <- paste(samples[i,1], "data.dat", sep="/")
           } else {
               FileSpectrum  <- paste(samples[i,1],"Proc",samples[i,3], "data.dat", sep="/")
           }
-          LIST <-  gsub("//", "/", list.files(path = RAWDIR, pattern = "data.dat$",
-                        all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
           L <- grep(pattern=FileSpectrum, LIST, value=TRUE)
           if (length(L)>0) {
               specdir <- dirname(L[1])

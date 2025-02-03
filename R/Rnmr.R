@@ -93,7 +93,7 @@ Spec1rProcpar <- list (
     ADJPZTSP=FALSE,            # Ajust phc0 based on TSP peak : active / desactivate
     DHZPZTSP=7,                # Ajust phc0 based on TSP peak : HZ range around TSP peak
     DPHCPZTSP = 0.8,           # Ajust phc0 based on TSP peak : phase range around previous estimated value
-    MVPZTSP=FALSE,             # Ajust phc0 based on TSP peak : small additional adjustemnt
+    MVPZTSP=FALSE,             # Ajust phc0 based on TSP peak : adjustment of the mean value close to the TSP
     DHZPZRANGE=250             # Ajust phc0 based on mean spectrum on the ppm range closed to the TSP peak
 )
 
@@ -1428,7 +1428,9 @@ Spec1rProcpar <- list (
 
    # Ajust phc0 based on TSP peak
    if (spec$param$ADJPZTSP) {
-       if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP", 0, logfile=spec$param$LOGFILE)
+       if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP: DHZ=%2.1f, DPHC=%2.4f, MVPZTSP: %d , DPHC2=%d", 
+                                0, spec$param$DHZPZTSP, spec$param$DPHCPZTSP, spec$param$MVPZTSP, spec$param$DHZPZRANGE, 
+                                logfile=spec$param$LOGFILE)
        m <- spec$proc$SI
        SW <- spec$acq$SW
        x0 <- abs(spec$pmin)/SW
@@ -1450,13 +1452,16 @@ Spec1rProcpar <- list (
            best2 <- stats::optimize(sumneg0, interval = c(phc0-dPHC, phc0+dPHC), maximum = FALSE, y = fspec, n1=n0-dN, n2=n0+dN)
            phc0 <- best2[["minimum"]]
            L2 <- .checkPhc(spec, c(phc0,0), 0)
-           if (L2$crit[CritID] < crit0[CritID]) { L <- L2; crit0 <- L2$crit }
-           # Small additional adjustment
+           cond <- (! L2$crit[CritID] > 1.25* crit0[CritID]) || (! L2$crit[3] > 1.25* crit0[3]) 
+           if (cond) { L <- L2; crit0 <- L2$crit }
+           # adjustment of the mean value close to the TSP
            if (spec$param$MVPZTSP) {
                 n1 <- n0 + dN
                 n2 <- n1 + round(spec$param$DHZPZRANGE/(spec$acq$SFO1*spec$dppm))
                 best2 <- stats::optimize(mean0, interval = c(phc0-dPHC/10, phc0+dPHC/10), maximum = FALSE, y = fspec, n1=n1, n2=n2)
-                L$phc[1] <- best2[["minimum"]]
+                L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
+                cond <- (! L2$crit[CritID] > 1.25* crit0[CritID]) || (! L2$crit[3] > 1.25* crit0[3]) 
+                if (cond) { L <- L2; crit0 <- L2$crit }
            }
        }
    }

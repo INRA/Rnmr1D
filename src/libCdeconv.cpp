@@ -1,6 +1,6 @@
 /*
   ID libCdeconv.cpp
-  Copyright (C) 2015-2022 INRAE
+  Copyright (C) 2019-2025 INRAE
   Authors: D. Jacob
 */
 
