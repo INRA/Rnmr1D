@@ -320,11 +320,11 @@ peakFinder <- function(spec, ppmrange, params=NULL, filter='none', verbose=1)
 #' @return a list
 peakOptimize <- function(spec, ppmrange, params, verbose=1)
 {
-   if (is.null(params$peaks) || ! "data.frame" %in% class(params$peaks) || nrow(params$peaks)==0 )
-      stop("the peaks param must be a data.frame with at least one row")
-   model <- C_peakOptimize(spec, ppmrange, params, verbose)
-   class(model) = "optimModel"
-   model
+	if (is.null(params$peaks) || ! "data.frame" %in% class(params$peaks) || nrow(params$peaks)==0 )
+		stop("the peaks param must be a data.frame with at least one row")
+	model <- C_peakOptimize(spec, ppmrange, params, verbose)
+	class(model) = "optimModel"
+	model
 }
 
 #' peakFiltering
@@ -336,9 +336,9 @@ peakOptimize <- function(spec, ppmrange, params, verbose=1)
 #' @return a dataframe
 peakFiltering <- function(spec, peaks, ratioPN)
 {
-   if (is.null(peaks) || ! "data.frame" %in% class(peaks) || nrow(peaks)==0 )
-      stop("the peaks param must be a data.frame with at least one row")
-   C_peakFiltering(spec, peaks, ratioPN)
+	if (!is.null(peaks) && "data.frame" %in% class(peaks) && nrow(peaks)>0 )
+		peaks <- C_peakFiltering(spec, peaks, ratioPN)
+	peaks
 }
 
 #' specModel

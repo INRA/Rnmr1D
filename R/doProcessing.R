@@ -183,6 +183,12 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
            #procParams$RMS <- 0
            #procParams$OC <- FALSE
         }
+        if (! is.null(procpar$ADV)) {
+		   V <- as.vector(simplify2array(strsplit(procpar$ADV,",")))
+           for (k in 1:length(V))
+               if (grepl(':',V[k]))
+                   procParams[[ trim(strsplit(V[k],":")[[1]][1]) ]] <<- as.numeric(trim(strsplit(V[k],":")[[1]][2]))
+        }
         if (procParams$INPUT_SIGNAL=='fid') procParams$READ_RAW_ONLY <- FALSE
         procParams$REVPPM <- ifelse(procParams$VENDOR == 'varian' || procParams$VENDOR == 'jeol', TRUE, FALSE)
    }

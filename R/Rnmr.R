@@ -94,6 +94,7 @@ Spec1rProcpar <- list (
     DHZPZTSP=7,                # Ajust phc0 based on TSP peak : HZ range around TSP peak
     DPHCPZTSP = 0.8,           # Ajust phc0 based on TSP peak : phase range around previous estimated value
     MVPZTSP=FALSE,             # Ajust phc0 based on TSP peak : adjustment of the mean value close to the TSP
+    MVPZFAC=1.25,              # Acceptance of entropy multiplied by this factor
     DHZPZRANGE=250             # Ajust phc0 based on mean spectrum on the ppm range closed to the TSP peak
 )
 
@@ -903,10 +904,11 @@ Spec1rProcpar <- list (
                 RELAXDELAY=procpar$relaxation_delay$value, SPINNINGRATE=procpar$spin_set$value, TD=procpar$x_points$value, 
                 SW=procpar$x_sweep$value/Header$Base_Freq[1], SWH=procpar$x_sweep$value, OFFSET=procpar$x_offset$value,
                 SFO1=procpar$irr_freq$value, O1=procpar$x_offset$value*Header$Base_Freq[1], GRPDLY=0 )
-
-   if( procpar$temp_set$Unit=="dC") acq$TEMP <- acq$TEMP + 273.15
-
    acq$TD <- length(fid)
+
+   # Unit issues
+   if (procpar$temp_set$Unit=="dC") acq$TEMP <- acq$TEMP + 273.15
+   if (procpar$irr_freq$value>1000000)  acq$SFO1 <- acq$SFO1/1000000
 
    # Group Delay : Internal or External
    if (Spec1rProcpar$JGD_INNER) {
@@ -1460,7 +1462,8 @@ Spec1rProcpar <- list (
                 n2 <- n1 + round(spec$param$DHZPZRANGE/(spec$acq$SFO1*spec$dppm))
                 best2 <- stats::optimize(mean0, interval = c(phc0-dPHC/10, phc0+dPHC/10), maximum = FALSE, y = fspec, n1=n1, n2=n2)
                 L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
-                cond <- (! L2$crit[CritID] > 1.25* crit0[CritID]) || (! L2$crit[3] > 1.25* crit0[3]) 
+                FAC <- spec$param$MVPZFAC
+                cond <- (! L2$crit[CritID] > FAC* crit0[CritID]) || (! L2$crit[3] > FAC* crit0[3])
                 if (cond) { L <- L2; crit0 <- L2$crit }
            }
        }
