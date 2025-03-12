@@ -12,27 +12,23 @@ Rnmr1D is the main module in the NMRProcFlow web application (http://nmrprocflow
 
 * You may need to install a C++ compiler if not the case yet (see https://teuder.github.io/rcpp4everyone_en/020_install.html)
 
-* Some R packages:
+* Some R packages from Bioconductor:
 
 ```R
-packages <- c("impute", "MassSpecWavelet","pcaMethods")
-if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
-   BiocManager::install(setdiff(packages, rownames(installed.packages())));
-}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
 
-packages <- c('doParallel', 'ptw', 'signal', 'speaq', 'base64enc', 'XML', 'igraph', 'ggplot2', 'plotly', 'plyr')
-if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
-  install.packages(setdiff(packages, rownames(installed.packages())), repos='http://cran.rstudio.com')
-}
+BiocManager::install(c("impute","MassSpecWavelet","pcaMethods"))
 ```
 
 ## Installation of the R package 
 
-* Note for Windows 10: Before performing the installation within R GUI it may require to specify the Compiler binaries path in the PATH environment variable so that the C++ code compilation will be correctly done ( check with Sys.getenv("PATH") )
+* Note for Windows 11: Before performing the installation within R GUI it may require to specify the Compiler binaries path in the PATH environment variable so that the C++ code compilation will be correctly done ( check with Sys.getenv("PATH") ). Otherwise, install [Rtools for Windows](https://cran.r-project.org/bin/windows/Rtools/rtools44/rtools.html)
 
 ```R
-require(devtools)
-install_github("INRA/Rnmr1D", dependencies = TRUE)
+if (!require("devtools"))
+    install.packages("devtools", repos="https://cran.rstudio.com")
+devtools::install_github("INRA/Rnmr1D", dependencies = TRUE)
 ```
 
 ## Example of use
