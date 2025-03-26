@@ -1507,9 +1507,9 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
       if (norm_meth == 'PQN') {
           buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
           bucVref_IntVal <- C_MedianSpec(buckets_IntVal_CSN)
-          bucRatio <- buckets_IntVal_CSN / bucVref_IntVal
-          Coeff <- apply(bucRatio,1, stats::median)
-          buckets_IntVal <- buckets_IntVal_CSN / Coeff
+          bucRatio <- sweep(buckets_IntVal_CSN, 2, bucVref_IntVal, "/")
+          Coeff <- apply(bucRatio,1,stats::median)
+          buckets_IntVal <- sweep(buckets_IntVal_CSN, 1, Coeff, "/")
       }
       # if supplied, integrate of all spectra within the PPM range of the reference signal
       Vref <- 0*c(1:specMat$nspec)

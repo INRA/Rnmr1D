@@ -1458,13 +1458,13 @@ Spec1rProcpar <- list (
            if (cond) { L <- L2; crit0 <- L2$crit }
            # adjustment of the mean value close to the TSP
            if (spec$param$MVPZTSP) {
-                n1 <- n0 + dN
-                n2 <- n1 + round(spec$param$DHZPZRANGE/(spec$acq$SFO1*spec$dppm))
-                best2 <- stats::optimize(mean0, interval = c(phc0-dPHC/10, phc0+dPHC/10), maximum = FALSE, y = fspec, n1=n1, n2=n2)
-                L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
-                FAC <- spec$param$MVPZFAC
-                cond <- (! L2$crit[CritID] > FAC* crit0[CritID]) || (! L2$crit[3] > FAC* crit0[3])
-                if (cond) { L <- L2; crit0 <- L2$crit }
+               n1 <- n0 + dN
+               n2 <- n1 + round(spec$param$DHZPZRANGE/(spec$acq$SFO1*spec$dppm))
+               best2 <- stats::optimize(mean0, interval = c(phc0-dPHC/10, phc0+dPHC/10), maximum = FALSE, y = fspec, n1=n1, n2=n2)
+               L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
+               FAC <- spec$param$MVPZFAC
+               cond <- (! L2$crit[CritID] > FAC* crit0[CritID]) || (! L2$crit[3] > FAC* crit0[3])
+               if (cond) { L <- L2; crit0 <- L2$crit }
            }
        }
    }

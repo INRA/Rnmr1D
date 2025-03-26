@@ -140,6 +140,7 @@ deconvParams <- list (
 	# Specifies whether a second deconvolution phase without the highest peaks has to be done
 	# 0 => none, 1 => for each filter value, 2 => for each filter value (filterset) and each obl value (oblset)
 	sndpass = 0,
+	sndpassthres = 0.2,
 
 	# Specifies whether small peaks should be added into the model where high residual values occur
 	addPeaks = 0,
@@ -1000,7 +1001,7 @@ LSDsndpass <- function(spec, model, ppmrange, params=NULL, oblset=0:2, verbose=1
 		# Select significant peaks, i.e greater than 20 times the noise level
 		pk1 <- model$peaks[model$peaks$amp/spec$Noise>20, ]
 		# if some significant peaks have an intensity less than 20% of the highest peak
-		if (nrow(pk1)==0 || sum( pk1$amp/max(pk1$amp)<0.2 )==0 ) break
+		if (nrow(pk1)==0 || sum( pk1$amp/max(pk1$amp)<sndpassthres )==0 ) break
 		# Select significant peaks with intensity greater than 50% of the highest peak
 		hpkpos <- pk1[(pk1$amp/max(pk1$amp))>0.5, ]$pos
 		if (length(hpkpos)==model$nbpeak) break
