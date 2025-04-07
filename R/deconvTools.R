@@ -877,7 +877,7 @@ LSDeconv_1 <- function(spec, ppmrange, params=NULL, filterset=c('daub8'), oblset
 		g2 <- g
 		g2$d2meth <- 0
 		if (is.null(g$filtermodel)) g2$filtermodel <-  'smooth2'
-		model0 <- Rnmr1D::peakFinder(spec, ppmrange, g2, g2$filtermodel, verbose = 0)
+		model0 <- Rnmr1D::peakFinder(spec, ppmrange, g2, g2$filtermodel, verbose = debug2)
 		model0$peaks <- Rnmr1D::peakFiltering(spec,model0$peaks, g$ratioSNmodel)
 		if (! is.null(model0$peaks) && nrow(model0$peaks)>0) {
 			rownames(model0$peaks) <- 1:nrow(model0$peaks)
