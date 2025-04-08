@@ -629,7 +629,6 @@ RairPLSbc1D <- function(specMat, zone, clambda, porder=1)
    i2 <- ifelse( min(zone)<=specMat$ppm_min, specMat$size - 1, which(specMat$ppm<=min(zone))[1] )
    n <- i2-i1+1
    cmax <- switch(porder, 6, 7, 8)
-   WS <- 30
 
    #lambda <- ifelse (clambda==cmax, 5, 10^(cmax-clambda) )
    lambda <- ifelse( clambda>0, cmax-clambda, abs(clambda) )
@@ -637,8 +636,7 @@ RairPLSbc1D <- function(specMat, zone, clambda, porder=1)
  
    # Baseline Estimation for each spectrum
    BLList <- foreach::foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
-       x <- Smooth(specMat$int[i,c(i1:i2)],WS)
-       bc <- .airPLS(x, lambda, porder)
+       bc <- .airPLS(specMat$int[i,c(i1:i2)], lambda, porder)
        gc()
        bc
    }
