@@ -394,7 +394,7 @@ set_Metadata <- function(RAWDIR, procParams, samples)
       OKRAW <- 1
 
       LIST <-  gsub("//", "/", list.files(path = RAWDIR, pattern = "data.dat$",
-                   all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
+                     all.files = FALSE, full.names = TRUE, recursive = TRUE, ignore.case = FALSE, include.dirs = FALSE))
 
       for (i in 1:nraw) {
           if (procParams$INPUT_SIGNAL == "fid") {
@@ -454,7 +454,7 @@ set_Metadata <- function(RAWDIR, procParams, samples)
        if ((nc-nDir)>2) {
            RAWDIR <- do.call( paste, c( RAWDIR, as.list(LIST[1,c((nDir+1):(nc-2))]), sep="/"))
        }
-      for (i in 1:nraw) {
+       for (i in 1:nraw) {
           if ( file.exists( paste(RAWDIR, samples[i,1],"fid", sep="/")) ) {
               rawdir <- rbind( rawdir, c( paste(RAWDIR, samples[i,1], sep="/"), 0, 0 ) )
           } else {

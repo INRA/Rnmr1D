@@ -55,6 +55,7 @@ Spec1rProcpar <- list (
     INPUT_SIGNAL="fid",        # What type of input signal: 'fid' or '1r'
     PDATA_DIR='pdata/1',       # subdirectory containing the 1r file (bruker's format only)
     CLEANUP_OUTPUT=TRUE,       # Clean up the final output objet
+    CPREGEX='(^CP\\.|^CP$|\\.CP$)',  # Regex for CP pulses
 
 ### PRE-PROCESSING - 1r
     ZF1R=FALSE,                # "ZeroFilling" on the 1r spectrum
@@ -1327,7 +1328,11 @@ Spec1rProcpar <- list (
    #x0 <- 0.5*(spec$pmax-spec$pmin) + spec$param$KZERO*c(-1,1)
    #Yre[ round(length(Yre)*x0[1]/spec$acq$SW):round(length(Yre)*x0[2]/spec$acq$SW) ] <- 0
    Yre <- .zeroNegPeaks(spec,Yre)
-   entropy <- Fentropy(phc, Re(V),Im(V), spec$param$BLPHC, spec$param$BLPHC, spec$param$KSIG*spec$B, spec$param$GAMMA)
+   entropy <-  tryCatch({
+         Fentropy(phc, Re(V),Im(V), spec$param$BLPHC, spec$param$BLPHC, spec$param$KSIG*spec$B, spec$param$GAMMA)
+   }, error = function(e) {
+      return(0)
+   })
    crit <- c( sum(Yre[Yre>0]^2), sum(abs(Yre[Yre<0]^2)), entropy, sum(abs(Yre)) )
    crit
 }
@@ -1415,6 +1420,14 @@ Spec1rProcpar <- list (
        10000000*sum((Yre[n1:n2]-Ym)*(Yre[n1:n2]-Ym))
    }
 
+   sumneg <- function(ang, y, n1, n2) {
+       Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
+       Yre <- Yrot$re
+       sum <- 0
+       for (k in n1:n2) if (Yre[k]<0) sum <- sum + abs(Yre[k])*abs(Yre[k])
+       sum
+   }
+
    V <- spec$data0
    if (spec$param$REVPPM) V <- rev(V)
    crittype <- spec$param$OPTCRIT0
@@ -1430,10 +1443,25 @@ Spec1rProcpar <- list (
        if (L2$crit[CritID] < crit0[CritID]) { L <- L2; crit0 <- L2$crit }
    }
 
-   # Ajust phc0 based on TSP peak
-   if (spec$param$ADJPZTSP) {
-       if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP: DHZ=%2.1f, DPHC=%2.4f, MVPZTSP: %d , DPHC2=%d", 
-                                0, spec$param$DHZPZTSP, spec$param$DPHCPZTSP, spec$param$MVPZTSP, spec$param$DHZPZRANGE, 
+   # Adjust phc0 if PULSE is of type CP
+   if (length(grep(spec$param$CPREGEX, toupper(spec$acq$PULSE)))>0) {
+       fspec <- stats::fft(spec$fid)
+       m <- length(fspec); p <- ceiling(m/2)
+       fspec <- c( fspec[(p+1):m], fspec[1:p] )
+       if ( spec$param$REVPPM ) fspec <- fspec[rev(1:m)]
+       n1 <- round(0.1*length(fspec))
+       n2 <- round(0.9*length(fspec))
+       phc0 <- L$phc[1]
+       dPHC <- 0.7854
+       best <- stats::optimize(sumneg, interval = c(phc0-dPHC, phc0+dPHC), maximum = FALSE, y = fspec, n1=n1, n2=n2)
+       phc0 <- best[["minimum"]]
+       L <- .checkPhc(spec, c(phc0,0), 0)
+   }
+
+   # Ajust phc0 based on TSP peak if present
+   if (spec$param$TSP && spec$param$ADJPZTSP) {
+       if (spec$param$DEBUG) .v("\n\t%d: ADJPZTSP: 0.00 +/- %2.1f Hz, MVPZTSP: %d, DPHC=%2.3f , DPHC2=%d", 
+                                0, spec$param$DHZPZTSP, spec$param$MVPZTSP, spec$param$DPHCPZTSP, spec$param$DHZPZRANGE, 
                                 logfile=spec$param$LOGFILE)
        m <- spec$proc$SI
        SW <- spec$acq$SW
@@ -1442,11 +1470,9 @@ Spec1rProcpar <- list (
        n2 <- round(m*(x0+0.2/SW))
        fspec <- stats::fft(spec$fid)
        m <- length(fspec); p <- ceiling(m/2)
-       phc0 <- L$phc[1]
-       fspec <- stats::fft(spec$fid)
-       m <- length(fspec); p <- ceiling(m/2)
        fspec <- c( fspec[(p+1):m], fspec[1:p] )
        if ( spec$param$REVPPM ) fspec <- fspec[rev(1:m)]
+       phc0 <- L$phc[1]
        new_spec1r <- C_corr_spec_re(list(re=Re(fspec),im=Im(fspec), phc0=phc0, phc1=0))
        Yre <- new_spec1r$re
        if (max(Yre[n1:n2])>10*C_estime_sd(Yre,128)) {
@@ -1618,16 +1644,31 @@ Spec1rProcpar <- list (
 .CALL <- function ( Input, param=Spec1rProcpar )
 {
 
+   spec <- NULL
    logfile <- param$LOGFILE
-   if(param$DEBUG)
-       if(param$INPUT_SIGNAL == "fid") {
-         .v("Read the FID ...",logfile=logfile)
-       } else {
-          .v("Read the 1R ...",logfile=logfile)
-       }
+
+   fok <- TRUE
+   if (!dir.exists(Input)) Input <- dirname(Input)
+   if (!dir.exists(Input)) fok <- FALSE
+
+   if(param$DEBUG) {
+      if (!dir.exists(Input)) {
+         .v("Path %s does not exist! \n",Input,logfile=logfile)
+      } else {
+         if(param$INPUT_SIGNAL == "fid") {
+            .v("Path of the FID : %s\n",Input,logfile=logfile)
+            .v("Read the FID ...",logfile=logfile)
+         } else {
+            .v("Path of the 1R : %s\n",Input,logfile=logfile)
+            .v("Read the 1R ...",logfile=logfile)
+         }
+      }
+   }
 
    ## Read FID or 1r and parameters
    repeat {
+      if (!fok) break
+
       if (param$VENDOR == "nmrml") {
          spec <- .read.FID.nmrML(Input)
          break
@@ -1666,7 +1707,7 @@ Spec1rProcpar <- list (
    }
 
    repeat {
-      if (param$READ_RAW_ONLY) break
+      if (!fok || param$READ_RAW_ONLY) break
 
       if(param$DEBUG) .v("OK\n",logfile=logfile)
 
