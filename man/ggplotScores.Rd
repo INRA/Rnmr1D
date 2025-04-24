@@ -38,6 +38,8 @@ ggplotScores(
 \item{gcontour}{type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'}
 
 \item{params}{parameters depending on the contour type}
+
+\item{colors}{array of colors}
 }
 \description{
 Plots the two components defined by pc1, pc2 of the matrix of scores coming from a 

@@ -408,6 +408,7 @@ RCalib1D <- function(specMat, PPM_NOISE_AREA, zoneref, ppmref)
    PPM_MAX <- 1000
 
    # Compute the shift of each spectrum
+   i <- NULL
    Tdecal <- foreach::foreach(i=1:specMat$nspec, .combine=c) %dopar% {
        i0 <- i1 + which(specMat$int[i, i1:i2]==max(specMat$int[i, i1:i2])) - 1
        ppm0 <- specMat$ppm_max - (i0-1)*specMat$dppm
@@ -442,6 +443,7 @@ RNorm1D <- function(specMat, normmeth, zones)
 {
    N <- nrow(zones)
 
+   i <- NULL
    if (normmeth=='CSN') {
       # 1/ Integration of each zone ...
       SUM <- foreach::foreach(i=1:N, .combine='+') %dopar% {
@@ -1517,15 +1519,19 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
           Vref <- C_spectra_integrate (specMat$int, istart, iend)
           buckets_IntVal <- buckets_IntVal/Vref
       }
+
+      # Bucket names
+      bucnames <- gsub("^(-?\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets[,1]))) )
+
       # read samples
       samples <- specObj$samples
+
       # write the data table
       if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
           buccenter <- 0.5*(buckets[,1]+buckets[,2])
       } else {
           buccenter <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
       }
-      bucnames <- gsub("^(\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buccenter))) )
       outdata <- buckets_IntVal
       colnames(outdata) <- bucnames
       rownames(outdata) <- samples[,2]

@@ -179,6 +179,7 @@ Spec1rProcpar <- list (
    TEMP    <- .bruker.get_param(ACQ,"TE",type="numeric")
    RELAXDELAY <- .bruker.get_param(ACQ,"D",type="numeric",  arrayType=TRUE)[2]
    PULSEWIDTH <- .bruker.get_param(ACQ,"P",type="numeric",  arrayType=TRUE)[1]
+   P15     <- .bruker.get_param(ACQ,"P",type="numeric",  arrayType=TRUE)[16]
    SPINNINGRATE  <- .bruker.get_param(ACQ,"MASR",type="numeric")
    NUMBEROFSCANS <- .bruker.get_param(ACQ,"NS")
    DUMMYSCANS <- .bruker.get_param(ACQ,"DS")
@@ -256,7 +257,7 @@ Spec1rProcpar <- list (
                 PROBE=PROBE, PULSE=PULSE, SOLVENT=SOLVENT, TEMP=TEMP, NUC=NUC, 
                 NUMBEROFSCANS=NUMBEROFSCANS, DUMMYSCANS=DUMMYSCANS, OFFSET=O1/SFO1,
                 RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
-                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY, P15=P15 )
    spec <- list( path=DIR, acq=acq, fid=fid )
 
    spec
@@ -289,6 +290,7 @@ Spec1rProcpar <- list (
    TEMP    <- .bruker.get_param(ACQ,"TE",type="numeric")
    RELAXDELAY <- .bruker.get_param(ACQ,"D",type="numeric",  arrayType=TRUE)[2]
    PULSEWIDTH <- .bruker.get_param(ACQ,"P",type="numeric",  arrayType=TRUE)[1]
+   P15     <- .bruker.get_param(ACQ,"P",type="numeric",  arrayType=TRUE)[16]
    SPINNINGRATE  <- .bruker.get_param(ACQ,"MASR",type="numeric")
    NUMBEROFSCANS <- .bruker.get_param(ACQ,"NS")
    TD      <- .bruker.get_param(ACQ,"TD")
@@ -369,7 +371,7 @@ Spec1rProcpar <- list (
    acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
                 PROBE=PROBE, PULSE=PULSE, NUC=NUC, NUMBEROFSCANS=NUMBEROFSCANS, SOLVENT=SOLVENT, TEMP=TEMP, 
                 RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
-                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
+                TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY, P15=P15 )
 
    proc <- list( phc0=PHC0*pi/180, phc1=PHC1*pi/180, SI=SI )
 

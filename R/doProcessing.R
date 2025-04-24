@@ -326,6 +326,14 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
 
        samples <- metadata$samples
 
+       if (N>1) {
+           PULSE <- toupper(specList[,1]$acq$PULSE)
+           INSTRUMENT <- toupper(specList[,1]$acq$INSTRUMENT)
+       } else {
+           PULSE <- toupper(spec$acq$PULSE)
+           INSTRUMENT <- toupper(spec$acq$INSTRUMENT)
+       }
+
        # Raw IDs : expno & procno 
        IDS <- cbind(basename(dirname(as.vector(LIST[,1]))), LIST[, c(2:3)])
        if (N>1) {
@@ -342,14 +350,26 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
        }
        LABELS <- c("PULSE", "NUC", "SOLVENT", "GRPDLY", "PHC0","PHC1","SF","SI","SW", "SWH","RELAXDELAY","O1" )
        
-       if (regexpr('BRUKER', toupper(specList[,1]$acq$INSTRUMENT))>0) {
+       if (regexpr('BRUKER', INSTRUMENT)>0) {
           if (N>1) { PARS <- cbind( IDS[,c(2:3)], PARS ) } else { PARS <- c( IDS[1,c(2:3)], PARS ) }
           LABELS <- c("EXPNO", "PROCNO", LABELS)
        }
-       if (regexpr('RS2D', toupper(specList[,1]$acq$INSTRUMENT))>0) {
+       if (regexpr('RS2D', INSTRUMENT)>0) {
           if (N>1) { PARS <- cbind( IDS[,3], PARS ) } else { PARS <- c( IDS[1,3], PARS ) }
           LABELS <- c("PROCNO", LABELS)
        }
+
+       # Adds the PULSEWIDTH and P15 parameters if Vendor == bruker and PULSE <=> cp
+       is_cp <- length(grep("(^CP\\.|^CP$|\\.CP$)", PULSE))>0
+       if (regexpr('BRUKER', INSTRUMENT)>0 && is_cp) {
+           if (N>1) {
+               PARS <- cbind(PARS, t(sapply( c(1:N), function(x) { c(specList[,x]$acq$PULSEWIDTH, specList[,x]$acq$P15) })))
+           } else {
+               PARS <- c(PARS, spec$acq$PULSEWIDTH, spec$acq$P15)
+           }
+           LABELS <- c(LABELS,"PULSEWIDTH","P15" )
+       }
+
        if (N>1) {
           PARS <- cbind( samples[,1], samples[,2], PARS )
        } else {

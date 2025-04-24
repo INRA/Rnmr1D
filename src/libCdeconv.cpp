@@ -134,6 +134,7 @@ public:
     double cr[WAVELET_MAX_SIZE];
 };
 
+
 /* ------------------------------------ */
 /* numutils                             */
 /* ------------------------------------ */
@@ -1492,7 +1493,6 @@ SEXP C_OneVoigt(SEXP X, SEXP Y, SEXP par)
 
    return(vout);
 }
-
 
 // [[Rcpp::export]]
 SEXP C_peakFinder(SEXP spec, SEXP ppmrange, Nullable<List> filt = R_NilValue, Nullable<List> params = R_NilValue, int verbose=1)

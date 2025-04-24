@@ -30,6 +30,10 @@ plotSpec(
 
 \item{ysel}{a vector defining the visibility of each y element (same order as the y matrix)}
 
+\item{xlab}{a label for X axis}
+
+\item{ylab}{a label for Y axis}
+
 \item{title}{title of the graphic}
 }
 \description{

@@ -26,7 +26,13 @@ plotModel(
 
 \item{labels}{choose as legend labels either 'ppm' or 'id'}
 
+\item{groups}{makes possible to group peaks, the set of groups consisting of a list: i) each group having the name of the group as label, ii) each group of peaks being the enumeration of the numbers of the peaks. Example: list('name1'=c(1,3,5), 'name2'=c(7,8,9)).}
+
 \item{tags}{boolean allowing you to put identification tags at the top of each peak}
+
+\item{xlab}{a label for X axis}
+
+\item{ylab}{a label for Y axis}
 
 \item{title}{title of the graphic}
 

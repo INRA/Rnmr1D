@@ -410,7 +410,6 @@ readSpectrum <- function(ACQDIR, procParams, ppmnoise=c(10.2,10.5), PHC=NULL, sc
 
    procParams$DEBUG <- ifelse(verbose, TRUE, FALSE)
    spec <- Rnmr1D::Spec1rDoProc(Input=ACQDIR,param=procParams)
-   #spec <- Rnmr1D:::.ppm_calibration(spec)
    Noise <- C_noise_estimation(spec$int, which(spec$ppm>=ppmnoise[1])[1], length(which(spec$ppm<=ppmnoise[2])))
    spec$int <- spec$int/scaleIntensity
    spec$img <- spec$img/scaleIntensity
@@ -449,7 +448,6 @@ calibSpectrum <- function(spec, zoneref, ppmref)
        decal <- decal + trunc(2*dppmref/spec$dppm)
        dppmref <- dppmref - trunc(2*dppmref/spec$dppm)*spec$dppm
    }
-   if (decal==0) next
 
    if (decal<0) {
       spec$int[1:(spec$size-abs(decal))] <- spec$int[(1+abs(decal)):spec$size]
@@ -504,9 +502,9 @@ sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.004, snrfactor=
    # delta : min ppm width for flat zones
    cutspectrum <- function(spec, ppmrange, sfac=3, vfac1=20, vfac2=50, delta=0.004) {
       # Parameters
-      V <- Rnmr1D:::Smooth(spec$int,10)
-      D <- Rnmr1D:::C_Derive1(V)
-      SD <- sfac*Rnmr1D:::C_estime_sd(D,64)
+      V <- Smooth(spec$int,10)
+      D <- C_Derive1(V)
+      SD <- sfac*C_estime_sd(D,64)
       SV <- vfac1*SD
       Vthreshold <- vfac2*SD
       NSIZE <- round(delta/spec$dppm)
@@ -589,7 +587,7 @@ sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.004, snrfactor=
              if (p1<EZ1 || p0>EZ2) next
              if (p0<EZ1 && p1>EZ1) {
                if (round((EZ1-p0)/spec$dppm)>NSIZE) {
-                 iseq <- getseq(spec,c(p0,EZ1))
+                 iseq <- getIndexSeq(spec,c(p0,EZ1))
                  nm <- which(V[iseq]==max(V[iseq]))
                  if (nm>0.33*length(iseq) && nm <0.66*length(iseq)) rangelist <- rbind(rangelist, c(p0,EZ1))
                }
@@ -597,7 +595,7 @@ sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.004, snrfactor=
              }
              if (p0<EZ2 && p1>EZ2) {
                if (round((p1-EZ2)/spec$dppm)>NSIZE) {
-                 iseq <- getseq(spec,c(EZ2,p1))
+                 iseq <- getIndexSeq(spec,c(EZ2,p1))
                  nm <- which(V[iseq]==max(V[iseq]))
                  if (nm>0.33*length(iseq) && nm <0.66*length(iseq)) rangelist <- rbind(rangelist, c(EZ2,p1))
                }
@@ -620,7 +618,7 @@ sliceSpectrum <- function(spec, ppmrange=c(0.5,9.5), flatwidth=0.004, snrfactor=
    cutrange <- function(spec, rangelist, ppm, max_ppm_width=0.3, alpha=0.25) {
       if (alpha>0.5) alpha <- 1- alpha
       ppmrange <- c( (1-alpha)*ppm[1]+alpha*ppm[2], (1-alpha)*ppm[2]+alpha*ppm[1] )
-      iseq <- getseq(spec,ppmrange)
+      iseq <- getIndexSeq(spec,ppmrange)
       n <- which(spec$int[iseq]==min(spec$int[iseq]))
       pcut <- spec$ppm[iseq[1]+n-1]
       if ((pcut-ppm[1])<max_ppm_width) {
@@ -1001,7 +999,7 @@ LSDsndpass <- function(spec, model, ppmrange, params=NULL, oblset=0:2, verbose=1
 		# Select significant peaks, i.e greater than 20 times the noise level
 		pk1 <- model$peaks[model$peaks$amp/spec$Noise>20, ]
 		# if some significant peaks have an intensity less than 20% of the highest peak
-		if (nrow(pk1)==0 || sum( pk1$amp/max(pk1$amp)<sndpassthres )==0 ) break
+		if (nrow(pk1)==0 || sum( pk1$amp/max(pk1$amp)<g$sndpassthres )==0 ) break
 		# Select significant peaks with intensity greater than 50% of the highest peak
 		hpkpos <- pk1[(pk1$amp/max(pk1$amp))>0.5, ]$pos
 		if (length(hpkpos)==model$nbpeak) break
@@ -1230,7 +1228,7 @@ intern_LSDoutput <- function(spec, ppmrange, params, model, verbose=1)
 		model$FacN <- g$facN
 		model$filter <- ifelse(!is.null(filter), filter, '-')
 		model$R2 <- stats::cor(spec$int[iseq],Ymodel[iseq])^2
-		model$eta <- median(model$peaks$eta)
+		model$eta <- stats::median(model$peaks$eta)
 		model$RMSE <- sqrt(mean(model$residus^2))
 		model$params$oasym <- ifelse ( mean(abs(model$peaks$asym))>0, 1, 0 )
 
@@ -1397,6 +1395,8 @@ cleanPeaks <- function(spec, peaks, ratioPN, keeprows=FALSE)
 #' @param ynames a vector defining the y names (same order as the y matrix)
 #' @param ycolors a vector defining the y colors (same order as the y matrix)
 #' @param ysel a vector defining the visibility of each y element (same order as the y matrix)
+#' @param xlab a label for X axis
+#' @param ylab a label for Y axis
 #' @param title title of the graphic
 plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'), 
                      ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), 
@@ -1433,6 +1433,8 @@ plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'),
 #' @param labels choose as legend labels either 'ppm' or 'id'
 #' @param groups makes possible to group peaks, the set of groups consisting of a list: i) each group having the name of the group as label, ii) each group of peaks being the enumeration of the numbers of the peaks. Example: list('name1'=c(1,3,5), 'name2'=c(7,8,9)).
 #' @param tags boolean allowing you to put identification tags at the top of each peak
+#' @param xlab a label for X axis
+#' @param ylab a label for Y axis
 #' @param title title of the graphic
 #' @param grp_colors specifies the colors for the first groups and/or peaks
 plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'), 
