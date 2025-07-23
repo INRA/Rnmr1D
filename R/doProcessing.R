@@ -303,7 +303,10 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
            } else {
                vpmax <- vpmax + vppm[length(vppm)]
            }
-           M <- rbind(M, rev(V))
+           #M <- rbind(M, rev(V))
+           # Memory allocation if first row - faster than using rbind
+           if (i==1) M <- matrix(0, nrow = N, ncol = length(V))
+           M[i, 1:length(V)] <- rev(V)
        }
 
        cur_dir <- getwd()
