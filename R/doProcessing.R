@@ -282,6 +282,10 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
        N <- dim(LIST)[1]
        vpmin<-0; vpmax<-0
 
+       # Memory allocation if first row - faster than using rbind
+       NCOL <- ifelse(N>1, length(specList[,1]$int), length(specList$int))
+       M <- matrix(0, nrow = N, ncol = NCOL + 1000)
+
        for(i in 1:N) {
            if (N>1) { spec <- specList[,i]; } else { spec <- specList; }
            #PPM_MIN <- globvars$PPM_MIN; PPM_MAX <- globvars$PPM_MAX;
@@ -303,11 +307,11 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
            } else {
                vpmax <- vpmax + vppm[length(vppm)]
            }
-           #M <- rbind(M, rev(V))
-           # Memory allocation if first row - faster than using rbind
-           if (i==1) M <- matrix(0, nrow = N, ncol = length(V))
+           #M <- rbind(M,rev(V))
            M[i, 1:length(V)] <- rev(V)
+           NCOL <- max(NCOL, length(V))
        }
+       M <- M[, 1:NCOL]
 
        cur_dir <- getwd()
 
