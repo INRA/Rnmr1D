@@ -1394,29 +1394,29 @@ cleanPeaks <- function(spec, peaks, ratioPN, keeprows=FALSE)
 #' @param y a vector or a matrix defining the y-axes (ordinates), each signal as a column
 #' @param ynames a vector defining the y names (same order as the y matrix)
 #' @param ycolors a vector defining the y colors (same order as the y matrix)
+#' @param lw line width in pixels
 #' @param ysel a vector defining the visibility of each y element (same order as the y matrix)
 #' @param xlab a label for X axis
 #' @param ylab a label for Y axis
 #' @param title title of the graphic
 plotSpec <- function(ppmrange, x, y, ynames=c('Origin', 'Filtered', 'Model'), 
-                     ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), 
-                     ysel=NULL, xlab='', ylab='', title='')
+                     ycolors=c('grey', 'blue', 'red', 'green', 'orange','magenta','cyan','darkgreen', 'darkorange'), lw=1, ysel=NULL, xlab='', ylab='', title='')
 {
 	iseq <- c(which(x>=ppmrange[1])[1]:length(which(x<=ppmrange[2])))
 	if ("numeric" %in% class(y)) {
 		data <- data.frame(x=x[iseq], y=y[iseq])
-		p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines')
+		p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines', line=list(width=lw))
 	}
 	else {
 		if (is.null(ysel)) ysel <- rep(TRUE,ncol(y))
 		y1 <- y[,1]
 		data <- data.frame(x=x[iseq], y=y1[iseq])
 		visible <- ifelse(ysel[1],  TRUE , "legendonly" )
-		p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines', visible=visible)
+		p <- plotly::plot_ly(data, x = ~x, y = ~y, name = ynames[1], type = 'scatter', mode = 'lines', visible=visible, line=list(width=lw))
 		for (k in 2:ncol(y)) {
 			df <- data.frame(x=x[iseq], y=y[iseq,k])
 			visible <- ifelse(ysel[k],  TRUE , "legendonly" )
-			p <- p %>% plotly::add_trace(data=df, x = ~x, y = ~y, name=ynames[k], mode = 'lines', visible=visible)
+			p <- p %>% plotly::add_trace(data=df, x = ~x, y = ~y, name=ynames[k], mode = 'lines', visible=visible, line=list(width=lw))
 		}
 	}
 	names(ycolors)[ 1:length(ynames) ] <- ynames

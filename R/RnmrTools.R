@@ -608,8 +608,9 @@ Rqnmrbc1D <- function(specMat, PPM_NOISE_AREA, zone)
 
    # Baseline Estimation for each spectrum
    i<-0
+   inoise <- length(which(specMat$ppm>PPM_NOISE_AREA[2])):(which(specMat$ppm<=PPM_NOISE_AREA[1])[1])
    BLList <- foreach::foreach(i=1:specMat$nspec, .combine=cbind) %dopar% {
-       specSig <- fitdistr(specMat$int[i,length(which(specMat$ppm>PPM_NOISE_AREA[2])):(which(specMat$ppm<=PPM_NOISE_AREA[1])[1])], "normal")$estimate[2]
+       specSig <- fitdistr(specMat$int[i,inoise], "normal")$estimate[2]
        x <- specMat$int[i,c(i1:i2)]
        bc <- 0*rep(1:n)
        for (l in 1:NLOOP) {

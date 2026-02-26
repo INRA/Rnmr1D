@@ -696,8 +696,8 @@ void mrqcof( double x[], double y[], int ndata, double a[], int ia[], int ma, do
     free_vector(dyda);
 }
 
-int mrqmin( double x[], double y[], int ndata, double a[], int ma, int ia[], double **covar, double **alpha, double *chisq, double *alamda,
-             void (*fg)(double, double*, double*, double*, int ) )
+int mrqmin( double x[], double y[], int ndata, double a[], int ma, int ia[], double **covar, double **alpha, double *chisq,
+             double *alamda, void (*fg)(double, double*, double*, double*, int ) )
 {
     int j,k,l;
     static int mfit;
@@ -793,7 +793,7 @@ int optimize(double x[], double y[], int ndata, double a[], int ia[], int na,
 double lorentz(double x,double x0, double s, double a=0) { double sa=s*(0.5+1/(1+exp(a*(x-x0)))); return sa*sa/(sa*sa+(x-x0)*(x-x0)); }
 
 // [[Rcpp::export]]
-double gauss(double x,double x0, double s, double a=0)   { double sa=s*(0.5+1/(1+exp(a*(x-x0)))); return exp(-0.5*(x-x0)*(x-x0)/(sa*sa)); }
+double gauss(double x,double x0, double s, double a=0) { double sa=s*(0.5+1/(1+exp(a*(x-x0)))); return exp(-0.5*(x-x0)*(x-x0)/(sa*sa)); }
 
 // [[Rcpp::export]]
 double pvoigt(double x,double x0, double s, double a=0, double eta=0.5) {

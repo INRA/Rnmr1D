@@ -68,10 +68,12 @@ Spec1rProcpar <- list (
     ZEROFILLING=FALSE,         # Zero Filling
     ZFFAC=4,                   # Max factor for Zero Filling
     TSP=FALSE,                 # PPM referencing
+    PTMAX=256,                 # Max spectra size (Ko)
     O1RATIO=1,                 # Fractionnal value of the Sweep Width for PPM calibration
                                # if not based on the parameter of the spectral region center (O1)
     TDFILESIZE=FALSE,          # Calculate TD based on the fid filesize instead of taking its value in the acqus file
     RABOT=FALSE,               # Zeroing of Negative Values
+    AJUSTBL=FALSE,             # Ajust Baseline at the final step
     REMLFREQ=0,                # Remove low frequencies by applying a polynomial subtraction method.
     BLPHC=50,                  # Number of points for baseline smoothing during phasing
     KSIG=2,                    # Number of times the noise signal to be considered
@@ -881,10 +883,11 @@ Spec1rProcpar <- list (
    to.read = file(FILE,"rb")
    seek(to.read,where=Header$Data_Start, origin="start")
    if (Header$Data_Type==1) { # One_D - 64 bits
+       data_offset <- Header$Data_Length/16L
+       readpoints <-  data_offset
        seek(to.read,where=Header$Data_Offset_Start[1], origin="current")
-       readpoints <-  Header$Data_Offset_Stop[1]-Header$Data_Offset_Start[1]+1;
        rawR <- readBin(to.read, what="numeric", n=readpoints, size=8L, endian = endian)
-       seek(to.read,where=Header$Data_Offset_Start[1], origin="current")
+       seek(to.read,where=Header$data_offset, origin="current")
        rawI <- readBin(to.read, what="numeric", n=readpoints, size=8L, endian = endian)
        fid  <- complex(real=rawR, imaginary=rawI)
    }
@@ -1243,7 +1246,7 @@ Spec1rProcpar <- list (
    
     ### Zero filling
     if (param$ZEROFILLING) {
-       TDMAX <- min(param$ZFFAC*td,131072)
+       TDMAX <- min(param$ZFFAC*td,param$PTMAX*1024)
        if(param$DEBUG) .v("\tZero Filling (x%d)\n", round(TDMAX/td), logfile=logfile)
        while ((td/TDMAX) < 1 ) {
           td <- length(spec$fid)
@@ -1353,8 +1356,8 @@ Spec1rProcpar <- list (
        crit <- .computeCrit(spec, phc)
        if (spec$param$DEBUG) .v("%3.6f", phc[1]*180/pi, logfile=spec$param$LOGFILE)
    }
-   if (spec$param$DEBUG).v("\n\t%d: [%d] Spos= %2.4e, Sneg= %2.4e, phc=(%3.6f, %3.6f), Entropy= %2.4e   ", 
-                 lopt, count, crit[1], crit[2], phc[1]*180/pi, phc[2]*180/pi, crit[3], logfile=spec$param$LOGFILE)
+   if (spec$param$DEBUG).v("\n\t%d: [%d] Spos= %2.4e, Sneg= %2.4e, phc=(%3.6f, %3.6f)   ", 
+                 lopt, count, crit[1], crit[2], phc[1]*180/pi, phc[2]*180/pi, logfile=spec$param$LOGFILE)
    list(crit=crit, phc=phc)
 }
 
@@ -1406,7 +1409,6 @@ Spec1rProcpar <- list (
    sumneg0 <- function(ang, y, n1, n2) {
        Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=ang, phc1=0))
        Yre <- Yrot$re
-       sumYneg <- 0
        a <- (Yre[n2]-Yre[n1])/(n2-n1);  b <- (Yre[n1]*n2-Yre[n2]*n1)/(n2-n1)
        10000000*sum(sapply(n1:n2, function(k){ Y<-a*k + b; ifelse(Yre[k]<Y, (Y - Yre[k])*(Y - Yre[k]), 0) }))
    }
@@ -1443,8 +1445,9 @@ Spec1rProcpar <- list (
    pulse1 <- length(grep(spec$param$CPREGEX, toupper(spec$acq$PULSE)))>0
    pulse2 <- length(grep("CPMG", toupper(spec$acq$PULSE)))>0
    pulse3 <- length(grep("NOESY", toupper(spec$acq$PULSE)))>0
-   if (! spec$param$TSP && (pulse1 || pulse2 || pulse3)) {
-       if (pulse1) {
+   pulse4 <- length(grep("(proton.jxp|single_pulse.jxp)", tolower(spec$acq$PULSE)))>0
+   if (! spec$param$TSP && (pulse1 || pulse2 || pulse3 || pulse4)) {
+       if (pulse1 || pulse4) {
            if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.15
            if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.85
        }
@@ -1515,7 +1518,7 @@ Spec1rProcpar <- list (
    spec$proc$crit <- L$crit
    spec$proc$phc0 <- L$phc[1]
    spec$proc$RMS <- L$crit[CritID]
-   if (spec$param$DEBUG) .v("\n\tBest solution: phc0 = %3.6f, Entropy= %2.4e   ", L$phc[1]*180/pi, L$crit[3], logfile=spec$param$LOGFILE)
+   if (spec$param$DEBUG) .v("\n\tBest solution: phc0 = %3.6f, Sneg= %2.4e   ", L$phc[1]*180/pi, L$crit[2], logfile=spec$param$LOGFILE)
    spec
 }
 
@@ -1595,16 +1598,15 @@ Spec1rProcpar <- list (
    sumneg <- function(par, y, n1, n2) {
       Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=par[1], phc1=par[2]))
       Yre <- Yrot$re
-      sum <- 0
-      for (k in n1:n2) if (Yre[k]<0) sum <- sum + abs(Yre[k])*abs(Yre[k])
-      sum
+      10000000*sum(sapply(n1:n2, function(k){ ifelse(Yre[k]<0, Yre[k]*Yre[k],0) }))
    }
 
    pulse1 <- length(grep(spec$param$CPREGEX, toupper(spec$acq$PULSE)))>0
    pulse2 <- length(grep("CPMG", toupper(spec$acq$PULSE)))>0
    pulse3 <- length(grep("NOESY", toupper(spec$acq$PULSE)))>0
-   if (pulse1 || pulse2 || pulse3) {
-      if (pulse1) {
+   pulse4 <- length(grep("(proton.jxp|single_pulse.jxp)", tolower(spec$acq$PULSE)))>0
+   if (pulse1 || pulse2 || pulse3 || pulse4 ) {
+      if (pulse1 || pulse4) {
            if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.15
            if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.85
       }
@@ -1623,8 +1625,9 @@ Spec1rProcpar <- list (
       while(nloop<20) {
           best <- stats::optim(par=phc, fn=sumneg, method="Nelder-Mead", y = fspec,  n1=n1, n2=n2, control=list(maxit=200))
           nloop <- nloop + 1
-          if (abs(best$par[1])<6.28 && abs(best$par[2])<3.14) break
-          phc <- c( runif(1,0,3.14), runif(1,0,3.14) )
+          if (pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<3.14) break
+          if (!pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<1.571) break
+          phc <- c( runif(1,0,3.14), runif(1,-0.7854,0.7854) )
       }
       if (spec$param$DEBUG) .v("\n\t%d: KSTART = %1.2f , KSTOP = %1.2f, nloop = %d", 
                                 0, spec$param$KSTART, spec$param$KSTOP, nloop, logfile=spec$param$LOGFILE)
@@ -1704,11 +1707,12 @@ Spec1rProcpar <- list (
    logfile <- param$LOGFILE
 
    fok <- TRUE
-   if (!dir.exists(Input)) Input <- dirname(Input)
-   if (!dir.exists(Input)) fok <- FALSE
-
+   if (param$VENDOR %in% c("bruker","rs2d","magritek")) {
+       if (!dir.exists(Input)) Input <- dirname(Input)
+       if (!dir.exists(Input)) fok <- FALSE
+   }
    if(param$DEBUG) {
-      if (!dir.exists(Input)) {
+      if (!dir.exists(Input) && !file.exists(Input)) {
          .v("Path %s does not exist! \n",Input,logfile=logfile)
       } else {
          if(param$INPUT_SIGNAL == "fid") {
@@ -1790,7 +1794,14 @@ Spec1rProcpar <- list (
           spec <- .computeSpec(spec)
 
           # Get real spectrum
-          spec$int <- ajustBL(Re(spec$data),0)
+          spec$int <- Re(spec$data)
+
+          # Ajust Baseline if required
+          if(param$AJUSTBL) {
+              if (param$DEBUG) .v("Ajust Baseline ... ", logfile=logfile)
+              spec$int <- ajustBL(spec$int,0)
+              if(param$DEBUG) .v("OK\n",logfile=logfile)
+          }
 
           # PPM calibration based on TSP
           if (param$TSP) {
