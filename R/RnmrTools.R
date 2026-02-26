@@ -839,7 +839,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
 
    if (Algo %in% c('aibin','erva','unif')) {
       # Noise estimation
-      if (sum(is.na(zonenoise))) {
+      if (is.na(zonenoise)) {
           PPM_NOISE_AREA <- c(10.2, 10.5)
       } else {
          PPM_NOISE_AREA <- c(min(zonenoise), max(zonenoise))
@@ -897,7 +897,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
        if (Algo=='erva') {
           Mbuc <- matrix(, nrow = MAXBUCKETS, ncol = 2)
           Mbuc[] <- 0
-          buckets_m <- C_erva_buckets(specMat$int, Mbuc, Vref, bdata, i1, i2)
+          buckets_m <- C_erva_buckets(specMat$int[1:specMat$nspec, ], Mbuc, Vref, bdata, i1, i2)
           V <- abs(specMat$ppm[buckets_m[,2]] - specMat$ppm[buckets_m[,1]])
           buckets_m <- buckets_m[ which(V>5*specMat$dppm), ]
        }
@@ -1342,15 +1342,14 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
                   PPM_NOISE <- c( min(params[1:2]), max(params[1:2]) )
                   resol <- params[3]; snr <- params[4];
                   if (length(params)>4) fappend <- params[5]
-                  Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2])," - Resolution =",resol," - SNR threshold=",snr,"\n"))
+                  Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2])," - Resolution =",resol," - SNR threshold=",snr, " - Append=",fappend,"\n"))
               } else {
                   PPM_NOISE <- NULL
                   resol <- 0; snr <- 0;
                   if (length(params)>2) fappend <- params[3]
                   Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2]),"\n"))
               }
-              Write.LOG(LOGFILE,"Rnmr1D:  Bucketing the selected PPM ranges ...\n")
-              Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2])," - Resolution =",resol," - SNR threshold=",snr, " - Append=",fappend,"\n"))
+              Write.LOG(LOGFILE,"Rnmr1D:     Bucketing the selected PPM ranges ...\n")
               specMat <- RWrapperCMD1D(cmdName,specMat, cmdPars[2], resol, snr, zones, PPM_NOISE, fappend, DEBUG=debug)
               if (dim(specMat$buckets_zones)[1]>2) {
                  specMat$buckets_zones <- specMat$buckets_zones[order(specMat$buckets_zones[,1]), ]
