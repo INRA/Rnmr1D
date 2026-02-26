@@ -832,17 +832,14 @@ RShift1D <- function(specMat, zone, RELDECAL=0, Selected=NULL)
 #------------------------------
 RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DEBUG=FALSE)
 {
-   NUC <- readLines('nuc.txt')
-   idx <- 1:specMat$nspec
-
    # Limit size of buckets
    MAXBUCKETS<-2000
    NOISE_FAC <- 3
    LOGMSG <- ""
 
-   if (Algo %in% c('aibin','unif','erva')) {
+   if (Algo %in% c('aibin','erva','unif')) {
       # Noise estimation
-      if (is.na(zonenoise)) {
+      if (sum(is.na(zonenoise))) {
           PPM_NOISE_AREA <- c(10.2, 10.5)
       } else {
          PPM_NOISE_AREA <- c(min(zonenoise), max(zonenoise))
@@ -863,16 +860,16 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
       bdata$dppm <- specMat$dppm
       bdata$noise_fac <- NOISE_FAC
       bdata$VREF <- 1
-      if (NUC=="13C") {
+      if (specMat$nuc == "1H") {
+         bdata$noise_fac <- 3
+         bdata$bin_fac <- 0.5
+         bdata$peaknoise_rate <- 15
+         bdata$BUCMIN <- 0.003
+      } else {
          bdata$noise_fac <- 2
          bdata$bin_fac <- 0.1
          bdata$peaknoise_rate <- 5
          bdata$BUCMIN <- 0.05
-      } else {
-         bdata$noise_fac <- NOISE_FAC
-         bdata$bin_fac <- 0.5
-         bdata$peaknoise_rate <- 15
-         bdata$BUCMIN <- 0.003
       }
    }
 
@@ -895,7 +892,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
    # For each PPM range
    buckets_zones <- NULL
    N <- dim(zones)[1]
-   buckets_zones <- foreach(i=1:N, .combine=rbind) %dopar% {
+   buckets_zones <- foreach::foreach(i=1:N, .combine=rbind) %dopar% {
        i2<-which(specMat$ppm<=min(zones[i,]))[1]
        i1<-length(which(specMat$ppm>max(zones[i,])))
        if (Algo=='aibin') {
@@ -906,7 +903,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
        if (Algo=='erva') {
           Mbuc <- matrix(, nrow = MAXBUCKETS, ncol = 2)
           Mbuc[] <- 0
-          buckets_m <- C_erva_buckets(specMat$int[idx, ], Mbuc, Vref, bdata, i1, i2)
+          buckets_m <- C_erva_buckets(specMat$int, Mbuc, Vref, bdata, i1, i2)
           V <- abs(specMat$ppm[buckets_m[,2]] - specMat$ppm[buckets_m[,1]])
           buckets_m <- buckets_m[ which(V>5*specMat$dppm), ]
        }
@@ -919,15 +916,15 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
           buckets_m <- matrix( c( i1, i2 ), nrow=1, ncol=2, byrow=T )
        }
        LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),"), Nb Buckets =",dim(buckets_m)[1],"\n")
-       # Keep only the buckets for which the SNR average is greater than 'snr'
-       if (nrow(buckets_m)>1) {
+       if (dim(buckets_m)[1]>1) {
+          # Keep only the buckets for which the SNR average is greater than 'snr'
           MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
           bucsel <- which( apply(t(MaxVals/(2*Vnoise)),1,stats::quantile)[4,]>snr )
           buckets_m <- buckets_m[ bucsel, ]
        }
+
        cbind( specMat$ppm[buckets_m[,1]], specMat$ppm[buckets_m[,2]], LOGMSG )
    }
-
    if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste(unique(buckets_zones[,3]), collapse=""))
 
    buckets_zones <- cbind( .N(buckets_zones[,1]), .N(buckets_zones[,2]) )
