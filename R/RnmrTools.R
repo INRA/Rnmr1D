@@ -1339,7 +1339,7 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
               fappend <- 0
               if ( cmdPars[2] %in% c('aibin','erva','unif') ) {
                   params <- as.numeric(cmdPars[-c(1:2)])
-                  PPM_NOISE <- c( min(params[1:2]), max(params[1:2]) )
+                  PPM_NOISE <- as.numeric(c( min(params[1:2]), max(params[1:2]) ))
                   resol <- params[3]; snr <- params[4];
                   if (length(params)>4) fappend <- params[5]
                   Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2])," - Resolution =",resol," - SNR threshold=",snr, " - Append=",fappend,"\n"))
