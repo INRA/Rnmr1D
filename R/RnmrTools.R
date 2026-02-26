@@ -880,12 +880,6 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
       bdata$dppm <- specMat$dppm
       bdata$ppm_min <- specMat$ppm_min
       bdata$BUCMIN <- 0.001
-      # if CP sequence then withdrraw the first spectra from the kinetics (tc<TCmin)
-      if (!is.null(specParamsDF) && 'P15' %in% colnames(specParamsDF)) {
-          TCmin <- ifelse(!is.null(procParams) && !is.null(procParams$TCmin), procParams$TCmin, 100)
-          idx <- which(specParamsDF$P15>=TCmin)
-          if( !is.null(LOGFILE) ) Write.LOG(LOGFILE,paste("Rnmr1D:     CP sequence: TCmin =",TCmin))
-      }
    }
 
 
