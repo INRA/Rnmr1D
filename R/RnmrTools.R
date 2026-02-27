@@ -909,15 +909,17 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
        if (Algo=='vsb') {
           buckets_m <- matrix( c( i1, i2 ), nrow=1, ncol=2, byrow=T )
        }
-       LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),"), Nb Buckets =",dim(buckets_m)[1],"\n")
        if (dim(buckets_m)[1]>1) {
           # Keep only the buckets for which the SNR average is greater than 'snr'
           MaxVals <- C_maxval_buckets (specMat$int, buckets_m)
           bucsel <- which( apply(t(MaxVals/(2*Vnoise)),1,stats::quantile)[4,]>snr )
           buckets_m <- buckets_m[ bucsel, ]
        }
-
-       cbind( specMat$ppm[buckets_m[,1]], specMat$ppm[buckets_m[,2]], LOGMSG )
+       #LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(zones[i,]),",",max(zones[i,]),"), Nb Buckets =",dim(buckets_m)[1],"\n")
+       vr <- 4
+       p1 <- round(specMat$ppm[i1],vr); p2 <- round(specMat$ppm[i2],vr)
+       LOGMSG <- paste("Rnmr1D:     Zone",i,"= (",min(p1,p2),",",max(p1,p2),"), Nb Buckets =",dim(buckets_m)[1],"\n")
+       cbind( round(specMat$ppm[buckets_m[,1]],vr), round(specMat$ppm[buckets_m[,2]],vr), LOGMSG )
    }
    if( DEBUG ) LOGMSG <- paste0(LOGMSG, paste(unique(buckets_zones[,3]), collapse=""))
 
@@ -1337,6 +1339,7 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
                   CMD <- CMD[-1]
               }
               fappend <- 0
+              Write.LOG(LOGFILE,"Rnmr1D:  Bucketing the selected PPM ranges ...\n")
               if ( cmdPars[2] %in% c('aibin','erva','unif') ) {
                   params <- as.numeric(cmdPars[-c(1:2)])
                   PPM_NOISE <- c( min(params[1:2]), max(params[1:2]) )
@@ -1346,10 +1349,8 @@ doProcCmd <- function(specObj, cmdstr, ncpu=1, debug=FALSE)
               } else {
                   PPM_NOISE <- NULL
                   resol <- 0; snr <- 0;
-                  if (length(params)>2) fappend <- params[3]
                   Write.LOG(LOGFILE,paste0("Rnmr1D:     ",toupper(cmdPars[2]),"\n"))
               }
-              Write.LOG(LOGFILE,"Rnmr1D:     Bucketing the selected PPM ranges ...\n")
               specMat <- RWrapperCMD1D(cmdName,specMat, cmdPars[2], resol, snr, zones, PPM_NOISE, fappend, DEBUG=debug)
               if (dim(specMat$buckets_zones)[1]>2) {
                  specMat$buckets_zones <- specMat$buckets_zones[order(specMat$buckets_zones[,1]), ]
@@ -1517,14 +1518,14 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
           buckets_IntVal <- C_buckets_CSN_normalize( buckets_IntVal )
       }
       if (norm_meth == 'PQN') {
-          buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
-          bucVref_IntVal <- C_MedianSpec(buckets_IntVal_CSN)
-          bucRatio <- sweep(buckets_IntVal_CSN, 2, bucVref_IntVal, "/")
-          Coeff <- apply(bucRatio,1,stats::median)
-          buckets_IntVal <- sweep(buckets_IntVal_CSN, 1, Coeff, "/")
+         buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
+         bucVref_IntVal <- C_MedianSpec(buckets_IntVal_CSN)
+         bucRatio <- sweep(buckets_IntVal_CSN, 2, bucVref_IntVal, "/")
+         Coeff <- apply(bucRatio,1,median)
+         buckets_IntVal <- sweep(buckets_IntVal_CSN, 1, Coeff, "/")
       }
+
       # if supplied, integrate of all spectra within the PPM range of the reference signal
-      Vref <- 0*c(1:specMat$nspec)
       if (! is.na(zoneref)) {
           istart <- length(which(specMat$ppm>max(zoneref)))
           iend <- length(which(specMat$ppm>min(zoneref)))
@@ -1533,17 +1534,17 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
       }
 
       # Bucket names
-      bucnames <- gsub("^(-?\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buckets[,1]))) )
-
-      # read samples
-      samples <- specObj$samples
-
-      # write the data table
       if ( is.null(specMat$namesASintMax) || ! specMat$namesASintMax ) {
           buccenter <- 0.5*(buckets[,1]+buckets[,2])
       } else {
           buccenter <- specMat$ppm[ C_ppmIntMax_buckets(specMat$int, buckets_m) ]
       }
+      bucnames <- gsub("^(-?\\d+)","B\\1", gsub("\\.", "_", gsub(" ", "", sprintf("%7.4f",buccenter))) )
+
+      # read samples
+      samples <- specObj$samples
+
+      # write the data table
       outdata <- buckets_IntVal
       colnames(outdata) <- bucnames
       rownames(outdata) <- samples[,2]

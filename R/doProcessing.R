@@ -145,6 +145,10 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
         if (! is.null(procpar$ZNEG)) procParams$RABOT <- ifelse( procpar$ZNEG=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$TSP)) procParams$TSP <- ifelse( procpar$TSP=="TRUE", TRUE, FALSE)
         if (! is.null(procpar$ADJPZTSP)) procParams$ADJPZTSP <- ifelse( procpar$ADJPZTSP=="TRUE", TRUE, FALSE)
+        if (procParams$TSP && ! is.null(procpar$ADJPZTSP) && ! is.null(procpar$MVPZTSP)) {
+		     procParams$MVPZTSP <- ifelse( procpar$MVPZTSP=="TRUE", TRUE, FALSE)
+             procParams$DHZPZRANGE <- as.numeric(procpar$DHZPZRANGE)
+        }
         if (! is.null(procpar$O1RATIO)) procParams$O1RATIO <- as.numeric(procpar$O1RATIO)
         if (! is.null(procpar$ZF)) procParams$ZEROFILLING <- ifelse (as.numeric(procpar$ZF)>0, TRUE, FALSE)
         if (! is.null(procpar$ZF)) procParams$ZFFAC <- as.numeric(procpar$ZF)
@@ -168,7 +172,7 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
            #procParams$BLPHC <- 50
            #procParams$KSIG <- 2
            #procParams$GAMMA <- 0.005
-           #procParams$RATIOPOSNEGMIN <- 0.45
+           procParams$RATIOPOSNEGMIN <- 0.45
            #procParams$CLEANUP_OUTPUT <- TRUE
            #procParams$LINEBROADENING <- TRUE
            #procParams$O1RATIO <- 1
@@ -178,10 +182,10 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
            #procParams$OPTSTEP <- TRUE
            #procParams$OPTCRIT0 <- 0
            #procParams$OPTCRIT1 <- 2
-           #procParams$CRITSTEP2 <- 2
+           procParams$CRITSTEP1 <- 0
            #procParams$JGD_INNER <- TRUE
            #procParams$RMS <- 0
-           #procParams$OC <- FALSE
+           procParams$OC <- FALSE
         }
         if (procParams$INPUT_SIGNAL=='fid') procParams$READ_RAW_ONLY <- FALSE
         procParams$REVPPM <- ifelse(procParams$VENDOR == 'varian' || procParams$VENDOR == 'jeol', TRUE, FALSE)
@@ -286,10 +290,9 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
        NCOL <- ifelse(N>1, length(specList[,1]$int), length(specList$int))
        M <- matrix(0, nrow = N, ncol = NCOL + 1000)
 
+       NCOL <- 0
        for(i in 1:N) {
            if (N>1) { spec <- specList[,i]; } else { spec <- specList; }
-           #PPM_MIN <- globvars$PPM_MIN; PPM_MAX <- globvars$PPM_MAX;
-           #if (spec$acq$NUC == "13C") { PPM_MIN <- globvars$PPM_MIN_13C; PPM_MAX <- globvars$PPM_MAX_13C; }
            P <- spec$ppm>PPM_MIN & spec$ppm<=PPM_MAX
            V <- spec$int[P]
            vppm <- spec$ppm[P]
@@ -307,7 +310,6 @@ doProcessing <- function (path, cmdfile, samplefile=NULL, bucketfile=NULL, phcfi
            } else {
                vpmax <- vpmax + vppm[length(vppm)]
            }
-           #M <- rbind(M,rev(V))
            M[i, 1:length(V)] <- rev(V)
            NCOL <- max(NCOL, length(V))
        }
