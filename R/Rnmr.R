@@ -95,7 +95,7 @@ Spec1rProcpar <- list (
     OPTCRIT1=2,                # Global criterium for first order phasing optimization (1 for SSpos, 2 for SSneg, 3 for Entropy)
     ADJPZTSP=FALSE,            # Ajust phc0 based on TSP peak : active / desactivate
     DHZPZTSP=7,                # Ajust phc0 based on TSP peak : HZ range around TSP peak
-    DPHCPZTSP = 0.8,           # Ajust phc0 based on TSP peak : phase range around previous estimated value
+    DPHCPZTSP = 1.2,           # Ajust phc0 based on TSP peak : phase range around previous estimated value
     MVPZTSP=FALSE,             # Ajust phc0 based on TSP peak : adjustment of the mean value close to the TSP
     MVPZFAC=1.25,              # Acceptance of entropy multiplied by this factor
     DHZPZRANGE=250,            # Ajust phc0 based on mean spectrum on the ppm range closed to the TSP peak
@@ -188,6 +188,7 @@ Spec1rProcpar <- list (
    SPINNINGRATE  <- .bruker.get_param(ACQ,"MASR",type="numeric")
    NUMBEROFSCANS <- .bruker.get_param(ACQ,"NS")
    DUMMYSCANS <- .bruker.get_param(ACQ,"DS")
+   RG      <- .bruker.get_param(ACQ,"RG")
    NUC     <- .bruker.get_param(ACQ,"NUC1",type="string")
    TD      <- .bruker.get_param(ACQ,"TD")
    SW      <- .bruker.get_param(ACQ,"SW")
@@ -259,7 +260,7 @@ Spec1rProcpar <- list (
    setwd(cur_dir)
 
    acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
-                PROBE=PROBE, PULSE=PULSE, SOLVENT=SOLVENT, TEMP=TEMP, NUC=NUC, 
+                PROBE=PROBE, PULSE=PULSE, SOLVENT=SOLVENT, TEMP=TEMP, NUC=NUC, RECVGAIN=RG,
                 NUMBEROFSCANS=NUMBEROFSCANS, DUMMYSCANS=DUMMYSCANS, OFFSET=O1/SFO1,
                 RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
                 TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY, P15=P15 )
@@ -298,6 +299,7 @@ Spec1rProcpar <- list (
    P15     <- .bruker.get_param(ACQ,"P",type="numeric",  arrayType=TRUE)[16]
    SPINNINGRATE  <- .bruker.get_param(ACQ,"MASR",type="numeric")
    NUMBEROFSCANS <- .bruker.get_param(ACQ,"NS")
+   RG      <- .bruker.get_param(ACQ,"RG")
    TD      <- .bruker.get_param(ACQ,"TD")
    SW      <- .bruker.get_param(ACQ,"SW")
    SWH     <- .bruker.get_param(ACQ,"SW_h")
@@ -375,7 +377,7 @@ Spec1rProcpar <- list (
 
    acq <- list( INSTRUMENT=INSTRUMENT, SOFTWARE=SOFTWARE, ORIGIN=ORIGIN, ORIGPATH=ORIGPATH, 
                 PROBE=PROBE, PULSE=PULSE, NUC=NUC, NUMBEROFSCANS=NUMBEROFSCANS, SOLVENT=SOLVENT, TEMP=TEMP, 
-                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH,
+                RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH, RECVGAIN=RG,
                 TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY, P15=P15 )
 
    proc <- list( phc0=PHC0*pi/180, phc1=PHC1*pi/180, SI=SI )
@@ -603,6 +605,7 @@ Spec1rProcpar <- list (
    SWH  <-  .varian.get_param(ACQ,"sw")
    SFO1 <- .varian.get_param(ACQ,"sfrq")
    REFFRQ <- .varian.get_param(ACQ,"reffrq")
+   GAIN <- .varian.get_param(ACQ,"gain")
    O1   <- .varian.get_param(ACQ,"tof")
    OFFSET <- 1e6*(1- REFFRQ/SFO1)
    SW   <- SWH/SFO1
@@ -679,7 +682,7 @@ Spec1rProcpar <- list (
 
    acq <- list( INSTRUMENT="VARIAN", SOFTWARE="VnmrJ", ORIGIN="VARIAN", ORIGPATH=ORIGPATH, PROBE=PROBE, PULSE=PULSE, SOLVENT=SOLVENT, 
                 RELAXDELAY=RELAXDELAY, SPINNINGRATE=SPINNINGRATE, PULSEWIDTH=PULSEWIDTH, TEMP=TEMP, NUC=NUC,
-                NUMBEROFSCANS=NUMBEROFSCANS, DUMMYSCANS=DUMMYSCANS, OFFSET=OFFSET,
+                NUMBEROFSCANS=NUMBEROFSCANS, DUMMYSCANS=DUMMYSCANS, OFFSET=OFFSET, RECVGAIN=GAIN,
                 TD=TD, SW=SW, SWH=SWH, SFO1=SFO1, O1=O1, GRPDLY=GRPDLY )
    spec <- list( path=DIR, acq=acq, fid=fid )
 
@@ -908,7 +911,7 @@ Spec1rProcpar <- list (
    acq <- list( INSTRUMENT="JEOL", SOFTWARE=gp('version','undef'),
                 ORIGIN=Header$File_Identifier, ORIGPATH=Header$Title, SOLVENT=procpar$solvent$value, TEMP=procpar$temp_set$value, 
                 PROBE=procpar$x_probe_map$value, PULSE=procpar$experiment$value, NUC=NUC,
-                NUMBEROFSCANS=procpar$total_scans$value, DUMMYSCANS=procpar$x_prescans$value, PULSEWIDTH=procpar$x_pulse$value,
+                NUMBEROFSCANS=procpar$total_scans$value, DUMMYSCANS=procpar$x_prescans$value, PULSEWIDTH=procpar$x_pulse$value, RECVGAIN=procpar$recvr_gain$value,
                 RELAXDELAY=procpar$relaxation_delay$value, SPINNINGRATE=procpar$spin_set$value, TD=procpar$x_points$value, 
                 SW=procpar$x_sweep$value/Header$Base_Freq[1], SWH=procpar$x_sweep$value, OFFSET=procpar$x_offset$value,
                 SFO1=procpar$irr_freq$value, O1=procpar$x_offset$value*Header$Base_Freq[1], GRPDLY=0 )
