@@ -1443,6 +1443,9 @@ plotModel <- function(spec, model, exclude_zones=NULL, labels=c('ppm','id'),
    if ( ! sum(c('peakModel', 'optimModel','GSDmodel', 'LSDmodel') %in% class(model) ) )
       stop("the input model must have an appropriate class, namely one of these: 'peakModel', 'optimModel', 'GSDmodel', 'LSDmodel'")
 
+   if (is.null(model$peaks))
+      stop("There's no peak in the model")
+
    # Get all peaks within the ppm range of the model (=> P2)
    ppmrange <- c(model$params$wmin, model$params$wmax)
    iseq <- getIndexSeq(spec,ppmrange)
