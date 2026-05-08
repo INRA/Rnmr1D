@@ -173,6 +173,7 @@ getClusters <- function(data, method='hca', ... )
     if (method=='hca')  out <- get_Clusters_hca(data, ... )
     if (method=='corr') out <- get_Clusters_corr(data, ... )
     class(out$clusters) <- "clusters"
+    class(out) <- "outclust"
     out
 }
 
