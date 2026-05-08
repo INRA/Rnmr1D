@@ -330,9 +330,9 @@ matchClusters <- function(clusters, lib = "dbref6", score_min = 0.5, ppmtol = 0.
 #' @param dfident2 obtained using the \code{matchClusters} function
 clusterMerging <- function(clust1,dfident1,clust2,dfident2)
 {
-    if (! inherits(clust1, "clusters"))
+    if (! inherits(clust1, "outclust"))
         stop("'clust1' variable is not a 'outclust' class")
-    if (! inherits(clust2, "clusters"))
+    if (! inherits(clust2, "outclust"))
         stop("'clust2' variable is not a 'outclust' class")
     if (! inherits(dfident1, "annotclusters"))
         stop("'dfident1' variable is not a 'annotclusters' class")
