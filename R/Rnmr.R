@@ -1633,7 +1633,7 @@ Spec1rProcpar <- list (
           nloop <- nloop + 1
           if (pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<3.14) break
           if (!pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<1.571) break
-          phc <- c( runif(1,0,3.14), runif(1,-0.7854,0.7854) )
+          phc <- c( stats::runif(1,0,3.14), stats::runif(1,-0.7854,0.7854) )
       }
       if (spec$param$DEBUG) .v("\n\t%d: KSTART = %1.2f , KSTOP = %1.2f, nloop = %d", 
                                 0, spec$param$KSTART, spec$param$KSTOP, nloop, logfile=spec$param$LOGFILE)

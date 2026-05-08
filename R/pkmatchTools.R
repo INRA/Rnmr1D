@@ -6,22 +6,6 @@
 ## Advice: Better if implemented by using the R object oriented  programming
 ## http://www.cyclismo.org/tutorial/R/s4Classes.html
 
-# Parameter List
-PM_pars <<- list (
-     dataREF  = NULL,   # A reference peaklist for all compound in JSON format
-     peaklist = NULL,   # A peak list in JSON format, i.e.  {"peaklists": [{"ppm": value, "i": value}, { }, ..., { } ]}
-     delta    = NULL,   # The chemical shift tolerance
-     method   = NULL    # Retrieve candidates with at least one peak ("one") or with all peaks ("all")
-)
-
-# ---------------------------------------------------------
-# Get Parameter
-# ---------------------------------------------------------
-PM_get <- function(ParName)
-{
-   return (PM_pars[[ParName]]);
-}
-
 
 # ---------------------------------------------------------
 # Transform each char value in numeric value (except ID)
@@ -65,7 +49,7 @@ PM_get <- function(ParName)
 # MATCH CANDIDATES
 # - return : a list of candidates for each peak of the peaklist
 # ---------------------------------------------------------
-PM_findPPM <- function ()
+PM_findPPM <- function (PM_pars)
 {
     listeREF <- PM_pars$dataREF$spectraList
     peaklist <- PM_pars$peaklist
@@ -107,7 +91,7 @@ PM_findPPM <- function ()
 # - sort match peak by compound id
 # - return list
 # ---------------------------------------------------------
-PM_SortedByID <- function (candidatesList)
+PM_SortedByID <- function (PM_pars, candidatesList)
 {
     results <- list()
     interm <- list()
@@ -116,13 +100,13 @@ PM_SortedByID <- function (candidatesList)
             for (j in 1:length(candidatesList[[i]]$id)) {
                 if (is.null(candidatesList[[i]]$id)) next
                 interm[candidatesList[[i]]$id[j]] <- list(c(
-                                                    list(c(
-                                                        "ppm"=candidatesList[[i]]$ppm[j],
-                                                        "dist"=candidatesList[[i]]$distance[j],
-                                                        "pkref"=candidatesList[[i]]$pkquery[j],
-                                                        "i"=candidatesList[[i]]$intensity[j]
-                                                    )), interm[[candidatesList[[i]]$id[j]]]
-                                                ))
+                      list(c(
+                          "ppm"=candidatesList[[i]]$ppm[j],
+                          "dist"=candidatesList[[i]]$distance[j],
+                          "pkref"=candidatesList[[i]]$pkquery[j],
+                          "i"=candidatesList[[i]]$intensity[j]
+                      )), interm[[candidatesList[[i]]$id[j]]]
+                ))
             }
         }
         results = c(interm,results)
@@ -133,7 +117,6 @@ PM_SortedByID <- function (candidatesList)
                 temp <- intersect( candidatesList[[i]]$id, temp )
             }
         }
-        #if (! identical(temp, character(0))) {
         if (length(temp)>0) {
             for (i in 1:length(candidatesList)) {
                 for (j in 1:length(candidatesList[[i]]$id)) {
@@ -141,13 +124,13 @@ PM_SortedByID <- function (candidatesList)
                     for (k in 1:length(temp)) {
                         if (temp[k] == candidatesList[[i]]$id[j]) {
                             interm[candidatesList[[i]]$id[j]] <- list(c(
-                                                                list(c(
-                                                                    "ppm"=candidatesList[[i]]$ppm[j],
-                                                                    "dist"=candidatesList[[i]]$distance[j],
-                                                                    "pkref"=candidatesList[[i]]$pkquery[j],
-                                                                    "i"=candidatesList[[i]]$intensity[j]
-                                                                )), interm[[candidatesList[[i]]$id[j]]]
-                                                            ))
+                                   list(c(
+                                       "ppm"=candidatesList[[i]]$ppm[j],
+                                       "dist"=candidatesList[[i]]$distance[j],
+                                       "pkref"=candidatesList[[i]]$pkquery[j],
+                                       "i"=candidatesList[[i]]$intensity[j]
+                                   )), interm[[candidatesList[[i]]$id[j]]]
+                            ))
                         }
                     }
                 }
@@ -169,7 +152,7 @@ PM_SortedByID <- function (candidatesList)
 # - return list
 # ---------------------------------------------------------
 
-PM_SortCandidates <- function (candidate, id)
+PM_SortCandidates <- function (PM_pars, candidate, id)
 {
     peaklist <- PM_pars$peaklist
     delta <- PM_pars$delta
@@ -204,39 +187,6 @@ PM_SortCandidates <- function (candidate, id)
 }
 
 # ---------------------------------------------------------
-# RETRIEVE ALL REF PPM AND REF INTENSITY LIST FOR CANDIDATES ONLY
-# - take reference library and candidates (results of ppm peak matching)
-# - return ordered list
-# ---------------------------------------------------------
-PM_RefByID <- function(refList, candidates, minD=0.04)
-{
-    sortRef <- list()
-    for (i in 1:length(refList$spectraList)) {
-        for (j in 1:length(names(candidates))) {
-            ref <- refList$spectraList[[i]]
-            nameCand <- names(candidates)[j]
-            if (ref$id == nameCand) {
-                ppm <- c()
-                int <- c()
-                queryMin <- min(candidates[[j]]$ppm)
-                queryMax <- max(candidates[[j]]$ppm)
-                for (y in 1:length(ref$peaklists)) {
-                    if ( queryMin-minD < as.numeric(ref$peaklists[[y]]$ppm) &&
-                        as.numeric(ref$peaklists[[y]]$ppm) < queryMax+minD )
-                    {
-                        ppm <- c(as.numeric(ref$peaklists[[y]]$ppm), ppm)
-                        int <- c(as.numeric(ref$peaklists[[y]]$i), int)
-                    }
-                }
-                sortRef[nameCand] <- list(c( ppm=list(sort(ppm)), i=list(int[order(ppm)]) ))
-            }
-
-        }
-    }
-    return(sortRef)
-}
-
-# ---------------------------------------------------------
 # SORT CANDIDATES SCORE (Nmatch / 1+Ntotal)
 # - return ordered list
 # ---------------------------------------------------------
@@ -259,19 +209,19 @@ PM_sortScore <- function(candidates)
 PM_process <- function(dataREF, peaklist, delta, method)
 {
     results <- NULL
-    PM_pars <<- list (
+    PM_pars <- list (
          dataREF  = .doNum(dataREF),
          peaklist = peaklist,
          delta    = delta,
          method   = method
     )
     repeat {
-        candidates <- PM_findPPM()
-        sorted_id <- PM_SortedByID(candidates)
-        if (class(sorted_id) != "list" || length(sorted_id)==0) break
+        candidates <- PM_findPPM(PM_pars)
+        sorted_id <- PM_SortedByID(PM_pars, candidates)
+        if (! inherits(sorted_id,"list") || length(sorted_id)==0) break
         sorted_candidates <- list()
         for (i in 1:length(sorted_id))
-             sorted_candidates[names(sorted_id[i])] <- PM_SortCandidates(sorted_id[[i]], names(sorted_id[i]))
+             sorted_candidates[names(sorted_id[i])] <- PM_SortCandidates(PM_pars, sorted_id[[i]], names(sorted_id[i]))
         results <- PM_sortScore(sorted_candidates)
         break
     }
@@ -296,28 +246,16 @@ getSpectraList <- function(DBNAMES)
      list(spectraList=spectraList)
 }
 
-getRefDBinfo <- function(DBNAMES, dbrefid)
-{
-    dbinfo <- ""
-    repeat {
-      if (! (dbrefid %in% DBNAMES[,1]) ) break
-      dbinfo <- as.character(DBNAMES[which(DBNAMES[,1] == dbrefid),])
-      break
-  }
-  return(dbinfo)
-}
-
-
 #' PeakMatching
 #'
-#' Searching for putative compounds in a peaklist database from a list of chemical shifts, 
-#' obtained for example from a clustering obtained using the \code{getClusters} function.
+#' Searching for putative compounds in a peaklist database from a list of chemical shifts,
+#' based for example on a clustering obtained using the \code{getClusters} function.
 #'
 #' @param peaklist a list of ppm, each corresponding to the maximal intensity of a compound peak 
 #' @param lib either an internal library name (dbref6 or hmdb110), or the path of a DB file
 #' @param ppmtol ppm tolerance for seaching peaks
 #' @param method  either 'all' for all query peaks must machted, or 'one' for only one peak must matched
-PeakMatching <- function(peaklist, lib="dbref6",  ppmtol=0.02, method="all")
+peakMatching <- function(peaklist, lib="dbref6",  ppmtol=0.02, method="all")
 {
     results <- NULL
 
@@ -327,7 +265,7 @@ PeakMatching <- function(peaklist, lib="dbref6",  ppmtol=0.02, method="all")
     if (! file.exists(DBfile))
         stop(paste0(DBfile," does not exist !!"))
 
-    DBNAMES <- read.table(DBfile, sep="\t", header=T)
+    DBNAMES <- utils::read.table(DBfile, sep="\t", header=T)
 
     dataREF <- getSpectraList(DBNAMES)
 
@@ -337,10 +275,45 @@ PeakMatching <- function(peaklist, lib="dbref6",  ppmtol=0.02, method="all")
     results <- PM_process(dataREF, pklist, ppmtol, method)
 
     for (i in 1:length(results)) {
-         dbinfo <- getRefDBinfo(DBNAMES, names(results[i]));
+         dbinfo <- as.character(DBNAMES[which(DBNAMES[,1] == names(results[i])), ])
          results[[i]]$name <- dbinfo[2]
          results[[i]]$dbid <- dbinfo[3]
          results[[i]]$dblink <- dbinfo[4]
+         results[[i]]$intensity  <- NULL
     }
     results
 }
+
+
+#' matchClusters
+#'
+#' Match all clusters obtained using the \code{getClusters} function and using the the \code{peakMatching} function.
+#'
+#' @param clusters object obtained using the \code{getClusters} function
+#' @param lib either an internal library name (dbref6 or hmdb110), or the path of a DB file
+#' @param score_min selects only matchs with a score above the value
+#' @param ppmtol ppm tolerance for seaching peaks
+#' @param method  either 'all' for all query peaks must machted, or 'one' for only one peak must matched
+matchClusters <- function(clusters, lib = "dbref6", score_min = 0.5, ppmtol = 0.02, method = "all")
+{
+    if (! inherits(clusters, "clusters"))
+        stop('clusters variable is not a clusters class')
+    M <- NULL
+    for (k in 1:length(clusters)) {
+        C <- paste0("C", k)
+        if (!is.null(clusters[[C]])) {
+            PK <- NULL
+            tryCatch({
+                PK <- peakMatching(clusters[[C]], lib,  ppmtol, method)
+            }, error=function(e){ PK <- NULL })
+            if (!is.null(PK) && length(PK[[1]]) > 0) {
+                pk <- PK[[1]]
+                if (pk$score > score_min)
+                   M <- rbind(M, c(C, pk$name, pk$score, length(unique(pk$pkquery)), length(unique(pk$ppm))))
+            }
+        }
+    }
+    colnames(M) <- c("Cluster", "Name", "Score", "Query", "Found")
+    as.data.frame(M)
+}
+

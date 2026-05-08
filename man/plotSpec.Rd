@@ -11,6 +11,7 @@ plotSpec(
   ynames = c("Origin", "Filtered", "Model"),
   ycolors = c("grey", "blue", "red", "green", "orange", "magenta", "cyan", "darkgreen",
     "darkorange"),
+  lw = 1,
   ysel = NULL,
   xlab = "",
   ylab = "",
@@ -27,6 +28,8 @@ plotSpec(
 \item{ynames}{a vector defining the y names (same order as the y matrix)}
 
 \item{ycolors}{a vector defining the y colors (same order as the y matrix)}
+
+\item{lw}{line width in pixels}
 
 \item{ysel}{a vector defining the visibility of each y element (same order as the y matrix)}
 

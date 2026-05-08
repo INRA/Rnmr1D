@@ -885,6 +885,7 @@ RBucket1D <- function(specMat, Algo, resol, snr, zones, zonenoise, appendBuc, DE
 
    # For each PPM range
    buckets_zones <- NULL
+   i <- 1
    N <- dim(zones)[1]
    buckets_zones <- foreach::foreach(i=1:N, .combine=rbind) %dopar% {
        i2<-which(specMat$ppm<=min(zones[i,]))[1]
@@ -1521,7 +1522,7 @@ getBucketsDataset <- function(specObj, norm_meth='none', zoneref=NA)
          buckets_IntVal_CSN <- C_buckets_CSN_normalize( buckets_IntVal )
          bucVref_IntVal <- C_MedianSpec(buckets_IntVal_CSN)
          bucRatio <- sweep(buckets_IntVal_CSN, 2, bucVref_IntVal, "/")
-         Coeff <- apply(bucRatio,1,median)
+         Coeff <- apply(bucRatio,1,stats::median)
          buckets_IntVal <- sweep(buckets_IntVal_CSN, 1, Coeff, "/")
       }
 
