@@ -316,6 +316,7 @@ matchClusters <- function(clusters, lib = "dbref6", score_min = 0.5, ppmtol = 0.
     colnames(M) <- c("Cluster", "Name", "Score", "Query", "Found")
     out <- as.data.frame(M)
     class(out) <- 'annotclusters'
+    out
 }
 
 
