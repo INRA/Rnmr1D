@@ -201,6 +201,12 @@ Based on these clusters, it is possible to find candidate by querying online dat
 
 * NMR Peak Matching (DBREF6): http://pmb-bordeaux.fr/PM/webapp
 
+The Rnmr1D package includes two compound databases:
+
+* dbref6: 82 compounds, 500 NMR, pH 6, primarily compounds involved in primary plant metabolism 
+* hmdb110: 110 compounds, 400/500/600 NMR, pH 7, primarily compounds involved in primary plant metabolism
+
+It is possible to build your own database, based on the model below (e.g., dbref6).
 <br>
 
 ### Clustering Comparison resulting of the both 'hca' & 'corr' methods
@@ -214,11 +220,11 @@ The'Corr' approach produces fewer clusters but correlations between all buckets 
 #### Criterion curves
 
 ```{r plot5a, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
-g1 <- ggplotCriterion(clustcor)
-#ggplotPlotly(g1, width=820, height=400)
+g1 <- Rnmr1D::ggplotCriterion(clustcor)
+#Rnmr1D::ggplotPlotly(g1, width=820, height=400)
 g1
-g2 <- ggplotCriterion(clusthca)
-#ggplotPlotly(g2, width=820, height=400)
+g2 <- Rnmr1D::ggplotCriterion(clusthca)
+#Rnmr1D::ggplotPlotly(g2, width=820, height=400)
 g2
 ```
 
@@ -241,11 +247,11 @@ mtext("clusters size distribution", side = 3)
 We see that they cover three orders (log scaled) for CORR method and four orders for HCA method
 
 ```{r plot5c, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
-g3 <- ggplotClusters(outMat,clustcor)
-#ggplotPlotly(g3, width=820, height=400)
+g3 <- Rnmr1D::ggplotClusters(outMat,clustcor)
+#Rnmr1D::ggplotPlotly(g3, width=820, height=400)
 g3
-g4 <- ggplotClusters(outMat,clusthca)
-#ggplotPlotly(g4, width=820, height=400)
+g4 <- Rnmr1D::ggplotClusters(outMat,clusthca)
+#Rnmr1D::ggplotPlotly(g4, width=820, height=400)
 g4
 
 ```
@@ -269,7 +275,7 @@ evnorm <- (100*eigenvalues/sum(eigenvalues))[1:10]
 #### Plot PCA Scores
 
 ```{r plot6a, echo=TRUE, fig.align='center', fig.width=12, fig.height=6}
-g5 <- ggplotScores(pca$x, 1, 2, groups=out$samples$Treatment, EV=evnorm , gcontour="polygon")
+g5 <- Rnmr1D::ggplotScores(pca$x, 1, 2, groups=out$samples$Treatment, EV=evnorm , gcontour="polygon")
 #ggplotPlotly(g5, width=820, height=450)
 g5
 ```
@@ -281,8 +287,8 @@ g5
 Having calculated the clustering in the previous step (see above), it can be superimposed on the loadings plot in order to view its distribution and thus its efficiency. Here we choose those based on the HCA method. We can see that where the clusters are located, this corresponds to the maximum variance of the buckets, i.e. mainly at the ends of the first principal component (PC1).
 
 ```{r plot6b, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
-g6 <- ggplotLoadings(pca$rotation, 1, 2, associations=clusthca$clustertab, EV=evnorm, main=sprintf("Loadings - Crit=%s",clusthca$vcrit), gcontour="ellipse" )
-#ggplotPlotly(g6, width=820, height=650)
+g6 <- Rnmr1D::ggplotLoadings(pca$rotation, 1, 2, associations=clusthca$clustertab, EV=evnorm, main=sprintf("Loadings - Crit=%s",clusthca$vcrit), gcontour="ellipse" )
+#Rnmr1D::ggplotPlotly(g6, width=820, height=650)
 g6
 ```
 
@@ -293,8 +299,8 @@ g6
 ```{r plot6c, echo=TRUE, fig.align='center', fig.width=12, fig.height=10}
 outMat.merged <- Rnmr1D::getMergedDataset(outMat, clusthca, onlycluster=TRUE)
 pca.merged <- prcomp(outMat.merged,retx=TRUE,scale=T, rank=2)
-g7 <- ggplotLoadings(pca.merged$rotation, 1, 2, associations=NULL, EV=evnorm)
-#ggplotPlotly(g7, width=820, height=650)
+g7 <- Rnmr1D::ggplotLoadings(pca.merged$rotation, 1, 2, associations=NULL, EV=evnorm)
+#Rnmr1D::ggplotPlotly(g7, width=820, height=650)
 g7
 ```
 
@@ -321,22 +327,22 @@ We first initialize the list of preprocessing parameters. The raw spectrum is a 
 The processing consistes by applying a line broadening (LB=0.3), then a zerofilling (ZFFAC=4) before applying the FFT (Fast Fourrier Transform).  Finally, a phasage has to be applied (Order 0, i.e. OPTPHC0 & Order 1 i.e. OPTPHC1 both equal to TRUE) then a calibration of the ppm scale (TSP=TRUE).
 
 ```{r proc102, echo=TRUE, eval=TRUE}
-procParams <- Spec1rProcpar
+procParams <- Rnmr1D::Spec1rProcpar
 procParams$LOGFILE <- ""
 procParams$VENDOR <- 'bruker'
 procParams$INPUT_SIGNAL <- 'fid'
 procParams$LB <- 0.3
 procParams$ZEROFILLING <- TRUE
 procParams$ZFFAC <- 4
-procParams$BLPHC <- TRUE
 procParams$OPTPHC1 <- FALSE
 procParams$TSP <- TRUE
+procParams$ADJPZTSP <- TRUE
 ```
 
 We generate the metadata from the list of raw spectra namely the samples and the list of selected raw spectra
 
 ```{r proc103, echo=TRUE, eval=TRUE}
-metadata <- generateMetadata(RAWDIR, procParams)
+metadata <- Rnmr1D::generateMetadata(RAWDIR, procParams)
 metadata
 ```
 
@@ -345,7 +351,7 @@ Spec1rDoProc is the function that can preprocess only one raw spectrum at time. 
 ```{r proc104, echo=TRUE, eval=TRUE}
 ID <- 1
 ACQDIR <- metadata$rawids[ID,1]
-spec <- Spec1rDoProc(Input=ACQDIR,param=procParams)
+spec <- Rnmr1D::Spec1rDoProc(Input=ACQDIR,param=procParams)
 ```
 
 It returns a list containing the following components:

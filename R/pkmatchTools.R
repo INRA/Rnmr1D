@@ -328,15 +328,15 @@ matchClusters <- function(clusters, lib = "dbref6", score_min = 0.5, ppmtol = 0.
 #' @param dfident1 obtained using the \code{matchClusters} function
 #' @param clust2 object obtained using the \code{getClusters} function
 #' @param dfident2 obtained using the \code{matchClusters} function
-clusterMerging <- function(clust1,dfident1,clust2,dfident2)
+clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
 {
     if (! inherits(clust1, "outclust"))
         stop("'clust1' variable is not a 'outclust' class")
     if (! inherits(clust2, "outclust"))
         stop("'clust2' variable is not a 'outclust' class")
-    if (! inherits(dfident1, "annotclusters"))
+    if (!is.null(dfident1) && ! inherits(dfident1, "annotclusters"))
         stop("'dfident1' variable is not a 'annotclusters' class")
-    if (! inherits(dfident2, "annotclusters"))
+    if (!is.null(dfident2) && ! inherits(dfident2, "annotclusters"))
         stop("'dfident2' variable is not a 'annotclusters' class")
 
    L1 <- sort(unique(dfident1[,2]))
@@ -346,76 +346,79 @@ clusterMerging <- function(clust1,dfident1,clust2,dfident2)
    clustertab <- NULL
    clusters <- list()
    dfident <- NULL
-   
-   # Liste des composés en communs pour les 2 méthodes
-   for (cmpd in L1[ L1 %in% L2]) {
-       ident1 <- dfident1[ which(dfident1[,2]==cmpd), ,drop=F]
-       CM1 <- clust1$clustertab[ clust1$clustertab[,2] %in% ident1$Cluster, ,drop=F]
-       CM2 <- clust2$clustertab[ clust2$clustertab[,1] %in% CM1[,1], ,drop=F]
-       ident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ,drop=F]
-       NBCLUST <- NBCLUST + 1
-       if (nrow(ident2)) {
-           ctab <- CM2
-       } else {
-           ctab <- CM1
+
+   # Merging based on annotations
+   if (!is.null(dfident1) && !is.null(dfident2)) {
+       # List of compounds common to both methods
+       for (cmpd in L1[ L1 %in% L2]) {
+           ident1 <- dfident1[ which(dfident1[,2]==cmpd), ,drop=F]
+           CM1 <- clust1$clustertab[ clust1$clustertab[,2] %in% ident1$Cluster, ,drop=F]
+           CM2 <- clust2$clustertab[ clust2$clustertab[,1] %in% CM1[,1], ,drop=F]
+           ident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ,drop=F]
+           NBCLUST <- NBCLUST + 1
+           if (nrow(ident2)) {
+               ctab <- CM2
+           } else {
+               ctab <- CM1
+           }
+           clust1$clustertab <- clust1$clustertab[ ! clust1$clustertab[,1] %in% ctab[,1], ,drop=F]
+           clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% ctab[,1], ,drop=F]
+       
+           dfident1 <- dfident1[ which(dfident1[,2]!=cmpd), ,drop=F]
+           dfident2 <- dfident2[ which(dfident2[,2]!=cmpd), ,drop=F]
+           #dfident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ]
+       
+           idclust <- paste0('C',NBCLUST)
+           ctab[,2] <- idclust
+           clustertab <- rbind(clustertab, ctab)
+           clusters[[idclust]] <- ctab[,3]
+           dfident <- rbind(dfident, c(cmpd,idclust))
        }
-       clust1$clustertab <- clust1$clustertab[ ! clust1$clustertab[,1] %in% ctab[,1], ,drop=F]
-       clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% ctab[,1], ,drop=F]
-   
-       dfident1 <- dfident1[ which(dfident1[,2]!=cmpd), ,drop=F]
-       dfident2 <- dfident2[ which(dfident2[,2]!=cmpd), ,drop=F]
-       #dfident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ]
-   
-       idclust <- paste0('C',NBCLUST)
-       ctab[,2] <- idclust
-       clustertab <- rbind(clustertab, ctab)
-       clusters[[idclust]] <- ctab[,3]
-       dfident <- rbind(dfident, c(cmpd,idclust))
-   }
-   
-   # Liste des composés trouvés uniquement pour la méthode 1
-   for (cmpd in L1[ ! L1 %in% L2]) {
-       ident1 <- dfident1[ which(dfident1[,2]==cmpd), ,drop=F]
-       CM1 <- clust1$clustertab[ clust1$clustertab[,2] %in% ident1$Cluster, ,drop=F]
-       CM2 <- clust2$clustertab[ clust2$clustertab[,1] %in% CM1[,1], ,drop=F]
-       NBCLUST <- NBCLUST + 1
-       ctab <- CM1
-       clust1$clustertab <- clust1$clustertab[ ! clust1$clustertab[,1] %in% ctab[,1], ,drop=F]
-       clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% ctab[,1], ,drop=F]
-   
-       dfident1 <- dfident1[ which(dfident1[,2]!=cmpd), ,drop=F]
-       dfident2 <- dfident2[ which(dfident2[,2]!=cmpd), ,drop=F]
-       #dfident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ]
-   
-       idclust <- paste0('C',NBCLUST)
-       ctab[,2] <- idclust
-       clustertab <- rbind(clustertab, ctab)
-       clusters[[idclust]] <- ctab[,3]
-       dfident <- rbind(dfident, c(cmpd,idclust))
-   }
-   
-   ## Liste des composés trouvés uniquement pour la méthode 1
-   for (cmpd in L2[ ! L2 %in% L1]) {
-       ident2 <- dfident2[ which(dfident2[,2]==cmpd), ,drop=F]
-       CM2 <- clust2$clustertab[ clust2$clustertab[,2] %in% ident2$Cluster, ,drop=F]
-       CM1 <- clust1$clustertab[ clust1$clustertab[,1] %in% CM2[,1], ,drop=F]
-       NBCLUST <- NBCLUST + 1
-       ctab <- CM2
-       clust1$clustertab <- clust1$clustertab[ ! clust1$clustertab[,1] %in% ctab[,1], ,drop=F]
-       clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% ctab[,1], ,drop=F]
-   
-       dfident1 <- dfident1[ which(dfident1[,2]!=cmpd), ,drop=F]
-       dfident2 <- dfident2[ which(dfident2[,2]!=cmpd), ,drop=F]
-       #dfident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ]
-   
-       idclust <- paste0('C',NBCLUST)
-       ctab[,2] <- idclust
-       clustertab <- rbind(clustertab, ctab)
-       clusters[[idclust]] <- ctab[,3]
-       dfident <- rbind(dfident, c(cmpd,idclust))
+       
+       # List of compounds found only for method 1
+       for (cmpd in L1[ ! L1 %in% L2]) {
+           ident1 <- dfident1[ which(dfident1[,2]==cmpd), ,drop=F]
+           CM1 <- clust1$clustertab[ clust1$clustertab[,2] %in% ident1$Cluster, ,drop=F]
+           CM2 <- clust2$clustertab[ clust2$clustertab[,1] %in% CM1[,1], ,drop=F]
+           NBCLUST <- NBCLUST + 1
+           ctab <- CM1
+           clust1$clustertab <- clust1$clustertab[ ! clust1$clustertab[,1] %in% ctab[,1], ,drop=F]
+           clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% ctab[,1], ,drop=F]
+       
+           dfident1 <- dfident1[ which(dfident1[,2]!=cmpd), ,drop=F]
+           dfident2 <- dfident2[ which(dfident2[,2]!=cmpd), ,drop=F]
+           #dfident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ]
+       
+           idclust <- paste0('C',NBCLUST)
+           ctab[,2] <- idclust
+           clustertab <- rbind(clustertab, ctab)
+           clusters[[idclust]] <- ctab[,3]
+           dfident <- rbind(dfident, c(cmpd,idclust))
+       }
+
+       ## List of compounds found only for method 2
+       for (cmpd in L2[ ! L2 %in% L1]) {
+           ident2 <- dfident2[ which(dfident2[,2]==cmpd), ,drop=F]
+           CM2 <- clust2$clustertab[ clust2$clustertab[,2] %in% ident2$Cluster, ,drop=F]
+           CM1 <- clust1$clustertab[ clust1$clustertab[,1] %in% CM2[,1], ,drop=F]
+           NBCLUST <- NBCLUST + 1
+           ctab <- CM2
+           clust1$clustertab <- clust1$clustertab[ ! clust1$clustertab[,1] %in% ctab[,1], ,drop=F]
+           clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% ctab[,1], ,drop=F]
+       
+           dfident1 <- dfident1[ which(dfident1[,2]!=cmpd), ,drop=F]
+           dfident2 <- dfident2[ which(dfident2[,2]!=cmpd), ,drop=F]
+           #dfident2 <- dfident2[ dfident2$Cluster %in% CM2[,2], ]
+       
+           idclust <- paste0('C',NBCLUST)
+           ctab[,2] <- idclust
+           clustertab <- rbind(clustertab, ctab)
+           clusters[[idclust]] <- ctab[,3]
+           dfident <- rbind(dfident, c(cmpd,idclust))
+       }
    }
 
-   ## Liste des clusters restants pour la méthode1
+   ## List of remaining clusters for method 1
    for( CL in unique(sort(clust1$clustertab[,2])) ) {
        CM1 <- clust1$clustertab[clust1$clustertab[,2]==CL, ,drop=F]
        CM2 <- clust2$clustertab[ clust2$clustertab[,1] %in% CM1[,1], ,drop=F]
@@ -428,7 +431,7 @@ clusterMerging <- function(clust1,dfident1,clust2,dfident2)
           clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% CM2[,1], ,drop=F]
    }
    
-   ## Liste des clusters restants pour la méthode2
+   ## List of remaining clusters for method 2
    for( CL in unique(sort(clust2$clustertab[,2])) ) {
        CM2 <- clust2$clustertab[clust2$clustertab[,2]==CL, ,drop=F]
        if (c('matrix') %in% class(CM2)) {
