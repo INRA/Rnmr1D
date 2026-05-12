@@ -315,6 +315,18 @@ matchClusters <- function(clusters, lib = "dbref6", score_min = 0.5, ppmtol = 0.
     }
     colnames(M) <- c("Cluster", "Name", "Score", "Query", "Found")
     out <- as.data.frame(M)
+
+    # Among the groups associated with the same compound, remove those whose score is below the selection threshold (10% above the search threshold).
+    # Keep compounds belonging to only one group, even if their score is below the selection threshold.
+    score_sel <- 1.1*score_min
+    out.clean <- NULL
+    for (cmpd in sort(unique(out$Name))) {
+        dfident <- out[ out$Name == cmpd, , drop=F]
+        if (nrow(dfident)>1) dfident <- dfident[dfident$Score>score_sel, , drop=F]
+        if (nrow(dfident)>0) out.clean <- rbind(out.clean, dfident)
+    }
+    colnames(out.clean) <-  colnames(out)
+    out <- as.data.frame(out.clean)
     class(out) <- append(class(out),"annotclusters")
     out
 }
