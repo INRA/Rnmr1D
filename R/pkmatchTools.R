@@ -443,9 +443,13 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
        }
    }
 
-   annottab <- clustertab
-   for (i in 1:nrow(dfident))
-      annottab[which(annottab[, 2] == dfident[i, 2]), 2] <- dfident[i,1]
+   # Annotated cluster table
+   annottab <- NULL
+   if (!is.null(dfident)) {
+       annottab <- clustertab
+       for (i in 1:nrow(dfident))
+          annottab[which(annottab[, 2] == dfident[i, 2]), 2] <- dfident[i,1]
+   }
 
    list(clusters=clusters, clustertab=clustertab, dfident=dfident, annottab=annottab, params=list (  method='merging' ))
 }
