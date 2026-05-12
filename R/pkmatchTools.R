@@ -325,9 +325,9 @@ matchClusters <- function(clusters, lib = "dbref6", score_min = 0.5, ppmtol = 0.
 #' merging 2 clustering approaches
 #'
 #' @param clust1 object obtained using the \code{getClusters} function
-#' @param dfident1 obtained using the \code{matchClusters} function
 #' @param clust2 object obtained using the \code{getClusters} function
-#' @param dfident2 obtained using the \code{matchClusters} function
+#' @param dfident1 obtained using the \code{matchClusters} function (optional)
+#' @param dfident2 obtained using the \code{matchClusters} function (optional)
 clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
 {
     if (! inherits(clust1, "outclust"))
@@ -443,5 +443,9 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
        }
    }
 
-   list(clusters=clusters, dfident=dfident, clustertab=clustertab, params=list (  method='merging' ))
+   annottab <- clustertab
+   for (i in 1:nrow(cl$dfident))
+      annottab[which(annottab[, 2] == dfident[i, 2]), 2] <- dfident[i,1]
+
+   list(clusters=clusters, clustertab=clustertab, dfident=dfident, annottab=annottab, params=list (  method='merging' ))
 }
