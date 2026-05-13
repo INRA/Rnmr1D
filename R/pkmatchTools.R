@@ -428,6 +428,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
            clusters[[idclust]] <- ctab[,3]
            dfident <- rbind(dfident, c(cmpd,idclust))
        }
+       class(dfident) <- append(class(dfident),"annotclusters")
    }
 
    ## List of remaining clusters for method 1
@@ -454,6 +455,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
           clusters[[idclust]] <- CM2[,3]
        }
    }
+   class(clusters) <- append(class(clusters), "clusters")
 
    # Annotated cluster table
    annottab <- NULL
