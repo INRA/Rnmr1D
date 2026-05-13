@@ -304,7 +304,7 @@ matchClusters <- function(clusters, lib = "dbref6", score_min = 0.5, ppmtol = 0.
         if (!is.null(clusters[[C]])) {
             PK <- NULL
             tryCatch({
-                PK <- peakMatching(clusters[[C]], lib,  ppmtol, method)
+                PK <- peakMatching(as.numeric(clusters[[C]]), lib,  ppmtol, method)
             }, error=function(e){ PK <- NULL })
             if (!is.null(PK) && length(PK[[1]]) > 0) {
                 pk <- PK[[1]]
@@ -466,4 +466,47 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
    }
 
    list(clusters=clusters, clustertab=clustertab, dfident=dfident, annottab=annottab, params=list (  method='merging' ))
+}
+
+
+#' singletFinding
+#'
+#' Searching for putative compounds in a peaklist database from a list of buckets (BX_YWZ),
+#' based for example on a bucketing (bucket macro-command) obtained using the \code{doProcCmd} function.
+#'
+#' @param bucketlist a list of buckets, in the forme 'B2_1234' if central bucket ppm equal to 2.1234
+#' @param lib either an internal library name (dbref6 or hmdb110), or the path of a DB file
+#' @param ppmtol ppm tolerance for seaching buckets
+singletFinding <- function(bucketlist, lib="dbref6",  ppmtol=0.005)
+{
+    DBfile <- lib
+    if (lib %in% c('dbref6', 'hmdb110'))
+        DBfile <- paste0(file.path(system.file("extra", package = "Rnmr1D"), toupper(lib)),'_NMR_peaklist.txt')
+    if (! file.exists(DBfile))
+        stop(paste0(DBfile," does not exist !!"))
+
+    DB <- utils::read.table(DBfile, sep="\t", header=T)
+    sel <- unlist(lapply( DB$peaks, function(s){ length(unlist(strsplit(s,',')))<2 }))
+    db <- DB[sel,]
+
+    singlettab <- NULL
+    singlets <- list()
+	sident <- NULL
+	singlettab <- NULL
+	annottab <- NULL
+    numbuckets <- as.numeric(sapply( bucketlist, function(b){ gsub("B", "", gsub("_","\\.", b)) }))
+    id <- 0
+    for (k in 1:nrow(db)) {
+        for (i in 1:length(numbuckets))
+            if (db$peaks[k]<(numbuckets[i]+ppmtol) & db$peaks[k]>(numbuckets[i]-ppmtol)) {
+                id <- id + 1
+                singlets[[paste0('S',id)]] <- numbuckets[i]
+                sident <- rbind(sident, c(db$compound[k], paste0('S',id)))
+                singlettab <- rbind(singlettab, c(bucketlist[i], paste0('S',id), numbuckets[i]))
+                annottab <- rbind(annottab, c(bucketlist[i], db$compound[k], numbuckets[i]))
+            }
+    }
+    class(sident) <- append(class(sident),"annotclusters")
+    colnames(singlettab) <- colnames(singlets$annottab) <- c('VAR','NAME','PPM')
+    list(singlets=singlets, sident=sident, singlettab=singlettab, annottab=annottab)
 }
