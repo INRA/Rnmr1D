@@ -395,9 +395,10 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
          } else { # No Merged Clusters
               L <- which( rownames(P) %in% associations[,1] )
               Clusters <- data.frame( pc1 = P[L,1], pc2 = P[L,2],
-                                      CLID = sapply(rownames(P)[L], function(x) { associations[which(associations[,1] == x),2] }) )
+                              CLID = sapply(rownames(P)[L], function(x) { associations[which(associations[,1] == x),2] }) )
               g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, color="lightgrey", size=3, check_overlap = TRUE)
-              g <- geom_cluster(g,data=Clusters, level=0.8, lw=lw, ps=ps, fs=fs, 
+              if (nrow(Clusters)>1)
+                    g <- geom_cluster(g,data=Clusters, level=0.8, lw=lw, ps=ps, fs=fs, 
                               draw.contour=gcontour, draw.points=draw.points, draw.labels=draw.labels)
          }
    } else {
