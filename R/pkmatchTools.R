@@ -507,6 +507,6 @@ singletFinding <- function(bucketlist, lib="dbref6",  ppmtol=0.005)
             }
     }
     class(sident) <- append(class(sident),"annotclusters")
-    colnames(singlettab) <- colnames(singlets$annottab) <- c('VAR','NAME','PPM')
+    colnames(singlettab) <- colnames(annottab) <- c('VAR','NAME','PPM')
     list(singlets=singlets, sident=sident, singlettab=singlettab, annottab=annottab)
 }
