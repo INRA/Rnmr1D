@@ -383,7 +383,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
            idclust <- paste0('C',NBCLUST)
            ctab[,2] <- idclust
            clustertab <- rbind(clustertab, ctab)
-           clusters[[idclust]] <- ctab[,3]
+           clusters[[idclust]] <- as.numeric(ctab[,3])
            dfident <- rbind(dfident, c(cmpd,idclust))
        }
        
@@ -404,7 +404,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
            idclust <- paste0('C',NBCLUST)
            ctab[,2] <- idclust
            clustertab <- rbind(clustertab, ctab)
-           clusters[[idclust]] <- ctab[,3]
+           clusters[[idclust]] <- as.numeric(ctab[,3])
            dfident <- rbind(dfident, c(cmpd,idclust))
        }
 
@@ -425,7 +425,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
            idclust <- paste0('C',NBCLUST)
            ctab[,2] <- idclust
            clustertab <- rbind(clustertab, ctab)
-           clusters[[idclust]] <- ctab[,3]
+           clusters[[idclust]] <- as.numeric(ctab[,3])
            dfident <- rbind(dfident, c(cmpd,idclust))
        }
        class(dfident) <- append(class(dfident),"annotclusters")
@@ -439,7 +439,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
        idclust <- paste0('C',NBCLUST)
        CM1[,2] <- idclust
        clustertab <- rbind(clustertab, CM1)
-       clusters[[idclust]] <- CM1[,3]
+       clusters[[idclust]] <- as.numeric(CM1[,3])
        if (nrow(CM2))
           clust2$clustertab <- clust2$clustertab[ ! clust2$clustertab[,1] %in% CM2[,1], ,drop=F]
    }
@@ -452,7 +452,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
           idclust <- paste0('C',NBCLUST)
           CM2[,2] <- idclust
           clustertab <- rbind(clustertab, CM2)
-          clusters[[idclust]] <- CM2[,3]
+          clusters[[idclust]] <- as.numeric(CM2[,3])
        }
    }
    class(clusters) <- append(class(clusters), "clusters")
