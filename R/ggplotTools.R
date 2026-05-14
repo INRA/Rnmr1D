@@ -363,7 +363,7 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
 
   if (!fclust || (fclust && onlylabels)) {
       facpc <- 0.7 # threshold value for highlighting loadings
-      Loadings$change <- rep("nochange", dim(Loadings)[1])
+      Loadings$change <- rep("nochange", nrow(Loadings))
       Loadings$change[ Loadings$pc2 > facpc*max(Loadings$pc2) ] <- "UP.PC2"
       Loadings$change[ Loadings$pc2 < facpc*min(Loadings$pc2) ] <- "DOWN.PC2"
       Loadings$change[ Loadings$pc1 > facpc*max(Loadings$pc1) ] <- "UP.PC1"
@@ -382,8 +382,8 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
    }
    if (fclust) {
          if (onlylabels) { # Merged Clusters
-              L <- which( rownames(P) %in% associations[,2] )
-              Clusters <- data.frame( pc1 = P[L,1], pc2 = P[L,2], CLID = rownames(P)[L] )
+              L <- which( rownames(P) %in% associations[,1] )
+              Clusters <- data.frame( pc1 = P[L,1], pc2 = P[L,2], CLID = associations[L,2] )
               if (highlabels) {
                     g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, color="grey", size=3) +
                              ggplot2::geom_text(ggplot2::aes(x=pc1, y=pc2, label=CLID), data=Clusters, hjust=0.5,vjust=0.5, color="blue", size=3)
@@ -397,8 +397,7 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
               Clusters <- data.frame( pc1 = P[L,1], pc2 = P[L,2],
                               CLID = sapply(rownames(P)[L], function(x) { associations[which(associations[,1] == x),2] }) )
               g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, color="lightgrey", size=3, check_overlap = TRUE)
-              if (nrow(Clusters)>1)
-                    g <- geom_cluster(g,data=Clusters, level=0.8, lw=lw, ps=ps, fs=fs, 
+              g <- geom_cluster(g,data=Clusters, level=0.8, lw=lw, ps=ps, fs=fs, 
                               draw.contour=gcontour, draw.points=draw.points, draw.labels=draw.labels)
          }
    } else {
