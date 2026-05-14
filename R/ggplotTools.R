@@ -345,12 +345,13 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
 #' @param EV Eigenvalues vector
 #' @param associations the associations matrix that gives for each cluster (column 2) the corresponding buckets (column 1). See \code{getClusters}
 #' @param main Change the default plot title on the rigth corner
+#' @param gcontour type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'
 #' @param onlylabels if TRUE, put only the association names without drawing the cluster contours. Implies that association matrix is provided.
 #' @param highlabels if TRUE, put the the association names in blue, and others in grey. Implies that association matrix is provided and fONLYLABELS equal to TRUE.
-#' @param gcontour type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'
 #' @param fontsize font size for labels
 #' @param pointsize size of the points
-ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main="Loadings", onlylabels=FALSE, highlabels=FALSE, gcontour="ellipse", fontsize=4, pointsize=0.5 )
+#' @param textsize size of the title, x & y labels
+ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main="Loadings", gcontour="ellipse", onlylabels=FALSE, highlabels=FALSE,  fontsize=4, pointsize=0.5, textsize=18 )
 {
    P <- data[,c(pc1,pc2)]
    Loadings <- data.frame(IDS=rownames(P), pc1=P[,1], pc2=P[,2])
@@ -362,9 +363,10 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
    fclust <- (!is.null(associations))
    draw.points <- TRUE
    draw.labels <- TRUE
-   lw <- 0.3 # linewidth
    ps <- pointsize
    fs <- fontsize
+   ts <-textsize
+   lw <- 0.3 # linewidth
 
   if (!fclust || (fclust && onlylabels)) {
       facpc <- 0.7 # threshold value for highlighting loadings
@@ -378,10 +380,14 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
    g <- ggplot2::ggplot(Loadings, ggplot2::aes(x=pc1, y=pc2)) + ggplot2::ggtitle(main) +
          ggplot2::geom_hline(yintercept=0, color="red", linetype="dashed", , size=0.2) + 
          ggplot2::geom_vline(xintercept=0, color="red", linetype="dashed", , size=0.2) +
-         ggplot2::labs(x=xlabs, y=ylabs) + ggplot2::theme_light()
-
+         ggplot2::labs(x=xlabs, y=ylabs) + 
+         ggplot2::theme_light(plot.title = element_text(size = 16, face = "bold")) +
+         ggplot2::theme(plot.title = element_text(size = ts, face = "bold"), 
+                        axis.text.x = element_text(size = ts-2), axis.text.y = element_text(size = ts-2),
+                        axis.title.x = element_text(size = ts), axis.title.y = element_text(size = ts),
+                        legend.text=ggplot2::element_text(size=ts-2), text=ggplot2::element_text(size=ts-2))
    if (fclust && !onlylabels) {
-         g <- g + ggplot2::theme(legend.position="none", text=ggplot2::element_text(size=9), 
+         g <- g + ggplot2::theme(legend.position="none",
               panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(), 
               plot.margin=ggplot2::margin(t = 0, r = 0, b = 0, l = 0, unit = "pt"))
    }
@@ -406,7 +412,7 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
                               draw.contour=gcontour, draw.points=draw.points, draw.labels=draw.labels)
          }
    } else {
-         g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS, color=change),hjust=0.5,vjust=0.5, size=3)
+         g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS, color=change), hjust=0.5, vjust=0.5, size=fs)
    }
    g
 }
@@ -427,35 +433,44 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
 #' @param data the matrix of scores coming from a multivariable analysis, typically a Principal Component Analysis (PCA)
 #' @param pc1 the fist component of the matrix of variable loadings to be plotted.
 #' @param pc2 the second component of the matrix of variable loadings to be plotted.
-#' @param groups the vector defining the factorial groups (same dimension as data rows)
 #' @param EV Eigenvalues vector
+#' @param groups the vector defining the factorial groups (same dimension as data rows)
 #' @param main the plot main title
-#' @param glabels boolean indicating if labels have to be plotted
-#' @param psize point size
 #' @param gcontour type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'
+#' @param glabels boolean indicating if labels have to be plotted
+#' @param fontsize font size for labels
+#' @param pointsize size of the points
+#' @param textsize size of the title, x & y labels
 #' @param params parameters depending on the contour type
 #' @param colors array of colors
-ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores", glabels=FALSE, psize=3, gcontour="ellipse", params=list(cellipse=0.95), colors=NULL)
+ggplotScores <- function (data, pc1=1, pc2=2, EV=NULL, groups=NULL, main="Scores", gcontour="ellipse", glabels=FALSE, fontsize=4, pointsize=3, textsize=18, params=list(cellipse=0.95), colors=NULL)
 {
    S <- data[,c(pc1,pc2)]
    xlabs <- colnames(S)[1]; ylabs <- colnames(S)[2]
    if (! is.null(EV)) {
       xlabs <- paste0(xlabs," (",round(EV[pc1],2),"%)"); ylabs <- paste0(ylabs," (",round(EV[pc2],2),"%)")
    }
+   ts <- textsize
+   fs <- fontsize
+   psize <- pointsize
+   gtheme <- ggplot2::theme(plot.title = element_text(size = ts, face = "bold"), 
+                            axis.text.x = element_text(size = ts-2), axis.text.y = element_text(size = ts-2),
+                            axis.title.x = element_text(size = ts), axis.title.y = element_text(size = ts),
+                            legend.text=ggplot2::element_text(size=ts-2), text=ggplot2::element_text(size=ts-2))
    if (is.null(groups)) {
       Scores <- data.frame(IDS=rownames(S), pc1=S[,1], pc2=S[,2])
       g <- ggplot2::ggplot(Scores, ggplot2::aes(pc1, pc2)) + ggplot2::ggtitle(main) +
            ggplot2::geom_point() +
-           ggplot2::labs(x=xlabs, y=ylabs, colour = "") + ggplot2::theme_light() + 
+           ggplot2::labs(x=xlabs, y=ylabs) + ggplot2::theme_light() + gtheme +
            ggplot2::theme(legend.position="none", plot.margin=ggplot2::margin(t = 0, r = 0, b = 0, l = 0, unit = "pt") )
       IDS <- NULL
       if (glabels)
-           g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, size=3)
+           g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS), hjust=0.5, vjust=0.5, size=fs)
    } else {
       Scores <- data.frame(IDS=rownames(S), pc1=S[,1], pc2=S[,2], groups=groups)
       if (glabels) {
           g <- ggplot2::ggplot(Scores, ggplot2::aes(pc1, pc2, color = groups, fill = groups)) + 
-               ggplot2::geom_point() + ggplot2::geom_text(label=Scores$IDS, hjust=0.5,vjust=0.5, size=3)
+               ggplot2::geom_point() + ggplot2::geom_text(label=Scores$IDS, hjust=0.5,vjust=0.5, size=fs)
       } else {
           g <- ggplot2::ggplot(Scores, ggplot2::aes(pc1, pc2, shape=groups, color = groups, fill = groups)) +
                ggplot2::geom_point(size=psize)
@@ -475,8 +490,8 @@ ggplotScores <- function (data, pc1=1, pc2=2, groups=NULL, EV=NULL, main="Scores
           hulls <- plyr::ddply(Scores, "groups", .find_hull)
           g <- g + ggplot2::geom_polygon(data = hulls, ggplot2::aes(pc1, pc2, fill=factor(groups)), alpha = 0.2, show.legend=FALSE)
       }
-      g <- g + ggplot2::labs(x=xlabs, y=ylabs, color = "") + ggplot2::theme_light() + ggplot2::ggtitle(main) + 
-               ggplot2::theme(legend.text=ggplot2::element_text(size=9), plot.margin=ggplot2::margin(t = 0, r = 0, b = 0, l = 0, unit = "pt") )
+      g <- g + ggplot2::labs(x=xlabs, y=ylabs, color = "") + ggplot2::theme_light() + ggplot2::ggtitle(main) + gtheme +
+               ggplot2::theme(plot.margin=ggplot2::margin(t = 0, r = 0, b = 0, l = 0, unit = "pt") )
    }
    g
 }
