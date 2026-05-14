@@ -380,8 +380,7 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
    g <- ggplot2::ggplot(Loadings, ggplot2::aes(x=pc1, y=pc2)) + ggplot2::ggtitle(main) +
          ggplot2::geom_hline(yintercept=0, color="red", linetype="dashed", , size=0.2) + 
          ggplot2::geom_vline(xintercept=0, color="red", linetype="dashed", , size=0.2) +
-         ggplot2::labs(x=xlabs, y=ylabs) + 
-         ggplot2::theme_light(plot.title = element_text(size = 16, face = "bold")) +
+         ggplot2::labs(x=xlabs, y=ylabs) + ggplot2::theme_light() +
          ggplot2::theme(plot.title = element_text(size = ts, face = "bold"), 
                         axis.text.x = element_text(size = ts-2), axis.text.y = element_text(size = ts-2),
                         axis.title.x = element_text(size = ts), axis.title.y = element_text(size = ts),
