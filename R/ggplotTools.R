@@ -348,7 +348,9 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
 #' @param onlylabels if TRUE, put only the association names without drawing the cluster contours. Implies that association matrix is provided.
 #' @param highlabels if TRUE, put the the association names in blue, and others in grey. Implies that association matrix is provided and fONLYLABELS equal to TRUE.
 #' @param gcontour type of contour; possible values are : 'ellipse', 'polygon', 'ellipse2', 'none'
-ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main="Loadings", onlylabels=FALSE, highlabels=FALSE, gcontour="ellipse" )
+#' @param fontsize font size for labels
+#' @param pointsize size of the points
+ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main="Loadings", onlylabels=FALSE, highlabels=FALSE, gcontour="ellipse", fontsize=4, pointsize=0.5 )
 {
    P <- data[,c(pc1,pc2)]
    Loadings <- data.frame(IDS=rownames(P), pc1=P[,1], pc2=P[,2])
@@ -361,8 +363,8 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
    draw.points <- TRUE
    draw.labels <- TRUE
    lw <- 0.3 # linewidth
-   ps <- 0.5 # pointsize
-   fs <- 4   # fontsize
+   ps <- pointsize
+   fs <- fontsize
 
   if (!fclust || (fclust && onlylabels)) {
       facpc <- 0.7 # threshold value for highlighting loadings
