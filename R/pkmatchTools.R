@@ -469,7 +469,7 @@ clusterMerging <- function(clust1,clust2,dfident1=NULL,dfident2=NULL)
    cmpds <- sort(unique( annottab[ annottab[, 2] %in% dfident[,1], 2 ] ))
    V <- sapply(cmpds, function(cmpd){ length(annottab[annottab[,2] == cmpd, 3]) })
    cnames <- names(V)[which(V==1)]
-   annottab[ which(annottab[,2] %in% canmes), 2] <- dfident[ dfident[,1] %in% cnames, 2]
+   annottab[ which(annottab[,2] %in% cnames), 2] <- dfident[ dfident[,1] %in% cnames, 2]
    dfident <- dfident[ -which(dfident[,1] %in% cnames), ]
 
    list(clusters=clusters, clustertab=clustertab, dfident=dfident, annottab=annottab, params=list (  method='merging' ))
