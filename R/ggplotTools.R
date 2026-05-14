@@ -231,7 +231,7 @@ ggplotClusters <- function(data, clustObj)
 #    draw.points : if TRUE, draw the points
 #    draw.labels : if TRUE, draw the labels
 #    color.labels : specify a vector of colors for contours (NULL by default)
-geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size=2, npoints=50, 
+geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size=1, npoints=50, 
                          draw.contour="ellipse", draw.points=TRUE, draw.labels=TRUE, color.labels=NULL)
 {
     ## Compute confidence ellipses.
@@ -293,7 +293,9 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
     for( i in 1:length(subCL) ) {
        dfcl <- dfsub[dfsub$CLID==subCL[i],]
        dfct <- centroids[centroids$CLID==subCL[i],]
-       if (sum(subCL[i] %in% clustids[clustsize==2])) {
+       if (sum(subCL[i] %in% clustids[clustsize==1])) {
+           # do nothing
+       } else if (sum(subCL[i] %in% clustids[clustsize==2])) {
           if (draw.contour!="none")
               g <- g + ggplot2::geom_path(data=dfcl, color=dfct$color, alpha = 0.2)
        } else {
@@ -363,7 +365,7 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
 
   if (!fclust || (fclust && onlylabels)) {
       facpc <- 0.7 # threshold value for highlighting loadings
-      Loadings$change <- rep("nochange", nrow(Loadings))
+      Loadings$change <- rep("nochange", nrow(Loadings)[1])
       Loadings$change[ Loadings$pc2 > facpc*max(Loadings$pc2) ] <- "UP.PC2"
       Loadings$change[ Loadings$pc2 < facpc*min(Loadings$pc2) ] <- "DOWN.PC2"
       Loadings$change[ Loadings$pc1 > facpc*max(Loadings$pc1) ] <- "UP.PC1"
@@ -382,7 +384,7 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
    }
    if (fclust) {
          if (onlylabels) { # Merged Clusters
-              L <- which( rownames(P) %in% associations[,1] )
+              L <- which( associations[,1] %in% rownames(P) )
               Clusters <- data.frame( pc1 = P[L,1], pc2 = P[L,2], CLID = associations[L,2] )
               if (highlabels) {
                     g <- g + ggplot2::geom_text(ggplot2::aes(label=IDS),hjust=0.5,vjust=0.5, color="grey", size=3) +
