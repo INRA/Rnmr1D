@@ -315,7 +315,8 @@ geom_cluster <- function(g=NULL, data, level=0.8, lw=0.3, ps=0.5, fs=3, min.size
               g <- g + geom_encircle(data=dfcl, ggplot2::aes(x=pc1, y=pc2), fill=dfct$color, expand=0.01, s_shape=0.1, spread=0.04, alpha=0.2, colour="white")
 
        }
-       if (draw.points) g <- g + ggplot2::geom_point(ggplot2::aes(x=pc1, y=pc2), data=dfcl, color=dfct$color, size=ps)
+       if (draw.contour!="none" && draw.points)
+	      g <- g + ggplot2::geom_point(ggplot2::aes(x=pc1, y=pc2), data=dfcl, color=dfct$color, size=ps)
    }
    if (draw.labels) {
          thecolors <- centroids$color
