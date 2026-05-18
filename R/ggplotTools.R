@@ -381,9 +381,9 @@ ggplotLoadings <- function (data, pc1=1, pc2=2, EV=NULL, associations=NULL, main
          ggplot2::geom_hline(yintercept=0, color="red", linetype="dashed", , size=0.2) + 
          ggplot2::geom_vline(xintercept=0, color="red", linetype="dashed", , size=0.2) +
          ggplot2::labs(x=xlabs, y=ylabs) + ggplot2::theme_light() +
-         ggplot2::theme(plot.title = element_text(size = ts, face = "bold"), 
-                        axis.text.x = element_text(size = ts-2), axis.text.y = element_text(size = ts-2),
-                        axis.title.x = element_text(size = ts), axis.title.y = element_text(size = ts),
+         ggplot2::theme(plot.title = ggplot2::element_text(size = ts, face = "bold"), 
+                        axis.text.x = ggplot2::element_text(size = ts-2), axis.text.y = ggplot2::element_text(size = ts-2),
+                        axis.title.x = ggplot2::element_text(size = ts), axis.title.y = ggplot2::element_text(size = ts),
                         legend.text=ggplot2::element_text(size=ts-2), text=ggplot2::element_text(size=ts-2))
    if (fclust && !onlylabels) {
          g <- g + ggplot2::theme(legend.position="none",
@@ -452,9 +452,9 @@ ggplotScores <- function (data, pc1=1, pc2=2, EV=NULL, groups=NULL, main="Scores
    ts <- textsize
    fs <- fontsize
    psize <- pointsize
-   gtheme <- ggplot2::theme(plot.title = element_text(size = ts, face = "bold"), 
-                            axis.text.x = element_text(size = ts-2), axis.text.y = element_text(size = ts-2),
-                            axis.title.x = element_text(size = ts), axis.title.y = element_text(size = ts),
+   gtheme <- ggplot2::theme(plot.title = ggplot2::element_text(size = ts, face = "bold"), 
+                            axis.text.x = ggplot2::element_text(size = ts-2), axis.text.y = ggplot2::element_text(size = ts-2),
+                            axis.title.x = ggplot2::element_text(size = ts), axis.title.y = ggplot2::element_text(size = ts),
                             legend.text=ggplot2::element_text(size=ts-2), text=ggplot2::element_text(size=ts-2))
    if (is.null(groups)) {
       Scores <- data.frame(IDS=rownames(S), pc1=S[,1], pc2=S[,2])
