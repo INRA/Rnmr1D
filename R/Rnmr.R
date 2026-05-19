@@ -914,12 +914,12 @@ Spec1rProcpar <- list (
                 NUMBEROFSCANS=procpar$total_scans$value, DUMMYSCANS=procpar$x_prescans$value, PULSEWIDTH=procpar$x_pulse$value,
                 RELAXDELAY=procpar$relaxation_delay$value, SPINNINGRATE=procpar$spin_set$value, TD=procpar$x_points$value, 
                 SW=procpar$x_sweep$value/Header$Base_Freq[1], SWH=procpar$x_sweep$value, OFFSET=procpar$x_offset$value,
-                SFO1=procpar$irr_freq$value, O1=procpar$x_offset$value*Header$Base_Freq[1], GRPDLY=0 )
+                SFO1=procpar$x_freq$value, O1=procpar$x_offset$value*Header$Base_Freq[1], GRPDLY=0 )
    acq$TD <- length(fid)
 
    # Unit issues
    if (procpar$temp_set$Unit=="dC") acq$TEMP <- acq$TEMP + 273.15
-   if (procpar$irr_freq$value>1000000)  acq$SFO1 <- acq$SFO1/1000000
+   if (procpar$x_freq$value>1000000)  acq$SFO1 <- acq$SFO1/1000000
 
    # Group Delay : Internal or External
    if (Spec1rProcpar$JGD_INNER) {
@@ -1242,6 +1242,10 @@ Spec1rProcpar <- list (
        rawspec
     }
 
+    ### if User Group Delay
+    if (!is.null(param$GRPDLY) && param$GRPDLY>0)
+       spec$acq$GRPDLY <- param$GRPDLY
+
     # Compute the spectrum in freq. domain before zero filling
     spec$fid0 <- .groupDelay_correction(spec, param)
     rawspec <- transform2spec(spec$fid0)
@@ -1445,19 +1449,22 @@ Spec1rProcpar <- list (
    }
 
    # Adjust phc0 if PULSE is of type CP
+   pulse0 <- !is.null(spec$param$KSTART) && !is.null(spec$param$KSTOP)
    pulse1 <- length(grep(spec$param$CPREGEX, toupper(spec$acq$PULSE)))>0
    pulse2 <- length(grep("CPMG", toupper(spec$acq$PULSE)))>0
    pulse3 <- length(grep("NOESY", toupper(spec$acq$PULSE)))>0
    pulse4 <- length(grep("(proton.jxp|single_pulse.jxp)", tolower(spec$acq$PULSE)))>0
    pulse5 <- length(grep("ZGPR", toupper(spec$acq$PULSE)))>0
-   if (! spec$param$TSP && (pulse1 || pulse2 || pulse3 || pulse4 || pulse5)) {
-       if (pulse1 || pulse4) {
-           if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.15
-           if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.85
-       }
-       if (pulse2 || pulse3 || pulse5) {
-           if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.18
-           if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.47
+   if (! spec$param$TSP && (pulse0 || pulse1 || pulse2 || pulse3 || pulse4 || pulse5)) {
+       if (!pulse0) {
+           if (pulse1 || pulse4) {
+               if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.15
+               if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.85
+           }
+           if (pulse2 || pulse3 || pulse5) {
+               if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.18
+               if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.47
+           }
        }
        fspec <- stats::fft(spec$fid)
        m <- length(fspec); p <- ceiling(m/2)
@@ -1606,19 +1613,22 @@ Spec1rProcpar <- list (
       10000000*sum(sapply(n1:n2, function(k){ Y<-0.5*(a*k) + b; ifelse(Yre[k]<Y, (Y - Yre[k])*(Y - Yre[k]), 0) }))
    }
 
+   pulse0 <- !is.null(spec$param$KSTART) && !is.null(spec$param$KSTOP)
    pulse1 <- length(grep(spec$param$CPREGEX, toupper(spec$acq$PULSE)))>0
    pulse2 <- length(grep("CPMG", toupper(spec$acq$PULSE)))>0
    pulse3 <- length(grep("NOESY", toupper(spec$acq$PULSE)))>0
    pulse4 <- length(grep("(proton.jxp|single_pulse.jxp)", tolower(spec$acq$PULSE)))>0
    pulse5 <- length(grep("ZGPR", toupper(spec$acq$PULSE)))>0
-   if (pulse1 || pulse2 || pulse3 || pulse4 || pulse5) {
-      if (pulse1 || pulse4) {
-           if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.15
-           if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.85
-      }
-      if (pulse2 || pulse3 || pulse5) {
-           if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.18
-           if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.47
+   if (pulse0 || pulse1 || pulse2 || pulse3 || pulse4 || pulse5) {
+       if (!pulse0) {
+          if (pulse1 || pulse4) {
+               if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.15
+               if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.85
+          }
+          if (pulse2 || pulse3 || pulse5) {
+               if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.18
+               if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.47
+          }
       }
       fspec <- stats::fft(spec$fid)
       m <- length(fspec); p <- ceiling(m/2)
