@@ -56,6 +56,7 @@ Spec1rProcpar <- list (
     PDATA_DIR='pdata/1',       # subdirectory containing the 1r file (bruker's format only)
     CLEANUP_OUTPUT=TRUE,       # Clean up the final output objet
     CPREGEX='(^CP\\.|^CP$|\\.CP$)',  # Regex for CP pulses
+    JEOLPULSE='(proton.jxp|single_pulse.jxp)', # Regex for Jeol pulses
 
 ### PRE-PROCESSING - 1r
     ZF1R=FALSE,                # "ZeroFilling" on the 1r spectrum
@@ -252,7 +253,7 @@ Spec1rProcpar <- list (
       GRPDLY <- tryCatch({
                    group_delay_matrix[toString(DECIM), toString(DSPFVS)]
                 },  error = function(e) { 
-                  .estime_grpdelay(fid)
+                   tryCatch({ .estime_grpdelay(fid) },  error = function(e) { 0 })
                 })
    }
    if (is.null(GRPDLY) || is.na(GRPDLY) ||  length(GRPDLY)==0 || GRPDLY<0)  GRPDLY <- 0
@@ -1250,7 +1251,7 @@ Spec1rProcpar <- list (
     spec$fid0 <- .groupDelay_correction(spec, param)
     rawspec <- transform2spec(spec$fid0)
     spec$data0 <- rawspec
-   
+
     ### Zero filling
     if (param$ZEROFILLING) {
        TDMAX <- min(param$ZFFAC*td,param$PTMAX*1024)
@@ -1320,7 +1321,8 @@ Spec1rProcpar <- list (
 
 .zeroNegPeaks <- function(spec,Yre)
 {
-   Ythres <- -spec$param$KZEROTHRES*spec$B; n1 <- 0
+   Ythres <- -spec$param$KZEROTHRES*spec$B
+   n1 <- 0
    for (k in 1:length(Yre)) {
        if (Yre[k]<Ythres && n1==0) { n1 <- k; next }
        if (Yre[k]>Ythres && n1>0) {  Yre[n1:(k-1)] <- 0; n1 <- 0 }
@@ -1337,8 +1339,6 @@ Spec1rProcpar <- list (
    n <- round(length(Yre)/24)
    Yre <- Yre[n:(23*n)]
    if (spec$param$BLPHC>0) Yre <- Yre + rep(spec$B/4, length(Yre))
-   #x0 <- 0.5*(spec$pmax-spec$pmin) + spec$param$KZERO*c(-1,1)
-   #Yre[ round(length(Yre)*x0[1]/spec$acq$SW):round(length(Yre)*x0[2]/spec$acq$SW) ] <- 0
    Yre <- .zeroNegPeaks(spec,Yre)
    entropy <-  tryCatch({
          Fentropy(phc, Re(V),Im(V), spec$param$BLPHC, spec$param$BLPHC, spec$param$KSIG*spec$B, spec$param$GAMMA)
@@ -1442,7 +1442,8 @@ Spec1rProcpar <- list (
    CritID <- spec$param$OPTCRIT1
    if (spec$acq$NUC %in% c('1H','H1','31P')) {
        #V <- .capSolvent(spec,0);
-       V <- .maskNegPeaks(spec,C_corr_spec_re(list(re=Re(spec$data0),im=Im(spec$data0), phc0=best[["minimum"]], phc1=0)),0);
+       Y <- C_corr_spec_re(list(re=Re(spec$data0), im=Im(spec$data0), phc0=best[["minimum"]], phc1=0))
+       V <- tryCatch({ .maskNegPeaks(spec,Y,0) },  error = function(e) { spec$data0 })
        best2 <- stats::optimize(rms0, interval = c(-2*pi, 2*pi), maximum = FALSE, y = V, B=spec$B, type=crittype)
        L2 <- .checkPhc(spec, c(best2[["minimum"]],0), 0)
        if (L2$crit[CritID] < crit0[CritID]) { L <- L2; crit0 <- L2$crit }
@@ -1453,7 +1454,7 @@ Spec1rProcpar <- list (
    pulse1 <- length(grep(spec$param$CPREGEX, toupper(spec$acq$PULSE)))>0
    pulse2 <- length(grep("CPMG", toupper(spec$acq$PULSE)))>0
    pulse3 <- length(grep("NOESY", toupper(spec$acq$PULSE)))>0
-   pulse4 <- length(grep("(proton.jxp|single_pulse.jxp)", tolower(spec$acq$PULSE)))>0
+   pulse4 <- length(grep(spec$param$JEOLPULSE, tolower(spec$acq$PULSE)))>0
    pulse5 <- length(grep("ZGPR", toupper(spec$acq$PULSE)))>0
    if (! spec$param$TSP && (pulse0 || pulse1 || pulse2 || pulse3 || pulse4 || pulse5)) {
        if (!pulse0) {
@@ -1594,30 +1595,30 @@ Spec1rProcpar <- list (
    spec$param$BLPHC <-  0
    L <- .optimExec(spec, V, phc_init, CRITSTEP1, lopt); spec <- L$spec; lopt <- L$lopt
    if (spec$param$OPTSTEP && CRITSTEP1>0) {
-      phc <- c(spec$proc$phc0,spec$proc$phc1)
-      L <- .optimExec(spec, V, phc, CRITSTEP2, lopt); spec <- L$spec; lopt <- L$lopt
+       phc <- c(spec$proc$phc0,spec$proc$phc1)
+       L <- .optimExec(spec, V, phc, CRITSTEP2, lopt); spec <- L$spec; lopt <- L$lopt
    }
 
    # BLPHC>0
    spec$param$BLPHC <- BLPHC
    L <- .optimExec(spec, V, phc_init, CRITSTEP1, lopt); spec <- L$spec; lopt <- L$lopt
    if (spec$param$OPTSTEP && CRITSTEP1>0) {
-      phc <- c(spec$proc$phc0,spec$proc$phc1)
-      L <- .optimExec(spec, V, phc, CRITSTEP2, lopt); spec <- L$spec; lopt <- L$lopt
+       phc <- c(spec$proc$phc0,spec$proc$phc1)
+       L <- .optimExec(spec, V, phc, CRITSTEP2, lopt); spec <- L$spec; lopt <- L$lopt
    }
 
    sumneg <- function(par, y, n1, n2) {
-      Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=par[1], phc1=par[2]))
-      Yre <- Yrot$re
-      a <- (Yre[n2]-Yre[n1])/(n2-n1);  b <- (Yre[n1]*n2-Yre[n2]*n1)/(n2-n1)
-      10000000*sum(sapply(n1:n2, function(k){ Y<-0.5*(a*k) + b; ifelse(Yre[k]<Y, (Y - Yre[k])*(Y - Yre[k]), 0) }))
+       Yrot <- C_corr_spec_re(list(re=Re(y),im=Im(y), phc0=par[1], phc1=par[2]))
+       Yre <- Yrot$re
+       a <- (Yre[n2]-Yre[n1])/(n2-n1);  b <- (Yre[n1]*n2-Yre[n2]*n1)/(n2-n1)
+       10000000*sum(sapply(n1:n2, function(k){ Y<-0.5*(a*k) + b; ifelse(Yre[k]<Y, (Y - Yre[k])*(Y - Yre[k]), 0) }))
    }
 
    pulse0 <- !is.null(spec$param$KSTART) && !is.null(spec$param$KSTOP)
    pulse1 <- length(grep(spec$param$CPREGEX, toupper(spec$acq$PULSE)))>0
    pulse2 <- length(grep("CPMG", toupper(spec$acq$PULSE)))>0
    pulse3 <- length(grep("NOESY", toupper(spec$acq$PULSE)))>0
-   pulse4 <- length(grep("(proton.jxp|single_pulse.jxp)", tolower(spec$acq$PULSE)))>0
+   pulse4 <- length(grep(spec$param$JEOLPULSE, tolower(spec$acq$PULSE)))>0
    pulse5 <- length(grep("ZGPR", toupper(spec$acq$PULSE)))>0
    if (pulse0 || pulse1 || pulse2 || pulse3 || pulse4 || pulse5) {
        if (!pulse0) {
@@ -1629,27 +1630,27 @@ Spec1rProcpar <- list (
                if (is.null(spec$param$KSTART)) spec$param$KSTART <- 0.18
                if (is.null(spec$param$KSTOP))  spec$param$KSTOP  <- 0.47
           }
-      }
-      fspec <- stats::fft(spec$fid)
-      m <- length(fspec); p <- ceiling(m/2)
-      fspec <- c( fspec[(p+1):m], fspec[1:p] )
-      if ( spec$param$REVPPM ) fspec <- fspec[rev(1:m)]
-      n1 <- round(spec$param$KSTART*length(fspec))
-      n2 <- round(spec$param$KSTOP*length(fspec))
-      phc <- c(spec$proc$phc0, spec$proc$phc1)
-      nloop <- 0
-      while(nloop<3) {
-          best <- stats::optim(par=phc, fn=sumneg, method="Nelder-Mead", y = fspec,  n1=n1, n2=n2, control=list(maxit=200))
-          nloop <- nloop + 1
-          if (pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<3.14) break
-          if (!pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<1.571) break
-          phc <- c( stats::runif(1,0,3.14), stats::runif(1,-0.7854,0.7854) )
-      }
-      if (spec$param$DEBUG) .v("\n\t%d: KSTART = %1.2f , KSTOP = %1.2f, nloop = %d", 
-                                0, spec$param$KSTART, spec$param$KSTOP, nloop, logfile=spec$param$LOGFILE)
-      spec$proc$phc0 <- best$par[1]
-      spec$proc$phc1 <- best$par[2]
-      L <- .checkPhc(spec, c(spec$proc$phc0,spec$proc$phc1), 0)
+       }
+       fspec <- stats::fft(spec$fid)
+       m <- length(fspec); p <- ceiling(m/2)
+       fspec <- c( fspec[(p+1):m], fspec[1:p] )
+       if ( spec$param$REVPPM ) fspec <- fspec[rev(1:m)]
+       n1 <- round(spec$param$KSTART*length(fspec))
+       n2 <- round(spec$param$KSTOP*length(fspec))
+       phc <- c(spec$proc$phc0, spec$proc$phc1)
+       nloop <- 0
+       while(nloop<3) {
+           best <- stats::optim(par=phc, fn=sumneg, method="Nelder-Mead", y = fspec,  n1=n1, n2=n2, control=list(maxit=200))
+           nloop <- nloop + 1
+           if (pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<3.14) break
+           if (!pulse4 && abs(best$par[1])<9.425 && abs(best$par[2])<1.571) break
+           phc <- c( stats::runif(1,0,3.14), stats::runif(1,-0.7854,0.7854) )
+       }
+       if (spec$param$DEBUG) .v("\n\t%d: KSTART = %1.2f , KSTOP = %1.2f, nloop = %d", 
+                                 0, spec$param$KSTART, spec$param$KSTOP, nloop, logfile=spec$param$LOGFILE)
+       spec$proc$phc0 <- best$par[1]
+       spec$proc$phc1 <- best$par[2]
+       L <- .checkPhc(spec, c(spec$proc$phc0,spec$proc$phc1), 0)
    }
 
    if (spec$param$DEBUG) .v("\nBest solution: phc = (%3.6f, %3.6f)   ", spec$proc$phc0*180/pi, spec$proc$phc1*180/pi, logfile=spec$param$LOGFILE)
